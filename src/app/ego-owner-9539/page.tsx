@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getUltimateDashboardData, forceUpdateCafeSub, provisionNewCafe } from "../../actions/saas";
+import { getUltimateDashboardData, forceUpdateCafeSub, provisionNewCafe, updateCafeOwnerCredentials } from "../../actions/saas";
 import { 
   Building2, Receipt, ShieldCheck, AlertOctagon, Clock, Search, 
   ExternalLink, Calendar, CheckCircle2, XCircle, ChevronLeft, 
   DollarSign, Activity, Layers, RefreshCcw, Filter,
-  Plus, Sprout, Copy, Check, Sparkles // 👈 الأيقونات الجديدة للمعمل
+  Plus, Sprout, Copy, Check, Sparkles, UserCog // 👈 أضفنا UserCog هنا
 } from "lucide-react";
 
 export default function UltimateSuperAdminDashboard() {
@@ -19,6 +19,11 @@ export default function UltimateSuperAdminDashboard() {
   const [inspectedCafe, setInspectedCafe] = useState<any | null>(null);
   const [newDateInput, setNewDateInput] = useState("");
   const [newStatusInput, setNewStatusInput] = useState("");
+
+  // 🌟 حالات تعديل حساب المالك (Auth Credentials)
+  const [editOwnerEmail, setEditOwnerEmail] = useState("");
+  const [editOwnerPassword, setEditOwnerPassword] = useState("");
+  const [isUpdatingAuth, setIsUpdatingAuth] = useState(false);
 
   // 🌟 حالات معمل تفريخ المقاهي (SaaS Provisioning Factory)
   const [showFactory, setShowFactory] = useState(false);
@@ -47,6 +52,9 @@ export default function UltimateSuperAdminDashboard() {
     setInspectedCafe(cafe);
     setNewDateInput(cafe.subscription_ends_at ? cafe.subscription_ends_at.split('T')[0] : "");
     setNewStatusInput(cafe.subscription_status || "active");
+    // تعبئة إيميل المالك الحالي لتسهيل التعديل
+    setEditOwnerEmail(cafe.owner_email || "");
+    setEditOwnerPassword("");
   };
 
   const handleForceSave = async () => {
@@ -59,6 +67,26 @@ export default function UltimateSuperAdminDashboard() {
       setInspectedCafe(null);
     } else {
       alert("فشل التحديث السري.");
+    }
+  };
+
+  // 🔐 دالة تحديث حساب المالك (إيميل وباسورد)
+  const handleUpdateCredentials = async () => {
+    if (!inspectedCafe || !inspectedCafe.owner_auth_id) {
+      return alert("هذا المقهى لا يملك حساب مصادقة مربوط به (Auth ID مفقود)!");
+    }
+    if (!editOwnerEmail) return alert("البريد الإلكتروني مطلوب!");
+
+    setIsUpdatingAuth(true);
+    const res = await updateCafeOwnerCredentials(inspectedCafe.id, inspectedCafe.owner_auth_id, editOwnerEmail, editOwnerPassword);
+    setIsUpdatingAuth(false);
+
+    if (res.success) {
+      alert("تم تغيير بيانات دخول المالك بنجاح! 🔐");
+      setEditOwnerPassword(""); // تصفير حقل الباسورد للأمان
+      loadAll();
+    } else {
+      alert("فشل التحديث: " + res.error);
     }
   };
 
@@ -354,6 +382,26 @@ ${origin}/${res.cafe.slug}/kitchen
                 <button onClick={() => setInspectedCafe(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 text-slate-400"><ChevronLeft size={20}/></button>
               </div>
 
+              {/* 🔐 تعديل حساب المالك (Auth Credentials) */}
+              <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 mb-6 space-y-4">
+                <h4 className="text-sm font-bold text-emerald-400 uppercase font-mono tracking-wider flex items-center gap-2">
+                  <UserCog size={18} /> إدارة حساب المالك (Auth)
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-mono text-slate-400 mb-1">البريد الإلكتروني الجديد</label>
+                    <input type="email" value={editOwnerEmail} onChange={(e) => setEditOwnerEmail(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm font-mono text-white focus:outline-emerald-500 text-left" dir="ltr" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono text-slate-400 mb-1">كلمة المرور الجديدة</label>
+                    <input type="text" placeholder="اتركه فارغاً للتجاهل" value={editOwnerPassword} onChange={(e) => setEditOwnerPassword(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm font-mono text-white focus:outline-emerald-500 text-left placeholder:text-slate-600" dir="ltr" />
+                  </div>
+                </div>
+                <button disabled={isUpdatingAuth} onClick={handleUpdateCredentials} className="w-full py-3 bg-slate-800 hover:bg-emerald-500 hover:text-slate-950 text-emerald-400 font-bold rounded-xl text-sm transition-all active:scale-95 shadow-sm border border-emerald-500/20 disabled:opacity-50">
+                  {isUpdatingAuth ? "جاري تحديث الحساب..." : "تحديث بيانات الدخول 🔐"}
+                </button>
+              </div>
+
               {/* تحكم الطوارئ اليدوي (God Overrides) */}
               <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 mb-8 space-y-4">
                 <h4 className="text-sm font-bold text-amber-400 uppercase font-mono tracking-wider">⚡ تجاوزات النظام اليدوية (God Overrides)</h4>
@@ -410,7 +458,7 @@ ${origin}/${res.cafe.slug}/kitchen
             </div>
             
             <div className="pt-6 border-t border-slate-800 text-center font-mono text-[10px] text-slate-600 uppercase">
-              EgoCafe Core Database ID: {inspectedCafe.id}
+              EgoCafe Core Database ID: {inspectedCafe.id} | Owner Auth ID: {inspectedCafe.owner_auth_id}
             </div>
           </div>
         </div>

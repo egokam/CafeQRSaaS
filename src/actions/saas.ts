@@ -211,3 +211,28 @@ export async function provisionNewCafe(payload: {
     return { success: false, error: err.message };
   }
 }
+export async function updateCafeOwnerCredentials(cafeId: string, authUserId: string, newEmail?: string, newPassword?: string) {
+  try {
+    if (!authUserId) throw new Error("لا يوجد حساب مصادقة (Auth ID) مربوط بهذا المقهى.");
+
+    const updates: any = { email_confirm: true }; 
+    if (newEmail && newEmail.trim() !== '') updates.email = newEmail.trim();
+    if (newPassword && newPassword.trim() !== '') updates.password = newPassword.trim();
+
+    // 1. تحديث الحساب في محرك Supabase Auth
+    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(authUserId, updates);
+    if (authErr) throw authErr;
+
+    // 2. مزامنة الإيميل الجديد مع جدول cafes ليبقى الأرشيف محدثاً
+    if (updates.email) {
+      const { error: dbErr } = await supabaseAdmin.from('cafes').update({ owner_email: updates.email }).eq('id', cafeId);
+      if (dbErr) throw dbErr;
+    }
+
+    revalidatePath('/owner-portal-99');
+    return { success: true };
+  } catch (error: any) {
+    console.error("Auth Update Error:", error);
+    return { success: false, error: error.message };
+  }
+}

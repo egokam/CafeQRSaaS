@@ -13,6 +13,50 @@ import BillingTab from "../../../components/BillingTab";
 
 const CATEGORIES = ["القهوة", "الحلوى", "عصائر", "مخبوزات"];
 
+// 🌟 محرك ضغط الصور الصاروخي (WebP + 800px Max Width)
+const compressImageBeforeUpload = (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 800; // عرض مثالي جداً لشاشات القوائم
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error("Compression failed"));
+            const compressedFile = new File(
+              [blob], 
+              file.name.replace(/\.[^/.]+$/, "") + ".webp", 
+              { type: "image/webp", lastModified: Date.now() }
+            );
+            resolve(compressedFile);
+          },
+          "image/webp",
+          0.75 // 75% جودة بصرية
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug: string }> }) {
   const { cafeSlug } = use(params);
   
@@ -190,14 +234,19 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     setIsUploading(true);
     try {
       let finalImageUrl = undefined;
+      
       if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('products').upload(fileName, imageFile);
+        // 🌟 تمرير الصورة للمحرك لضغطها أولاً قبل الرفع
+        const optimizedFile = await compressImageBeforeUpload(imageFile);
+        const fileName = `${Date.now()}-${Math.random()}.webp`; // فرض امتداد webp الصاروخي
+
+        const { error: uploadError } = await supabase.storage.from('products').upload(fileName, optimizedFile);
         if (uploadError) throw uploadError;
+        
         const { data: publicUrlData } = supabase.storage.from('products').getPublicUrl(fileName);
         finalImageUrl = publicUrlData.publicUrl;
 
+        // مسح الصورة القديمة في حالة التعديل
         if (editingId) {
           const oldProduct = products.find(p => p.id === editingId);
           if (oldProduct && oldProduct.image_url) {
@@ -206,6 +255,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           }
         }
       }
+      
       const productData: any = { name_ar: name, name_en: nameEn, name_fr: nameFr, description_ar: description, price: parseFloat(price), category: category };
       if (finalImageUrl) productData.image_url = finalImageUrl;
 
@@ -407,7 +457,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       {activeTab === 'settings' && (
         <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in duration-300">
           
-          {/* 🌟 1. شاشة مراقبة الأسطول الحي (اللي نسيتي تحطها في الـ JSX) */}
+          {/* 🌟 1. شاشة مراقبة الأسطول الحي */}
           <div className="bg-white p-6 rounded-3xl border border-border shadow-sm flex flex-col sm:flex-row justify-between items-center gap-6">
             <div>
               <h3 className="font-extrabold text-lg mb-1 flex items-center gap-2">
