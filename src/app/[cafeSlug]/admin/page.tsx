@@ -2,7 +2,11 @@
 
 import { useState, useEffect, use } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Plus, Trash2, Image as ImageIcon, Loader2, QrCode, PackageSearch, Printer, Lock, Settings, Edit, X, AlertTriangle, CheckCircle2, CreditCard } from "lucide-react";
+import { 
+  Plus, Trash2, Image as ImageIcon, Loader2, QrCode, PackageSearch, 
+  Printer, Lock, Settings, Edit, X, AlertTriangle, CheckCircle2, 
+  CreditCard, TrendingUp, DollarSign, History, Calendar 
+} from "lucide-react";
 import QRCode from "react-qr-code";
 import { verifyPin, sendRecoveryEmail, verifyOtpAndUpdatePins, updateCafeSettings, adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../../actions/auth";
 import BillingTab from "../../../components/BillingTab";
@@ -35,6 +39,11 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
 
+  // 🌟 حالات الإحصائيات والمبيعات الشهرية
+  const [monthlyOrders, setMonthlyOrders] = useState<any[]>([]);
+  const [monthlyIncome, setMonthlyIncome] = useState(0);
+  const [isLoadingSales, setIsLoadingSales] = useState(false);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
@@ -45,15 +54,36 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // 🌟 حالات نظام الطاولات الذكي
   const [tableNum, setTableNum] = useState("");
   const [qrUrl, setQrUrl] = useState("");
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [qrReady, setQrReady] = useState(false);
 
   const fetchProducts = async (cId: string) => {
-    const { data, error } = await supabase.from('products').select('*').eq('cafe_id', cId);
-    if (!error && data) setProducts(data.reverse());
+    const { data } = await supabase.from('products').select('*').eq('cafe_id', cId);
+    if (data) setProducts(data.reverse());
+  };
+
+  // 🌟 دالة جلب مبيعات الشهر الحالي بالضبط
+  const fetchMonthlySales = async (cId: string) => {
+    setIsLoadingSales(true);
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, tables(table_number)')
+      .eq('cafe_id', cId)
+      .eq('status', 'completed') // الطلبات المنتهية فقط
+      .gte('created_at', startOfMonth)
+      .order('created_at', { ascending: false });
+
+    if (!error && data) {
+      setMonthlyOrders(data);
+      const total = data.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0);
+      setMonthlyIncome(total);
+    }
+    setIsLoadingSales(false);
   };
 
   useEffect(() => {
@@ -74,7 +104,11 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       if (cafeData.name) setCafeName(cafeData.name);
       if (cafeData.max_cashiers) setMaxCashiers(cafeData.max_cashiers.toString());
       
-      await fetchProducts(cafeData.id);
+      await Promise.all([
+        fetchProducts(cafeData.id),
+        fetchMonthlySales(cafeData.id) // جلب المبيعات مع البداية
+      ]);
+
       setIsLoading(false);
     };
     initAdmin();
@@ -101,9 +135,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         setIsLocked(true);
         alert("تم حظرك مؤقتاً. يرجى الانتظار دقيقة.");
         setTimeout(() => { setIsLocked(false); setAttempts(0); }, 60000);
-      } else {
-        alert(`الرمز غير صحيح ❌ (متبقي ${5 - newAttempts} محاولات)`);
-      }
+      } else alert(`الرمز غير صحيح ❌`);
     }
   };
 
@@ -197,37 +229,21 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
   const handleGenerateSmartQR = async () => {
     if (!tableNum || !cafeId) return;
-    
     setIsGeneratingQr(true);
     setQrReady(false);
-
     const formattedTableNumber = `table_${tableNum}`;
 
     try {
-      const { data: existingTable } = await supabase
-        .from('tables')
-        .select('id')
-        .eq('cafe_id', cafeId)
-        .eq('table_number', formattedTableNumber)
-        .single();
-
+      const { data: existingTable } = await supabase.from('tables').select('id').eq('cafe_id', cafeId).eq('table_number', formattedTableNumber).single();
       if (!existingTable) {
-        const { error: insertError } = await supabase
-          .from('tables')
-          .insert([{ cafe_id: cafeId, table_number: formattedTableNumber }]);
-        
+        const { error: insertError } = await supabase.from('tables').insert([{ cafe_id: cafeId, table_number: formattedTableNumber }]);
         if (insertError) throw insertError;
       }
-
       const baseUrl = window.location.origin;
       setQrUrl(`${baseUrl}/${cafeSlug}/${formattedTableNumber}`);
       setQrReady(true);
-    } catch (error) {
-      console.error("Error setting up table:", error);
-      alert("حدث خطأ أثناء فحص/إضافة الطاولة.");
-    } finally {
-      setIsGeneratingQr(false);
-    }
+    } catch (error) { alert("حدث خطأ أثناء فحص/إضافة الطاولة."); } 
+    finally { setIsGeneratingQr(false); }
   };
 
   const handlePrint = () => { window.print(); };
@@ -237,9 +253,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   if (isNotFound) {
     return (
       <div className="min-h-screen bg-muted/20 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
-        <div className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center mb-6 border border-red-200">
-          <AlertTriangle className="w-12 h-12 text-red-500" />
-        </div>
+        <div className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center mb-6 border border-red-200"><AlertTriangle className="w-12 h-12 text-red-500" /></div>
         <h1 className="text-4xl font-extrabold text-foreground mb-4">404 - المقهى غير موجود</h1>
         <p className="text-muted-foreground text-lg max-w-md font-medium">عذراً، الرابط الذي تحاول الوصول إليه غير صحيح.</p>
       </div>
@@ -282,19 +296,103 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     <div className="min-h-screen bg-muted/20 p-6 md:p-12 font-sans" dir="rtl">
       <style dangerouslySetInnerHTML={{__html: `@media print { body * { visibility: hidden; } #qr-print-area, #qr-print-area * { visibility: visible; } #qr-print-area { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 100%; text-align: center; } }`}} />
 
-      <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-border">
+      <header className="mb-8 flex flex-col xl:flex-row xl:items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-border gap-4">
         <div><h1 className="text-3xl font-extrabold text-foreground">لوحة تحكم المدير ⚙️</h1><p className="text-muted-foreground mt-1">التحكم الشامل في المقهى</p></div>
-        <div className="flex flex-wrap bg-muted p-1 rounded-xl mt-4 md:mt-0 gap-1">
-          <button onClick={() => setActiveTab('products')} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold ${activeTab === 'products' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><PackageSearch size={20} /> المنيو</button>
-          <button onClick={() => setActiveTab('qr')} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold ${activeTab === 'qr' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><QrCode size={20} /> الطاولات</button>
-          <button onClick={() => setActiveTab('settings')} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold ${activeTab === 'settings' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Settings size={20} /> الإعدادات</button>
+        <div className="flex flex-wrap bg-muted p-1 rounded-xl gap-1">
+          <button onClick={() => setActiveTab('products')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'products' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><PackageSearch size={18} /> المنيو</button>
+          <button onClick={() => setActiveTab('qr')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'qr' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><QrCode size={18} /> الطاولات</button>
           
-          {/* 🌟 التبويب الرابع الجديد */}
-          <button onClick={() => setActiveTab('billing')} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold ${activeTab === 'billing' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}>
-            <CreditCard size={20} /> الاشتراك والأداء 💳
+          {/* 🌟 التبويب الجديد للإحصائيات */}
+          <button onClick={() => { setActiveTab('sales'); cafeId && fetchMonthlySales(cafeId); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'sales' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground'}`}>
+            <TrendingUp size={18} /> المبيعات الشهرية 📈
           </button>
+
+          <button onClick={() => setActiveTab('settings')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'settings' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Settings size={18} /> الإعدادات</button>
+          <button onClick={() => setActiveTab('billing')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'billing' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><CreditCard size={18} /> الاشتراك والأداء 💳</button>
         </div>
       </header>
+
+      {/* 🌟 محتوى التبويب الجديد: المبيعات الشهرية */}
+      {activeTab === 'sales' && (
+        <div className="space-y-8 max-w-5xl mx-auto animate-in fade-in duration-200">
+          
+          {/* بطاقات المداخيل العلوية */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-muted-foreground block">مدخول الشهر الحالي</span>
+                <h3 className="text-3xl font-black text-emerald-600 mt-1">{monthlyIncome.toFixed(2)} <span className="text-sm font-bold text-muted-foreground">MAD</span></h3>
+              </div>
+              <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0"><DollarSign size={28}/></div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-muted-foreground block">الطلبات المنجزة بنجاح</span>
+                <h3 className="text-3xl font-black text-foreground mt-1">{monthlyOrders.length} <span className="text-sm font-bold text-muted-foreground">طلب</span></h3>
+              </div>
+              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shrink-0"><CheckCircle2 size={28}/></div>
+            </div>
+
+            <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-muted-foreground block">متوسط صرف الزبون</span>
+                <h3 className="text-3xl font-black text-primary mt-1">
+                  {monthlyOrders.length > 0 ? (monthlyIncome / monthlyOrders.length).toFixed(2) : "0.00"} <span className="text-sm font-bold text-muted-foreground">MAD</span>
+                </h3>
+              </div>
+              <div className="p-4 bg-primary/10 text-primary rounded-2xl shrink-0"><TrendingUp size={28}/></div>
+            </div>
+          </div>
+
+          {/* جدول مبيعات الشهر */}
+          <div className="bg-white p-6 lg:p-8 rounded-3xl border shadow-sm">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b">
+              <div>
+                <h3 className="font-extrabold text-xl">سجل مبيعات شهر {new Date().toLocaleString('ar-MA', { month: 'long' })}</h3>
+                <p className="text-xs text-muted-foreground mt-1">الطلبات المدفوعة والمستلمة فقط</p>
+              </div>
+              <button onClick={() => cafeId && fetchMonthlySales(cafeId)} className="p-2.5 bg-muted rounded-xl hover:bg-gray-200 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                <History size={16}/> تحديث السجل
+              </button>
+            </div>
+
+            {isLoadingSales ? (
+              <div className="py-12 text-center font-bold text-muted-foreground">جاري حساب المداخيل...</div>
+            ) : monthlyOrders.length === 0 ? (
+              <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-2xl font-bold">
+                لا توجد مبيعات مكتملة في هذا الشهر حتى الآن.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                {monthlyOrders.map((ord) => (
+                  <div key={ord.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/15 border rounded-2xl gap-3 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-start gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black shrink-0 text-lg">
+                        ✓
+                      </div>
+                      <div>
+                        <div className="font-extrabold text-sm flex items-center gap-2">
+                          <span>طاولة {ord.tables?.table_number?.replace('table_', '') || 'مباشر (POS)'}</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">#{ord.id.split('-')[0]}</span>
+                        </div>
+                        <div className="text-xs text-muted-foreground font-bold mt-1 leading-relaxed">
+                          {ord.items.map((it:any) => `${it.quantity}x ${it.name_ar}`).join(' + ')}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex sm:flex-col items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
+                      <span className="text-base font-black text-emerald-600 font-mono">{Number(ord.total_amount).toFixed(2)} MAD</span>
+                      <span className="text-[10px] font-mono text-muted-foreground">{new Date(ord.created_at).toLocaleString('ar-MA')}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {activeTab === 'settings' && (
         <div className="bg-white p-10 rounded-3xl shadow-sm border border-border max-w-xl mx-auto">
@@ -356,32 +454,16 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
       {activeTab === 'qr' && (
         <div className="bg-white p-10 rounded-3xl shadow-sm border border-border flex flex-col items-center max-w-2xl mx-auto mt-10 text-center">
-          <div className="bg-primary/10 p-4 rounded-full text-primary mb-4">
-            <QrCode size={48} />
-          </div>
+          <div className="bg-primary/10 p-4 rounded-full text-primary mb-4"><QrCode size={48} /></div>
           <h2 className="text-2xl font-bold mb-2">تسجيل الطاولات وتوليد الـ QR</h2>
           <p className="text-muted-foreground mb-6 text-sm">أدخل رقم الطاولة لتسجيلها في النظام وتوليد الكود الخاص بها.</p>
           
           <div className="flex flex-col w-full max-w-sm gap-4 mb-8">
             <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-2xl w-full border">
               <label className="font-bold text-lg whitespace-nowrap">رقم الطاولة :</label>
-              <input 
-                type="number" 
-                value={tableNum} 
-                onChange={(e) => {
-                  setTableNum(e.target.value);
-                  setQrReady(false);
-                }} 
-                className="border rounded-xl p-3 w-full text-center font-bold text-xl bg-white focus:outline-primary" 
-                min="1"
-              />
+              <input type="number" value={tableNum} onChange={(e) => {setTableNum(e.target.value); setQrReady(false);}} className="border rounded-xl p-3 w-full text-center font-bold text-xl bg-white focus:outline-primary" min="1"/>
             </div>
-            
-            <button 
-              onClick={handleGenerateSmartQR}
-              disabled={isGeneratingQr || !tableNum}
-              className="bg-primary text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 hover:bg-primary/90 disabled:opacity-50 transition-colors"
-            >
+            <button onClick={handleGenerateSmartQR} disabled={isGeneratingQr || !tableNum} className="bg-primary text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 hover:bg-primary/90 disabled:opacity-50 transition-colors">
               {isGeneratingQr ? <><Loader2 className="animate-spin" size={20} /> جاري المعالجة...</> : <><CheckCircle2 size={20} /> إنشاء الكود وحفظ الطاولة</>}
             </button>
           </div>
@@ -391,20 +473,15 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
               <div id="qr-print-area" className="bg-white p-10 rounded-3xl border-4 border-foreground w-full max-w-md animate-in zoom-in duration-300">
                 <h3 className="text-3xl font-extrabold mb-2">{cafeName || "المقهى"}</h3>
                 <p className="text-lg font-bold text-primary mb-8 border-b-2 pb-4">طاولة رقم {tableNum}</p>
-                <div className="p-4 inline-block">
-                  <QRCode value={qrUrl} size={220} level="H" />
-                </div>
+                <div className="p-4 inline-block"><QRCode value={qrUrl} size={220} level="H" /></div>
                 <p className="mt-8 text-lg font-bold">امسح الكود لطلب مشروبك ☕</p>
               </div>
-              <button onClick={handlePrint} className="mt-8 bg-foreground text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 text-lg hover:scale-105 transition-transform">
-                <Printer size={24} /> طباعة الكود
-              </button>
+              <button onClick={handlePrint} className="mt-8 bg-foreground text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 text-lg hover:scale-105 transition-transform"><Printer size={24} /> طباعة الكود</button>
             </>
           )}
         </div>
       )}
 
-      {/* 🌟 محتوى التبويب الرابع الجديد */}
       {activeTab === 'billing' && (
         <BillingTab cafeId={cafeId!} cafeName={cafeName} />
       )}

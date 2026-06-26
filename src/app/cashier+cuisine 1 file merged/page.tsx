@@ -19,7 +19,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [isLocked, setIsLocked] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
-  // 🌟 حالات المنع والحماية
+  // 🌟 حالات الحماية والمنع
   const [isSessionFull, setIsSessionFull] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
 
@@ -59,7 +59,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     const initCafe = async () => {
       setIsLoading(true);
 
-      // 💀 1. فحص اشتراك الـ SaaS
+      // 💀 1. التحقق الفوري من اشتراك الـ SaaS
       const subCheck = await checkCafeSubscription(cafeSlug);
       if (!subCheck.isValid) {
         setIsSuspended(true);
@@ -73,7 +73,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       setCafeId(cafeData.id);
       setCafeDataObj(cafeData);
 
-      // جلب المنتجات والطاولات المتاحة للـ POS اليدوي
+      // 🌟 جلب المنتجات والطاولات المتاحة لاستخدامها في الكاشير اليدوي
       const [pRes, tRes] = await Promise.all([
         supabase.from('products').select('*').eq('cafe_id', cafeData.id).eq('is_active', true),
         supabase.from('tables').select('id, table_number').eq('cafe_id', cafeData.id)
@@ -91,7 +91,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     initCafe();
   }, [cafeSlug]);
 
-  // 📡 المراقبة الحية + النبض الصامت (Heartbeat)
+  // 📡 محرك الحماية والقلب الصامت (Heartbeat)
   useEffect(() => {
     if (!isAuthenticated || !cafeDataObj) return;
 
@@ -103,12 +103,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     }, 60000);
 
     const ordersChannel = supabase.channel(`live-orders-${cafeDataObj.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `cafe_id=eq.${cafeDataObj.id}` }, (payload: any) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `cafe_id=eq.${cafeDataObj.id}` }, (payload) => {
         fetchOrders(cafeDataObj.id);
-        // التنبيه الصوتي إما لطلب جديد أو لطلب أصبح جاهزاً من طرف المطبخ
-        if (payload.eventType === 'INSERT' || (payload.new && payload.new.status === 'ready')) {
-          new Audio('/bell.mp3').play().catch(() => {});
-        }
+        if (payload.eventType === 'INSERT') new Audio('/bell.mp3').play().catch(() => {});
       }).subscribe();
 
     let myTabId = sessionStorage.getItem('cashier_tab_id');
@@ -194,7 +191,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     setTimeout(() => { window.print(); }, 150);
   };
 
-  // 🌟 دوال إدارة سلة الـ POS اليدوية
+  // 🌟 دوال التحكم في سلة الـ POS اليدوية
   const addToPos = (prod: any) => {
     setPosCart(prev => {
       const curr = prev[prod.id];
@@ -225,10 +222,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       const dummySession = "manual_pos_" + Date.now();
       const totalAmount = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
 
-      // يرسل مقبولاً (accepted) مباشرة لكي يراه المطبخ فوراً دون مراجعة ثانية
       const { error } = await supabase.from('orders').insert([{
         cafe_id: cafeId, table_id: selectedTableId, session_id: dummySession,
-        items: cartItems, total_amount: totalAmount, status: 'accepted'
+        items: cartItems, total_amount: totalAmount, status: 'accepted' // مقبول تلقائياً حيت الكاشير اللي دخلو
       }]);
 
       if (error) throw error;
@@ -291,14 +287,14 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       
       <div className="min-h-screen bg-muted/20 p-6 md:p-12 no-print font-sans" dir="rtl">
         
-        {/* هيدر الكاشير الفخم */}
+        {/* 🌟 الهيدر التفاعلي الجديد المجهز بـ POS */}
         <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-border gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"/>
               <span className="text-[11px] font-bold font-mono tracking-wider text-emerald-600 uppercase">Live POS Terminal</span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight">شاشة الكاشير وإدارة الطلبات 💳</h1>
+            <h1 className="text-3xl font-black tracking-tight">شاشة الكاشير والمطبخ 👨‍🍳</h1>
           </div>
           
           <button 
@@ -310,12 +306,12 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </button>
         </header>
 
-        {/* نافذة تسجيل الطلبات المباشرة (POS Modal Drawer) */}
+        {/* 🌟 نافذة إدخال الطلبات المباشرة (POS Modal Drawer) */}
         {showPOS && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-5xl h-[88vh] rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-border">
               
-              {/* قائمة الأصناف السريعة */}
+              {/* يمين النافذة: منتجات القهوة (70%) */}
               <div className="flex-1 flex flex-col bg-slate-50/60 p-6 overflow-hidden order-2 md:order-1">
                 <div className="flex items-center justify-between pb-4 mb-4 border-b">
                   <h3 className="font-black text-xl flex items-center gap-2"><UtensilsCrossed className="text-primary" size={22}/> المنيو السريع</h3>
@@ -343,7 +339,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 </div>
               </div>
 
-              {/* تذكرة الطلب */}
+              {/* يسار النافذة: التذكرة (30%) */}
               <div className="w-full md:w-88 bg-white p-6 flex flex-col justify-between border-r order-1 md:order-2 shadow-lg z-10">
                 <div>
                   <div className="flex justify-between items-center mb-6">
@@ -400,7 +396,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </div>
         )}
 
-        {/* شبكة الطلبات الحية */}
+        {/* 🌟 شبكة الطلبات النشطة */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {orders.length === 0 ? (
             <div className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed p-10">
@@ -409,51 +405,20 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
               <p className="text-xs text-muted-foreground/70 mt-1">امسح الـ QR أو اضغط على [+ تسجيل طلب مباشر] فوق لإنشاء طلب جديد</p>
             </div>
           ) : orders.map((order) => (
-            <div key={order.id} className={`bg-white rounded-[2rem] p-6 shadow-sm border-2 ${order.status === 'pending' ? 'border-yellow-400' : order.status === 'accepted' ? 'border-blue-400' : 'border-green-400 animate-pulse'}`}>
+            <div key={order.id} className={`bg-white rounded-[2rem] p-6 shadow-sm border-2 ${order.status === 'pending' ? 'border-yellow-400' : order.status === 'accepted' ? 'border-blue-400' : 'border-green-400'}`}>
               <div className="flex justify-between items-start mb-6 border-b pb-4">
-                <div>
-                  <h2 className="text-2xl font-extrabold">طاولة {order.tables?.table_number?.replace('table_', '')}</h2>
-                  <p className="text-xs font-bold text-muted-foreground mt-1">#{order.id.split('-')[0]}</p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <span className="text-xl font-black text-primary">{formatMAD(order.total_amount)}</span>
-                  <button onClick={() => handlePrintReceipt(order)} className="flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-xl text-sm font-bold"><Printer size={16} /> طباعة</button>
-                </div>
+                <div><h2 className="text-2xl font-extrabold">طاولة {order.tables?.table_number?.replace('table_', '')}</h2><p className="text-xs font-bold text-muted-foreground mt-1">#{order.id.split('-')[0]}</p></div>
+                <div className="flex flex-col items-end gap-2"><span className="text-xl font-black text-primary">{formatMAD(order.total_amount)}</span><button onClick={() => handlePrintReceipt(order)} className="flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-xl text-sm font-bold"><Printer size={16} /> طباعة</button></div>
               </div>
-
               <div className="space-y-2 mb-8 min-h-[120px]">
                 {order.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-center bg-muted/30 p-2.5 rounded-xl border">
-                    <div className="flex items-center gap-3">
-                      <span className="bg-primary text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold text-sm">x{item.quantity}</span>
-                      <span className="font-bold">{item.name_ar}</span>
-                    </div>
-                    <button onClick={() => markOutOfStock(item.id, item.name_ar)} className="text-red-500 bg-red-50 p-2 rounded-lg hover:bg-red-500 hover:text-white"><AlertOctagon size={18} /></button>
-                  </div>
+                  <div key={idx} className="flex justify-between items-center bg-muted/30 p-2.5 rounded-xl border"><div className="flex items-center gap-3"><span className="bg-primary text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold text-sm">x{item.quantity}</span><span className="font-bold">{item.name_ar}</span></div><button onClick={() => markOutOfStock(item.id, item.name_ar)} className="text-red-500 bg-red-50 p-2 rounded-lg hover:bg-red-500 hover:text-white"><AlertOctagon size={18} /></button></div>
                 ))}
               </div>
-
-              {/* أزرار الحسم المفصولة عن المطبخ */}
               <div className="grid grid-cols-2 gap-3 mt-auto">
-                {order.status === 'pending' && (
-                  <>
-                    <button onClick={() => updateOrderStatus(order.id, 'accepted')} className="bg-foreground text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 active:scale-95 transition-transform"><Check size={18} /> قبول</button>
-                    <button onClick={() => updateOrderStatus(order.id, 'rejected')} className="bg-red-50 text-red-600 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition-colors"><X size={18} /> رفض</button>
-                  </>
-                )}
-
-                {order.status === 'accepted' && (
-                  <div className="col-span-2 bg-blue-50 text-blue-700 py-4 rounded-xl font-bold flex justify-center items-center gap-2 border border-blue-200 select-none">
-                    <Clock className="animate-spin text-blue-500" size={18} /> 
-                    <span>جاري التحضير في المطبخ... 👨‍🍳</span>
-                  </div>
-                )}
-
-                {order.status === 'ready' && (
-                  <button onClick={() => updateOrderStatus(order.id, 'completed')} className="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-base flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
-                    <Check size={22} /> إنهاء الطلب 
-                  </button>
-                )}
+                {order.status === 'pending' && <><button onClick={() => updateOrderStatus(order.id, 'accepted')} className="bg-foreground text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2"><Check size={18} /> قبول</button><button onClick={() => updateOrderStatus(order.id, 'rejected')} className="bg-red-50 text-red-600 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2"><X size={18} /> رفض</button></>}
+                {order.status === 'accepted' && <button onClick={() => updateOrderStatus(order.id, 'ready')} className="col-span-2 bg-primary text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2"><ChefHat size={20} /> جاهز للتقديم</button>}
+                {order.status === 'ready' && <button onClick={() => updateOrderStatus(order.id, 'completed')} className="col-span-2 bg-green-500 text-white py-4 rounded-xl font-bold flex justify-center items-center gap-2"><Check size={20} /> إنهاء الطلب</button>}
               </div>
             </div>
           ))}

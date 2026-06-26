@@ -176,6 +176,25 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     return () => { supabase.removeChannel(channel); };
   }, [isTableNotFound, isCafeNotFound, isSuspended]);
 
+  // 💓 نبض الساس الصامت للكليان: يتأكد كل 60 ثانية أن المقهى مازال مخلص
+  useEffect(() => {
+    // إذا كان أصلاً حابس، ما كاين لاش نزيدو نراقبوه
+    if (isSuspended || isCafeNotFound || isTableNotFound) return;
+
+    const heartbeat = setInterval(async () => {
+      try {
+        const liveCheck = await checkCafeSubscription(cafeSlug);
+        if (!liveCheck.isValid) {
+          setIsSuspended(true); // تفجير شاشة الصيانة الملكية في وجه الكليان فوراً!
+        }
+      } catch (error) {
+        console.error("Heartbeat error:", error);
+      }
+    }, 60000); // كل دقيقة
+
+    return () => clearInterval(heartbeat);
+  }, [cafeSlug, isSuspended, isCafeNotFound, isTableNotFound]);
+
   const handleCheckout = () => {
     if (totalItems() === 0 || !cafeData || !tableId) return;
     setIsSubmitting(true);
