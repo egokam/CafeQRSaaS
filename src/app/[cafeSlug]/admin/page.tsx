@@ -2,9 +2,10 @@
 
 import { useState, useEffect, use } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Plus, Trash2, Image as ImageIcon, Loader2, QrCode, PackageSearch, Printer, Lock, Settings, Edit, X, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Image as ImageIcon, Loader2, QrCode, PackageSearch, Printer, Lock, Settings, Edit, X, AlertTriangle, CheckCircle2, CreditCard } from "lucide-react";
 import QRCode from "react-qr-code";
 import { verifyPin, sendRecoveryEmail, verifyOtpAndUpdatePins, updateCafeSettings, adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../../actions/auth";
+import BillingTab from "../../../components/BillingTab";
 
 const CATEGORIES = ["القهوة", "الحلوى", "عصائر", "مخبوزات"];
 
@@ -194,7 +195,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // 🌟 دالة توليد الطاولات الذكية
   const handleGenerateSmartQR = async () => {
     if (!tableNum || !cafeId) return;
     
@@ -204,15 +204,13 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     const formattedTableNumber = `table_${tableNum}`;
 
     try {
-      // 1. فحص هل الطاولة موجودة أصلاً؟
-      const { data: existingTable, error: fetchError } = await supabase
+      const { data: existingTable } = await supabase
         .from('tables')
         .select('id')
         .eq('cafe_id', cafeId)
         .eq('table_number', formattedTableNumber)
         .single();
 
-      // 2. إذا لم تكن موجودة، نقوم بإنشائها فوراً!
       if (!existingTable) {
         const { error: insertError } = await supabase
           .from('tables')
@@ -221,10 +219,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         if (insertError) throw insertError;
       }
 
-      // 3. بناء الرابط الذكي (يعمل على localhost أو الدومين الحقيقي)
       const baseUrl = window.location.origin;
       setQrUrl(`${baseUrl}/${cafeSlug}/${formattedTableNumber}`);
-      
       setQrReady(true);
     } catch (error) {
       console.error("Error setting up table:", error);
@@ -292,6 +288,11 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           <button onClick={() => setActiveTab('products')} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold ${activeTab === 'products' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><PackageSearch size={20} /> المنيو</button>
           <button onClick={() => setActiveTab('qr')} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold ${activeTab === 'qr' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><QrCode size={20} /> الطاولات</button>
           <button onClick={() => setActiveTab('settings')} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold ${activeTab === 'settings' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Settings size={20} /> الإعدادات</button>
+          
+          {/* 🌟 التبويب الرابع الجديد */}
+          <button onClick={() => setActiveTab('billing')} className={`flex items-center gap-2 px-6 py-3 rounded-lg font-bold ${activeTab === 'billing' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}>
+            <CreditCard size={20} /> الاشتراك والأداء 💳
+          </button>
         </div>
       </header>
 
@@ -353,7 +354,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         </div>
       )}
 
-      {/* 🌟 تبويب الـ QR الذكي الجديد */}
       {activeTab === 'qr' && (
         <div className="bg-white p-10 rounded-3xl shadow-sm border border-border flex flex-col items-center max-w-2xl mx-auto mt-10 text-center">
           <div className="bg-primary/10 p-4 rounded-full text-primary mb-4">
@@ -370,14 +370,13 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
                 value={tableNum} 
                 onChange={(e) => {
                   setTableNum(e.target.value);
-                  setQrReady(false); // إخفاء الـ QR القديم فور كتابة رقم جديد
+                  setQrReady(false);
                 }} 
                 className="border rounded-xl p-3 w-full text-center font-bold text-xl bg-white focus:outline-primary" 
                 min="1"
               />
             </div>
             
-            {/* الزر السحري الجديد */}
             <button 
               onClick={handleGenerateSmartQR}
               disabled={isGeneratingQr || !tableNum}
@@ -387,7 +386,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
             </button>
           </div>
 
-          {/* مساحة الطباعة لا تظهر إلا بعد نجاح إنشاء الطاولة */}
           {qrReady && (
             <>
               <div id="qr-print-area" className="bg-white p-10 rounded-3xl border-4 border-foreground w-full max-w-md animate-in zoom-in duration-300">
@@ -405,6 +403,12 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           )}
         </div>
       )}
+
+      {/* 🌟 محتوى التبويب الرابع الجديد */}
+      {activeTab === 'billing' && (
+        <BillingTab cafeId={cafeId!} cafeName={cafeName} />
+      )}
+
     </div>
   );
 }

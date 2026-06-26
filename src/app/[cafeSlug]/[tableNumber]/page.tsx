@@ -5,6 +5,7 @@ import { useCart } from "../../../store/useCart";
 import MenuCard from "../../../components/MenuCard";
 import { Receipt, X as XIcon, Clock, CheckCircle, Coffee, CakeSlice, CupSoda, Croissant, AlertTriangle, QrCode } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
+import { checkCafeSubscription } from "../../../actions/saas";
 
 const TRANSLATIONS: Record<string, any> = {
   ar: {
@@ -87,9 +88,10 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🌟 دروع الخطأ الجديدة
+  // 🌟 دروع الحماية والأخطاء
   const [isTableNotFound, setIsTableNotFound] = useState(false);
   const [isCafeNotFound, setIsCafeNotFound] = useState(false);
+  const [isSuspended, setIsSuspended] = useState(false); // 💀 حالة انتهاء الاشتراك
 
   const displayTitle = cafeData?.name ? cafeData.name : (activeLang === 'ar' ? "مقهى النخبة" : activeLang === 'fr' ? "Café Élite" : "Elite Cafe");
 
@@ -106,8 +108,24 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         setIsLoading(true);
         setIsTableNotFound(false);
         setIsCafeNotFound(false);
+        setIsSuspended(false);
 
-        // 1. التحقق من وجود المقهى
+        // 💀 1. الاستشعار الفوري لحالة اشتراك الـ SaaS
+        const subCheck = await checkCafeSubscription(cafeSlug);
+        
+        if (subCheck.status === 'not_found') {
+          setIsCafeNotFound(true);
+          setIsLoading(false);
+          return;
+        }
+
+        if (!subCheck.isValid) {
+          setIsSuspended(true); // تفعيل درع الصيانة وقطع الخدمة
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. التحقق من وجود المقهى
         const { data: cData } = await supabase.from('cafes').select('id, name, latitude, longitude').eq('slug', cafeSlug).single();
         if (!cData) { 
           setIsCafeNotFound(true);
@@ -116,18 +134,18 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         }
         setCafeData(cData);
 
-        // 2. التحقق الفاصل: هل هذه الطاولة موجودة فعلياً في قاعدة البيانات؟
+        // 3. التحقق الفاصل: هل هذه الطاولة موجودة فعلياً في قاعدة البيانات؟
         const { data: tData } = await supabase.from('tables').select('id').eq('cafe_id', cData.id).eq('table_number', tableNumber).single();
         
         if (!tData) {
-          setIsTableNotFound(true); // تفجير شاشة منع الدخول للطاولة الوهمية
+          setIsTableNotFound(true); 
           setIsLoading(false);
           return;
         }
 
         setTableId(tData.id);
 
-        // 3. جلب المنتجات والطلبات فقط إذا نجح التحقق
+        // 4. جلب المنتجات والطلبات فقط إذا نجحت جميع الاختبارات الأمنية
         const { data: pData } = await supabase.from('products').select('*').eq('cafe_id', cData.id).eq('is_active', true);
         if (pData) setProducts(pData);
 
@@ -149,14 +167,14 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   useEffect(() => {
     const sessionId = localStorage.getItem('cafe_lux_client_session');
-    if (!sessionId || isTableNotFound || isCafeNotFound) return;
+    if (!sessionId || isTableNotFound || isCafeNotFound || isSuspended) return;
     
     const channel = supabase.channel(`client-orders-${sessionId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` }, 
       () => { fetchUserOrders(sessionId); }).subscribe();
       
     return () => { supabase.removeChannel(channel); };
-  }, [isTableNotFound, isCafeNotFound]);
+  }, [isTableNotFound, isCafeNotFound, isSuspended]);
 
   const handleCheckout = () => {
     if (totalItems() === 0 || !cafeData || !tableId) return;
@@ -215,6 +233,22 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center font-bold text-foreground">جاري التحميل...</div>;
 
+  // 💀 شاشة قطع الخدمة الملكية (تظهر عند انتهاء اشتراك المقهى)
+  if (isSuspended) {
+    return (
+      <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center p-6 text-center select-none" dir="rtl">
+        <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-3xl flex items-center justify-center mb-6 border border-amber-500/20 shadow-[0_0_50px_rgba(245,158,11,0.15)] animate-pulse">
+          <Coffee size={40} />
+        </div>
+        <h1 className="text-3xl font-black mb-3 tracking-tight">النظام في وضع الصيانة المجدولة ⚙️</h1>
+        <p className="text-stone-400 max-w-sm leading-relaxed mb-8 text-sm font-medium">
+          عذراً، قائمة الطعام الرقمية لهذا المقهى غير متاحة مؤقتاً لتحديث الخوادم. يرجى طلب المنيو الورقي من طاقم الخدمة.
+        </p>
+        <span className="text-[10px] font-mono tracking-widest text-stone-600 uppercase border border-stone-800 px-3 py-1 rounded-full">EgoCafe SaaS Infrastructure</span>
+      </div>
+    );
+  }
+
   // 🚫 شاشة الخطأ الصارمة للمقهى الوهمي
   if (isCafeNotFound) {
     return (
@@ -226,7 +260,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     );
   }
 
-  // 🚫 شاشة الخطأ الأنيقة للطاولة غير المسجلة (متعددة اللغات!)
+  // 🚫 شاشة الخطأ الأنيقة للطاولة غير المسجلة
   if (isTableNotFound) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center select-none" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
@@ -238,7 +272,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           {t.tableErrorDesc}
         </p>
         
-        {/* مبدّل لغات صغير حتى في شاشة الخطأ */}
         <div className="flex gap-1 bg-muted p-1 rounded-full border border-border/50">
           {LANGUAGES.map(lang => (
             <button key={lang} onClick={() => setActiveLang(lang)} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase transition-colors ${activeLang === lang ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'}`}>{lang}</button>
