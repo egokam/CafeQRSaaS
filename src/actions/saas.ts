@@ -1,11 +1,12 @@
 "use server";
 import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-// 1. فحص حالة الاشتراك
+// 1. فحص حالة الاشتراك (محتفظ بنسختك الأصلية الصارمة 100%)
 export async function checkCafeSubscription(cafeSlug: string) {
   const { data: cafe, error } = await supabaseAdmin
     .from('cafes')
@@ -36,11 +37,9 @@ export async function checkCafeSubscription(cafeSlug: string) {
   return { isValid: true, status: cafe.subscription_status, cafeName: cafe.name, cafeId: cafe.id };
 }
 
-// 2. استقبال الروسي البنكي
 // 2. استقبال الروسي البنكي (مُحصّن ضد السبام والثغرات المجانية 🛡️)
 export async function submitBankTransferReceipt(cafeId: string, receiptUrl: string, amount: number) {
   try {
-    // جلب حالة المقهى أولاً للتحقق من حقه في الفرصة المؤقتة
     const { data: cafeData, error: fetchError } = await supabaseAdmin
       .from('cafes')
       .select('can_use_grace')
@@ -49,7 +48,6 @@ export async function submitBankTransferReceipt(cafeId: string, receiptUrl: stri
 
     if (fetchError || !cafeData) throw new Error("المقهى غير موجود");
 
-    // 1. تسجيل الإيصال في قاعدة البيانات دائماً (لكي نمسك النصاب بالأدلة)
     const { error: receiptError } = await supabaseAdmin
       .from('payment_receipts')
       .insert([{ 
@@ -61,13 +59,12 @@ export async function submitBankTransferReceipt(cafeId: string, receiptUrl: stri
 
     if (receiptError) throw receiptError;
 
-    // 2. إذا كان لا يزال يملك حق الفرصة المؤقتة -> نفعل المنيو وننزع منه الفرصة!
     if (cafeData.can_use_grace === true) {
       const { error: cafeError } = await supabaseAdmin
         .from('cafes')
         .update({ 
           subscription_status: 'pending_verification',
-          can_use_grace: false // 🔒 سحب الصلاحية فوراً!
+          can_use_grace: false 
         })
         .eq('id', cafeId);
 
@@ -75,7 +72,6 @@ export async function submitBankTransferReceipt(cafeId: string, receiptUrl: stri
       return { success: true, status: 'activated_temporary' };
     } 
     
-    // 3. أما إذا كان النصّاب قد استنفد فرصته مسبقاً -> تم حفظ إيصاله لكن يبقى المنيو مجمداً!
     return { success: true, status: 'saved_without_activation' };
 
   } catch (error: any) {
@@ -99,15 +95,13 @@ export async function getPlatformBankDetails() {
   return data;
 }
 
-// جلب خريطة المنصة الشاملة للمدير الأكبر
+// 4. جلب خريطة المنصة الشاملة للمدير الأكبر
 export async function getUltimateDashboardData() {
-  // 1. جلب المقاهي مع عدد منتجاتها وطلباتها الحالية
   const { data: cafes, error: cafesErr } = await supabaseAdmin
     .from('cafes')
     .select('*, products(count), orders(count)')
     .order('created_at', { ascending: false });
 
-  // 2. جلب جميع الإيصالات التاريخية (معلقة، مقبولة، مرفوضة)
   const { data: receipts, error: receiptsErr } = await supabaseAdmin
     .from('payment_receipts')
     .select('*')
@@ -118,35 +112,102 @@ export async function getUltimateDashboardData() {
     return { cafes: [], receipts: [], stats: { total: 0, active: 0, suspended: 0, mrr: 0 } };
   }
 
-  // حساب الإحصائيات المالية والحيوية
-  const activeCafes = cafes.filter(c => c.subscription_status === 'active').length;
-  const suspendedCafes = cafes.filter(c => c.subscription_status === 'suspended').length;
+  const cafeList = cafes || [];
+  const activeCafes = cafeList.filter(c => c.subscription_status === 'active').length;
+  const suspendedCafes = cafeList.filter(c => c.subscription_status === 'suspended').length;
   
-  // حساب المداخيل الشهرية المتوقعة بناءً على باقة المقاهي النشطة
-  const totalMRR = cafes.reduce((acc, c) => {
+  const totalMRR = cafeList.reduce((acc, c) => {
     if (c.subscription_status !== 'active') return acc;
     if (c.plan_type === 'starter') return acc + 150;
     if (c.plan_type === 'enterprise') return acc + 499;
-    return acc + 299; // الباقة الافتراضية Pro
+    return acc + 299; 
   }, 0);
 
   return {
-    cafes,
-    receipts,
-    stats: { total: cafes.length, active: activeCafes, suspended: suspendedCafes, mrr: totalMRR }
+    cafes: cafeList,
+    receipts: receipts || [],
+    stats: { total: cafeList.length, active: activeCafes, suspended: suspendedCafes, mrr: totalMRR }
   };
 }
 
-// دالة تعديل تاريخ الاشتراك أو الحالة يدوياً من الأرشيف
+// 5. دالة تعديل تاريخ الاشتراك أو الحالة يدوياً من الأرشيف
 export async function forceUpdateCafeSub(cafeId: string, newStatus: string, newEndsAt: string) {
   const { error } = await supabaseAdmin
     .from('cafes')
     .update({ 
       subscription_status: newStatus, 
       subscription_ends_at: newEndsAt,
-      can_use_grace: true // إعادة تفعيل الدرع احتياطاً
+      can_use_grace: true 
     })
     .eq('id', cafeId);
 
+  revalidatePath('/owner-portal-99');
   return !error;
+}
+
+// ====================================================================
+// 6. 👑 معمل تفريخ المقاهي (SaaS Cafe Factory Engine) - الإضافة الجديدة
+// ====================================================================
+export async function provisionNewCafe(payload: {
+  name: string;
+  slug: string;
+  ownerEmail: string;
+  ownerPassword?: string;
+  planType: string;
+  trialDays: number;
+  adminPin: string;
+  cashierPin: string;
+}) {
+  try {
+    const cleanSlug = payload.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-');
+    const pass = payload.ownerPassword || "CafeSaaS2026!";
+
+    // أ. التحقق من عدم تكرار الرابط المختصر
+    const { data: existing } = await supabaseAdmin.from('cafes').select('id').eq('slug', cleanSlug).single();
+    if (existing) return { success: false, error: `الرابط المختصر "${cleanSlug}" محجوز مسبقاً!` };
+
+    // ب. إنشاء المستخدم في Supabase Auth للمالك
+    const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+      email: payload.ownerEmail,
+      password: pass,
+      email_confirm: true 
+    });
+
+    if (authErr || !authUser.user) return { success: false, error: "فشل إنشاء حساب المالك: " + authErr?.message };
+
+    // ج. حساب تاريخ انتهاء التجربة المجانية وحدود الأجهزة حسب الباقة
+    const endsAt = new Date(Date.now() + payload.trialDays * 24 * 60 * 60 * 1000).toISOString();
+    const maxC = payload.planType === 'enterprise' ? 10 : payload.planType === 'starter' ? 1 : 3;
+    const maxK = payload.planType === 'enterprise' ? 5 : payload.planType === 'starter' ? 1 : 2;
+
+    // د. إدراج المقهى في الداتا بيز
+    const { data: newCafe, error: dbErr } = await supabaseAdmin.from('cafes').insert([{
+      name: payload.name,
+      slug: cleanSlug,
+      owner_email: payload.ownerEmail,
+      owner_auth_id: authUser.user.id,
+      admin_pin: payload.adminPin || "1234",
+      cashier_pin: payload.cashierPin || "0000",
+      plan_type: payload.planType,
+      subscription_status: 'active',
+      subscription_ends_at: endsAt,
+      can_use_grace: true,
+      max_cashiers: maxC,
+      max_kitchens: maxK
+    }]).select().single();
+
+    if (dbErr || !newCafe) {
+      await supabaseAdmin.auth.admin.deleteUser(authUser.user.id); 
+      return { success: false, error: "خطأ في قاعدة البيانات: " + dbErr?.message };
+    }
+
+    revalidatePath('/owner-portal-99');
+    return { 
+      success: true, 
+      cafe: newCafe, 
+      credentials: { email: payload.ownerEmail, password: pass, cashierPin: payload.cashierPin || "0000" } 
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }

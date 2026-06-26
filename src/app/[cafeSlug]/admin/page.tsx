@@ -5,10 +5,10 @@ import { supabase } from "../../../lib/supabase";
 import { 
   Plus, Trash2, Image as ImageIcon, Loader2, QrCode, PackageSearch, 
   Printer, Lock, Settings, Edit, X, AlertTriangle, CheckCircle2, 
-  CreditCard, TrendingUp, DollarSign, History, Calendar 
+  CreditCard, TrendingUp, DollarSign, History, Calendar, MonitorSmartphone 
 } from "lucide-react";
 import QRCode from "react-qr-code";
-import { verifyPin, sendRecoveryEmail, verifyOtpAndUpdatePins, updateCafeSettings, adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../../actions/auth";
+import { signInAdminWithEmail, sendRecoveryEmail, updateCafeSettings, adminAddProduct, adminUpdateProduct, adminDeleteProduct, adminCheckOrAddTable } from "../../../actions/auth";
 import BillingTab from "../../../components/BillingTab";
 
 const CATEGORIES = ["القهوة", "الحلوى", "عصائر", "مخبوزات"];
@@ -17,20 +17,25 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const { cafeSlug } = use(params);
   
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [attempts, setAttempts] = useState(0);
-  const [isLocked, setIsLocked] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  
   const [isRecovering, setIsRecovering] = useState(false);
-  const [recoveryStep, setRecoveryStep] = useState(1);
   const [recoveryEmail, setRecoveryEmail] = useState("");
-  const [recoveryOtp, setRecoveryOtp] = useState("");
   
   const [cafeName, setCafeName] = useState("");
   const [newAdminPin, setNewAdminPin] = useState("");
   const [newCashierPin, setNewCashierPin] = useState("");
+  
+  // 🌟 إعدادات وحدود الأجهزة
   const [maxCashiers, setMaxCashiers] = useState("2"); 
+  const [maxKitchens, setMaxKitchens] = useState("1"); 
+  
+  // 🌟 استشعار الأجهزة المتصلة الحية (Live Presence)
+  const [activeCashiers, setActiveCashiers] = useState(0);
+  const [activeKitchens, setActiveKitchens] = useState(0);
 
   const [activeTab, setActiveTab] = useState("products"); 
   const [products, setProducts] = useState<any[]>([]);
@@ -39,7 +44,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
 
-  // 🌟 حالات الإحصائيات والمبيعات الشهرية
   const [monthlyOrders, setMonthlyOrders] = useState<any[]>([]);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [isLoadingSales, setIsLoadingSales] = useState(false);
@@ -64,7 +68,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     if (data) setProducts(data.reverse());
   };
 
-  // 🌟 دالة جلب مبيعات الشهر الحالي بالضبط
   const fetchMonthlySales = async (cId: string) => {
     setIsLoadingSales(true);
     const now = new Date();
@@ -74,7 +77,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       .from('orders')
       .select('*, tables(table_number)')
       .eq('cafe_id', cId)
-      .eq('status', 'completed') // الطلبات المنتهية فقط
+      .eq('status', 'completed')
       .gte('created_at', startOfMonth)
       .order('created_at', { ascending: false });
 
@@ -92,7 +95,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
     const initAdmin = async () => {
       setIsLoading(true);
-      const { data: cafeData } = await supabase.from('cafes').select('id, name, max_cashiers').eq('slug', cafeSlug).single();
+      const { data: cafeData } = await supabase.from('cafes').select('*').eq('slug', cafeSlug).single();
       
       if (!cafeData) {
         setIsNotFound(true);
@@ -103,10 +106,11 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       setCafeId(cafeData.id);
       if (cafeData.name) setCafeName(cafeData.name);
       if (cafeData.max_cashiers) setMaxCashiers(cafeData.max_cashiers.toString());
+      if (cafeData.max_kitchens) setMaxKitchens(cafeData.max_kitchens.toString());
       
       await Promise.all([
         fetchProducts(cafeData.id),
-        fetchMonthlySales(cafeData.id) // جلب المبيعات مع البداية
+        fetchMonthlySales(cafeData.id)
       ]);
 
       setIsLoading(false);
@@ -114,55 +118,63 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     initAdmin();
   }, [cafeSlug]);
 
+  // 📡 الرادار الحي لمراقبة عدد الكاشيرات والمطابخ المشتعلة الآن
+  useEffect(() => {
+    if (!cafeId || !isAuthenticated) return;
+
+    const cashierChannel = supabase.channel(`cashier_slots_${cafeId}`);
+    cashierChannel.on('presence', { event: 'sync' }, () => {
+      const state = cashierChannel.presenceState();
+      setActiveCashiers(Object.keys(state).length);
+    }).subscribe();
+
+    const kitchenChannel = supabase.channel(`kitchen_slots_${cafeId}`);
+    kitchenChannel.on('presence', { event: 'sync' }, () => {
+      const state = kitchenChannel.presenceState();
+      setActiveKitchens(Object.keys(state).length);
+    }).subscribe();
+
+    return () => {
+      supabase.removeChannel(cashierChannel);
+      supabase.removeChannel(kitchenChannel);
+    };
+  }, [cafeId, isAuthenticated]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLocked || !cafeId) return;
+    if (!emailInput || !passwordInput || !cafeId) return;
 
     setIsChecking(true);
-    const isValid = await verifyPin(cafeId, "admin", pinInput);
+    const res = await signInAdminWithEmail(emailInput, passwordInput);
     setIsChecking(false);
 
-    if (isValid) {
+    if (res.success) {
       setIsAuthenticated(true);
       sessionStorage.setItem(`admin_auth_${cafeSlug}`, 'true');
-      setAttempts(0);
     } else {
-      const newAttempts = attempts + 1;
-      setAttempts(newAttempts);
-      setPinInput("");
-      
-      if (newAttempts >= 5) {
-        setIsLocked(true);
-        alert("تم حظرك مؤقتاً. يرجى الانتظار دقيقة.");
-        setTimeout(() => { setIsLocked(false); setAttempts(0); }, 60000);
-      } else alert(`الرمز غير صحيح ❌`);
+      alert(res.error || "بيانات الدخول غير صحيحة ❌");
     }
   };
 
   const handleSendRecovery = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!recoveryEmail) return;
     setIsChecking(true);
-    const { success } = await sendRecoveryEmail(recoveryEmail);
+    const { success, error } = await sendRecoveryEmail(recoveryEmail);
     setIsChecking(false);
-    if (success) { setRecoveryStep(2); alert("تم إرسال الرمز للإيميل."); }
-    else alert("خطأ في الإرسال.");
-  };
-
-  const handleVerifyAndReset = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!cafeId) return;
-    setIsChecking(true);
-    const { success, error } = await verifyOtpAndUpdatePins(recoveryEmail, recoveryOtp, cafeId, newAdminPin, newCashierPin);
-    setIsChecking(false);
-    if (success) { alert("تم إعادة التعيين بنجاح!"); setIsRecovering(false); setRecoveryStep(1); }
-    else alert(error || "رمز خاطئ");
+    if (success) { 
+      alert("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني 📩"); 
+      setIsRecovering(false);
+    } else {
+      alert(error || "حدث خطأ أثناء الإرسال.");
+    }
   };
 
   const handleUpdateSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cafeId) return;
     setIsChecking(true);
-    const { success } = await updateCafeSettings(cafeId, cafeName, newAdminPin, newCashierPin, Number(maxCashiers));
+    const { success } = await updateCafeSettings(cafeId, cafeName, newAdminPin, newCashierPin, Number(maxCashiers), Number(maxKitchens));
     setIsChecking(false);
     if (success) { alert("تم حفظ الإعدادات!"); setNewAdminPin(""); setNewCashierPin(""); }
     else alert("حدث خطأ أثناء الحفظ.");
@@ -233,17 +245,18 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     setQrReady(false);
     const formattedTableNumber = `table_${tableNum}`;
 
-    try {
-      const { data: existingTable } = await supabase.from('tables').select('id').eq('cafe_id', cafeId).eq('table_number', formattedTableNumber).single();
-      if (!existingTable) {
-        const { error: insertError } = await supabase.from('tables').insert([{ cafe_id: cafeId, table_number: formattedTableNumber }]);
-        if (insertError) throw insertError;
-      }
+    // مناداة السيرفر للقيام بالعملية الثقيلة بأمان
+    const { success } = await adminCheckOrAddTable(cafeId, formattedTableNumber);
+    
+    if (success) {
       const baseUrl = window.location.origin;
       setQrUrl(`${baseUrl}/${cafeSlug}/${formattedTableNumber}`);
       setQrReady(true);
-    } catch (error) { alert("حدث خطأ أثناء فحص/إضافة الطاولة."); } 
-    finally { setIsGeneratingQr(false); }
+    } else {
+      alert("حدث خطأ أثناء فحص/إضافة الطاولة من السيرفر. يرجى المحاولة.");
+    }
+    
+    setIsGeneratingQr(false);
   };
 
   const handlePrint = () => { window.print(); };
@@ -263,28 +276,32 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-muted/20 flex flex-col items-center justify-center p-6" dir="rtl">
-        <div className="bg-white p-8 rounded-3xl shadow-lg border border-border w-full max-w-sm text-center">
-          <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center text-primary mx-auto mb-6"><Lock size={32} /></div>
-          <h2 className="text-2xl font-extrabold mb-2">{isRecovering ? "استعادة الرمز" : "منطقة الإدارة"}</h2>
-          <p className="text-muted-foreground mb-8 text-sm">{isRecovering ? "أدخل بريدك" : "يرجى إدخال الرمز السري"}</p>
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-border w-full max-w-md text-center">
+          <div className="bg-primary/10 w-20 h-20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6 shadow-inner"><Lock size={36} /></div>
+          <h2 className="text-2xl font-black mb-2 tracking-tight">{isRecovering ? "استعادة كلمة المرور" : "تسجيل دخول الإدارة"}</h2>
+          <p className="text-muted-foreground mb-8 text-sm font-bold">{isRecovering ? "أدخل بريدك الإلكتروني التابع للمقهى" : "قم بتسجيل الدخول للتحكم في حساب مشروعك"}</p>
+          
           {!isRecovering ? (
-            <form onSubmit={handleLogin} className="flex flex-col gap-4">
-              <input type="password" value={pinInput} onChange={(e) => setPinInput(e.target.value)} className="border-2 border-border rounded-xl p-4 text-center text-2xl tracking-[0.5em] focus:outline-primary" placeholder="••••" autoFocus disabled={isLocked || isChecking} />
-              <button disabled={isChecking || isLocked} type="submit" className="py-4 rounded-xl font-bold text-white bg-primary hover:bg-primary/90">{isChecking ? "تحقق..." : "دخول"}</button>
-              <button type="button" onClick={() => setIsRecovering(true)} className="text-sm text-primary font-bold mt-2 hover:underline">هل نسيت الرمز؟</button>
-            </form>
-          ) : recoveryStep === 1 ? (
-            <form onSubmit={handleSendRecovery} className="flex flex-col gap-4">
-              <input type="email" required value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className="border-2 border-border rounded-xl p-4 text-center focus:outline-primary" placeholder="admin@example.com" />
-              <button type="submit" className="py-4 rounded-xl font-bold text-white bg-primary">إرسال كود التحقق</button>
-              <button type="button" onClick={() => setIsRecovering(false)} className="text-sm text-muted-foreground font-bold mt-2">إلغاء</button>
+            <form onSubmit={handleLogin} className="flex flex-col gap-4 text-right">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5 pr-1">البريد الإلكتروني</label>
+                <input required type="email" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} className="w-full border-2 border-border rounded-2xl p-4 text-left font-mono text-sm focus:border-primary outline-none bg-muted/20 transition-colors" placeholder="owner@cafe.ma" autoFocus disabled={isChecking} />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5 pr-1">كلمة المرور</label>
+                <input required type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} className="w-full border-2 border-border rounded-2xl p-4 text-left font-mono text-sm focus:border-primary outline-none bg-muted/20 transition-colors" placeholder="••••••••" disabled={isChecking} />
+              </div>
+              <button disabled={isChecking} type="submit" className="py-4 rounded-2xl font-black text-base text-white bg-foreground hover:opacity-90 mt-2 shadow-xl transition-all active:scale-95">{isChecking ? "جاري المصادقة..." : "دخول للمنصة 🚀"}</button>
+              <button type="button" onClick={() => setIsRecovering(true)} className="text-xs text-primary font-bold mt-3 hover:underline text-center block w-full">هل نسيت كلمة المرور؟</button>
             </form>
           ) : (
-            <form onSubmit={handleVerifyAndReset} className="flex flex-col gap-3">
-              <input required type="text" value={recoveryOtp} onChange={(e) => setRecoveryOtp(e.target.value)} className="border border-border rounded-xl p-3 text-center" placeholder="كود الإيميل" />
-              <input required type="text" value={newAdminPin} onChange={(e) => setNewAdminPin(e.target.value)} className="border border-border rounded-xl p-3 text-center" placeholder="رمز المدير الجديد" />
-              <input required type="text" value={newCashierPin} onChange={(e) => setNewCashierPin(e.target.value)} className="border border-border rounded-xl p-3 text-center" placeholder="رمز الكاشير الجديد" />
-              <button type="submit" className="py-4 mt-2 rounded-xl font-bold text-white bg-green-500">تحديث الرموز</button>
+            <form onSubmit={handleSendRecovery} className="flex flex-col gap-4 text-right">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5 pr-1">البريد الإلكتروني</label>
+                <input required type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className="w-full border-2 border-border rounded-2xl p-4 text-left font-mono text-sm focus:border-primary outline-none bg-muted/20" placeholder="owner@cafe.ma" autoFocus disabled={isChecking} />
+              </div>
+              <button disabled={isChecking} type="submit" className="py-4 rounded-2xl font-black text-white bg-primary shadow-lg active:scale-95 transition-all">{isChecking ? "جاري الإرسال..." : "إرسال رابط التجديد 📩"}</button>
+              <button type="button" onClick={() => setIsRecovering(false)} className="text-xs text-muted-foreground font-bold mt-2 hover:underline text-center block w-full">العودة لتسجيل الدخول</button>
             </form>
           )}
         </div>
@@ -302,7 +319,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           <button onClick={() => setActiveTab('products')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'products' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><PackageSearch size={18} /> المنيو</button>
           <button onClick={() => setActiveTab('qr')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'qr' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><QrCode size={18} /> الطاولات</button>
           
-          {/* 🌟 التبويب الجديد للإحصائيات */}
           <button onClick={() => { setActiveTab('sales'); cafeId && fetchMonthlySales(cafeId); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'sales' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground'}`}>
             <TrendingUp size={18} /> المبيعات الشهرية 📈
           </button>
@@ -312,11 +328,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         </div>
       </header>
 
-      {/* 🌟 محتوى التبويب الجديد: المبيعات الشهرية */}
       {activeTab === 'sales' && (
         <div className="space-y-8 max-w-5xl mx-auto animate-in fade-in duration-200">
-          
-          {/* بطاقات المداخيل العلوية */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
               <div>
@@ -345,7 +358,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
             </div>
           </div>
 
-          {/* جدول مبيعات الشهر */}
           <div className="bg-white p-6 lg:p-8 rounded-3xl border shadow-sm">
             <div className="flex justify-between items-center mb-6 pb-4 border-b">
               <div>
@@ -368,9 +380,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
                 {monthlyOrders.map((ord) => (
                   <div key={ord.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/15 border rounded-2xl gap-3 hover:bg-muted/30 transition-colors">
                     <div className="flex items-start gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black shrink-0 text-lg">
-                        ✓
-                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black shrink-0 text-lg">✓</div>
                       <div>
                         <div className="font-extrabold text-sm flex items-center gap-2">
                           <span>طاولة {ord.tables?.table_number?.replace('table_', '') || 'مباشر (POS)'}</span>
@@ -395,19 +405,73 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       )}
 
       {activeTab === 'settings' && (
-        <div className="bg-white p-10 rounded-3xl shadow-sm border border-border max-w-xl mx-auto">
-          <h2 className="text-2xl font-bold mb-6 border-b pb-4">إعدادات المقهى</h2>
-          <form onSubmit={handleUpdateSettings} className="space-y-5">
-            <div><label className="block text-sm font-bold mb-2">اسم المقهى</label><input type="text" required value={cafeName} onChange={(e) => setCafeName(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30" /></div>
+        <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in duration-300">
+          
+          {/* 🌟 1. شاشة مراقبة الأسطول الحي (اللي نسيتي تحطها في الـ JSX) */}
+          <div className="bg-white p-6 rounded-3xl border border-border shadow-sm flex flex-col sm:flex-row justify-between items-center gap-6">
             <div>
-              <label className="block text-sm font-bold mb-1 text-primary">العدد الأقصى لجلسات الكاشير المسموحة</label>
-              <input type="number" min="1" max="10" required value={maxCashiers} onChange={(e) => setMaxCashiers(e.target.value)} className="w-full border-2 border-primary/30 rounded-xl p-3 bg-primary/5 font-bold text-lg" />
-              <span className="text-xs text-muted-foreground">تمنع هذه الميزة دخول أي كاشير إضافي إذا كان العدد ممتلئاً.</span>
+              <h3 className="font-extrabold text-lg mb-1 flex items-center gap-2">
+                <MonitorSmartphone className="text-primary"/> الأجهزة المتصلة الآن
+              </h3>
+              <p className="text-xs text-muted-foreground font-bold">مراقبة حية للأسطول النشط في المقهى.</p>
             </div>
-            <div className="pt-4 border-t border-border/50"><label className="block text-sm font-bold mb-2">رمز المدير الجديد (اختياري)</label><input type="text" value={newAdminPin} onChange={(e) => setNewAdminPin(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30" placeholder="اتركه فارغاً" /></div>
-            <div><label className="block text-sm font-bold mb-2">رمز الكاشير الجديد (اختياري)</label><input type="text" value={newCashierPin} onChange={(e) => setNewCashierPin(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30" placeholder="اتركه فارغاً" /></div>
-            <button disabled={isChecking} type="submit" className="w-full bg-primary text-white py-4 rounded-xl font-bold mt-6 shadow-lg">{isChecking ? "حفظ..." : "حفظ التغييرات"}</button>
-          </form>
+            <div className="flex gap-4 w-full sm:w-auto">
+              <div className="flex-1 sm:flex-none text-center px-6 py-4 bg-muted/20 border rounded-2xl">
+                <span className="block text-xs font-bold text-muted-foreground mb-1">الكاشير 💳</span>
+                <div className="flex items-baseline justify-center gap-1" dir="ltr">
+                  <span className={`text-3xl font-black ${activeCashiers > 0 ? 'text-emerald-500 animate-pulse' : 'text-slate-300'}`}>
+                    {activeCashiers}
+                  </span>
+                  <span className="text-sm font-bold text-muted-foreground">/ {maxCashiers}</span>
+                </div>
+              </div>
+              <div className="flex-1 sm:flex-none text-center px-6 py-4 bg-muted/20 border rounded-2xl">
+                <span className="block text-xs font-bold text-muted-foreground mb-1">المطبخ 👨‍🍳</span>
+                <div className="flex items-baseline justify-center gap-1" dir="ltr">
+                  <span className={`text-3xl font-black ${activeKitchens > 0 ? 'text-amber-500 animate-pulse' : 'text-slate-300'}`}>
+                    {activeKitchens}
+                  </span>
+                  <span className="text-sm font-bold text-muted-foreground">/ {maxKitchens}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 🌟 2. نموذج الإعدادات (المعدّل ليدعم المطبخ والكاشير معاً) */}
+          <div className="bg-white p-8 lg:p-10 rounded-3xl shadow-sm border border-border">
+            <h2 className="text-2xl font-bold mb-6 border-b pb-4">إعدادات وضوابط المقهى</h2>
+            <form onSubmit={handleUpdateSettings} className="space-y-6">
+              <div>
+                <label className="block text-sm font-bold mb-2">اسم المقهى</label>
+                <input type="text" required value={cafeName} onChange={(e) => setCafeName(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30 font-bold" />
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold mb-1 text-primary">الحد الأقصى لشاشات الكاشير</label>
+                  <input type="number" min="1" max="10" required value={maxCashiers} onChange={(e) => setMaxCashiers(e.target.value)} className="w-full border-2 border-primary/30 rounded-xl p-3 bg-primary/5 font-bold text-xl text-center focus:border-primary outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold mb-1 text-amber-600">الحد الأقصى لشاشات المطبخ</label>
+                  <input type="number" min="1" max="10" required value={maxKitchens} onChange={(e) => setMaxKitchens(e.target.value)} className="w-full border-2 border-amber-500/30 rounded-xl p-3 bg-amber-500/5 font-bold text-xl text-center focus:border-amber-500 outline-none" />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border/50">
+                <label className="block text-sm font-bold mb-2">تحديث رمز المدير البديل (PIN)</label>
+                <input type="text" value={newAdminPin} onChange={(e) => setNewAdminPin(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30 font-mono text-center" placeholder="اتركه فارغاً للإبقاء على القديم" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold mb-2">تحديث رمز الكاشير والمطبخ (PIN)</label>
+                <input type="text" value={newCashierPin} onChange={(e) => setNewCashierPin(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30 font-mono text-center tracking-widest" placeholder="••••" />
+              </div>
+              
+              <button disabled={isChecking} type="submit" className="w-full bg-foreground text-white py-4 rounded-2xl font-black mt-4 shadow-xl active:scale-95 transition-all">
+                {isChecking ? "جاري الحفظ..." : "حفظ التغييرات 💾"}
+              </button>
+            </form>
+          </div>
+          
         </div>
       )}
 

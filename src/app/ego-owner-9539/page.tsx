@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getUltimateDashboardData, forceUpdateCafeSub } from "../../actions/saas";
+import { getUltimateDashboardData, forceUpdateCafeSub, provisionNewCafe } from "../../actions/saas";
 import { 
   Building2, Receipt, ShieldCheck, AlertOctagon, Clock, Search, 
   ExternalLink, Calendar, CheckCircle2, XCircle, ChevronLeft, 
-  DollarSign, Activity, Layers, RefreshCcw, Filter
+  DollarSign, Activity, Layers, RefreshCcw, Filter,
+  Plus, Sprout, Copy, Check, Sparkles // 👈 الأيقونات الجديدة للمعمل
 } from "lucide-react";
 
 export default function UltimateSuperAdminDashboard() {
@@ -18,6 +19,20 @@ export default function UltimateSuperAdminDashboard() {
   const [inspectedCafe, setInspectedCafe] = useState<any | null>(null);
   const [newDateInput, setNewDateInput] = useState("");
   const [newStatusInput, setNewStatusInput] = useState("");
+
+  // 🌟 حالات معمل تفريخ المقاهي (SaaS Provisioning Factory)
+  const [showFactory, setShowFactory] = useState(false);
+  const [facName, setFacName] = useState("");
+  const [facSlug, setFacSlug] = useState("");
+  const [facEmail, setFacEmail] = useState("");
+  const [facPass, setFacPass] = useState("CafeSaaS2026!");
+  const [facPlan, setFacPlan] = useState("pro");
+  const [facTrial, setFacTrial] = useState(14);
+  const [facCashierPin, setFacCashierPin] = useState("0000");
+  const [facAdminPin, setFacAdminPin] = useState("1234");
+  const [facSubmitting, setFacSubmitting] = useState(false);
+  const [facResult, setFacResult] = useState<any | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const loadAll = async () => {
     setLoading(true);
@@ -47,7 +62,64 @@ export default function UltimateSuperAdminDashboard() {
     }
   };
 
-  // تصفية المقاهي حسب البحث والفلتر
+  // 🌟 دالة إطلاق الخادم ونشر المقهى في قاعدة البيانات
+  const handleProvisionCafe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!facName || !facSlug || !facEmail) return alert("يرجى إدخال الحقول الأساسية!");
+    setFacSubmitting(true);
+    setFacResult(null);
+
+    const res = await provisionNewCafe({
+      name: facName, 
+      slug: facSlug, 
+      ownerEmail: facEmail, 
+      ownerPassword: facPass,
+      planType: facPlan, 
+      trialDays: Number(facTrial), 
+      adminPin: facAdminPin, 
+      cashierPin: facCashierPin
+    });
+
+    setFacSubmitting(false);
+    if (res.success) {
+      setFacResult(res);
+      loadAll(); // تحديث عداد الـ KPIs في الخلفية
+    } else {
+      alert(res.error || "حدث خطأ أثناء التفريخ");
+    }
+  };
+
+  // توليد رسالة واتساب المالك
+  const getWhatsAppWelcomeMsg = (res: any) => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : "http://localhost:3000";
+    return `مرحباً بك في منصة EgoCafe SaaS ☕🚀
+
+لقد تم تجهيز نظام مقهاكم "${res.cafe.name}" بنجاح! باقة التجربة المجانية مفعّلة لمدة ${facTrial} يوماً.
+
+🔗 روابط واجهاتكم الخاصة:
+1️⃣ لوحة التحكم الإدارية (لأصحاب المشروع):
+${origin}/${res.cafe.slug}/admin
+▪️ البريد الإلكتروني: ${res.credentials.email}
+▪️ كلمة المرور: ${res.credentials.password}
+
+2️⃣ شاشة الكاشير والطلبات:
+${origin}/${res.cafe.slug}/cashier
+▪️ الرمز السري (PIN): ${res.credentials.cashierPin}
+
+3️⃣ شاشة المطبخ (KDS):
+${origin}/${res.cafe.slug}/kitchen
+▪️ الرمز السري (PIN): ${res.credentials.cashierPin}
+
+*(يرجى تسجيل الدخول للإدارة وتغيير كلمة المرور والرموز فوراً)*`;
+  };
+
+  const copyToClipboard = () => {
+    if (!facResult) return;
+    navigator.clipboard.writeText(getWhatsAppWelcomeMsg(facResult));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
   const filteredCafes = data.cafes.filter((c: any) => {
     const matchesSearch = c.name?.toLowerCase().includes(searchQuery.toLowerCase()) || c.slug?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === 'ALL' || c.subscription_status === statusFilter.toLowerCase();
@@ -58,7 +130,7 @@ export default function UltimateSuperAdminDashboard() {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center font-mono">
         <Activity className="animate-spin text-amber-500 mb-4" size={48} />
-        <p className="text-sm tracking-widest text-slate-400">LOADING GOD MODE INFRASTRUCTURE...</p>
+        <p className="text-sm tracking-widest text-slate-400">LOADING EGODEV INFRASTRECTURE...</p>
       </div>
     );
   }
@@ -66,18 +138,27 @@ export default function UltimateSuperAdminDashboard() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-10 font-sans selection:bg-amber-500 selection:text-black" dir="rtl">
       
-      {/* 🌟 الهيدر البانورامي */}
+      {/* 🌟 الهيدر البانورامي مع زر التفريخ الملكي */}
       <header className="max-w-7xl mx-auto mb-8 pb-6 border-b border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping"/>
-            <span className="text-xs font-mono text-emerald-400 tracking-wider uppercase">Master Control Center v2.5</span>
+            <span className="text-xs font-mono text-emerald-400 tracking-wider uppercase">Master Control Center v3.0</span>
           </div>
           <h1 className="text-3xl lg:text-4xl font-black mt-1 text-white tracking-tight">المنصة الشاملة للمستثمر 👁️</h1>
         </div>
-        <button onClick={loadAll} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-5 py-3 rounded-2xl font-bold text-sm transition-all self-start md:self-auto">
-          <RefreshCcw size={18} /> تحديث مباشر
-        </button>
+        
+        <div className="flex items-center gap-3 self-start md:self-auto">
+          <button 
+            onClick={() => { setShowFactory(true); setFacResult(null); }} 
+            className="bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-xl shadow-amber-500/10 active:scale-95 transition-all text-sm"
+          >
+            <Sprout size={18} /> تفريخ مقهى جديد 🌱
+          </button>
+          <button onClick={loadAll} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-4 py-3 rounded-2xl font-bold text-sm transition-all text-slate-300">
+            <RefreshCcw size={18} />
+          </button>
+        </div>
       </header>
 
       {/* 🌟 شبكة المؤشرات الحيوية (KPIs) */}
@@ -99,6 +180,88 @@ export default function UltimateSuperAdminDashboard() {
           <div className="text-3xl font-black text-amber-400">{data.stats.mrr} <span className="text-xs font-bold">MAD</span></div>
         </div>
       </div>
+
+      {/* 🌟 نافذة معمل تفريخ المقاهي (SaaS Provisioning Factory Modal) */}
+      {showFactory && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-[2.5rem] p-6 lg:p-10 shadow-2xl relative max-h-[90vh] overflow-y-auto text-right">
+            <button onClick={() => setShowFactory(false)} className="absolute top-6 left-6 p-2 bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><XCircle size={20}/></button>
+            
+            <div className="flex items-center gap-3 mb-6 border-b border-slate-800 pb-4">
+              <div className="p-3 bg-amber-500/10 text-amber-400 rounded-2xl border border-amber-500/20"><Sparkles size={26}/></div>
+              <div>
+                <h2 className="text-2xl font-black text-white">معمل تفريخ المنصات (SaaS Factory)</h2>
+                <p className="text-xs text-slate-400 font-bold mt-0.5">تجهيز ونشر بيئة عمل متكاملة لمقهى جديد في ثوانٍ</p>
+              </div>
+            </div>
+
+            {!facResult ? (
+              <form onSubmit={handleProvisionCafe} className="space-y-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-mono text-slate-300 mb-1.5 font-bold">اسم المقهى التجاري</label>
+                    <input required type="text" placeholder="مثال: مقهى الأطلس" value={facName} onChange={(e) => setFacName(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm text-white font-bold outline-none focus:border-amber-500 transition-colors"/>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono text-amber-400 mb-1.5 font-bold">الرابط المختصر (Slug اللاتيني)</label>
+                    <input required type="text" placeholder="atlas-cafe" value={facSlug} onChange={(e) => setFacSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))} className="w-full bg-slate-950 border border-amber-500/40 rounded-xl p-3 text-sm font-mono text-amber-300 font-bold outline-none focus:border-amber-500 text-left transition-colors" dir="ltr"/>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-mono text-slate-300 mb-1.5 font-bold">البريد الإلكتروني للمالك (Supabase Auth)</label>
+                    <input required type="email" placeholder="owner@cafe.ma" value={facEmail} onChange={(e) => setFacEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm font-mono text-white outline-none focus:border-amber-500 text-left transition-colors" dir="ltr"/>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-mono text-slate-300 mb-1.5 font-bold">كلمة المرور المؤقتة للمالك</label>
+                    <input required type="text" value={facPass} onChange={(e) => setFacPass(e.target.value)} className="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 text-sm font-mono text-white outline-none focus:border-amber-500 text-left transition-colors" dir="ltr"/>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 p-4 bg-slate-950 rounded-2xl border border-slate-800">
+                  <div>
+                    <label className="block text-[11px] font-mono text-slate-400 mb-1 font-bold">نوع الباقة</label>
+                    <select value={facPlan} onChange={(e) => setFacPlan(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-white outline-none"><option value="starter">Starter (150)</option><option value="pro">Pro (299)</option><option value="enterprise">Enterprise (499)</option></select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-mono text-slate-400 mb-1 font-bold">فترة التجربة (أيام)</label>
+                    <input type="number" min="1" max="60" value={facTrial} onChange={(e) => setFacTrial(Number(e.target.value))} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-center text-amber-400 font-bold outline-none"/>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-mono text-slate-400 mb-1 font-bold">PIN الطاقم</label>
+                    <input type="text" maxLength={4} value={facCashierPin} onChange={(e) => setFacCashierPin(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-center text-emerald-400 font-bold outline-none"/>
+                  </div>
+                </div>
+
+                <button disabled={facSubmitting} type="submit" className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/10 flex items-center justify-center gap-2 mt-4 active:scale-95 transition-all">
+                  {facSubmitting ? "جاري التجهيز ونشر الخوادم..." : "🚀 إطلاق المقهى وحقن القواعد في السحابة"}
+                </button>
+              </form>
+            ) : (
+              <div className="space-y-6 text-center animate-in zoom-in duration-200">
+                <div className="w-16 h-16 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto border border-emerald-500/30 text-2xl font-black">✓</div>
+                <div>
+                  <h3 className="text-2xl font-black text-white">تم نشر خوادم "{facResult.cafe.name}" بنجاح!</h3>
+                  <p className="text-xs font-mono text-emerald-400 mt-1">Instance URL: /{facResult.cafe.slug}</p>
+                </div>
+                
+                <div className="bg-slate-950 border border-slate-800 p-5 rounded-2xl text-right font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-all max-h-[30vh] overflow-y-auto">
+                  {getWhatsAppWelcomeMsg(facResult)}
+                </div>
+
+                <div className="flex gap-3">
+                  <button onClick={copyToClipboard} className="flex-1 py-4 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-2xl flex items-center justify-center gap-2 shadow-lg transition-transform active:scale-95 text-sm">
+                    {copied ? <Check size={18}/> : <Copy size={18}/>}
+                    <span>{copied ? "تم النسخ بنجاح!" : "نسخ رسالة الترحيب للواتساب 📲"}</span>
+                  </button>
+                  <button onClick={() => { setShowFactory(false); setFacName(""); setFacSlug(""); setFacEmail(""); }} className="px-6 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl text-xs">إغلاق</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <main className="max-w-7xl mx-auto space-y-6">
         
@@ -142,7 +305,7 @@ export default function UltimateSuperAdminDashboard() {
                       <td className="p-5">
                         <div className="font-extrabold text-white text-base flex items-center gap-2">
                           <span>{cafe.name}</span>
-                          <a href={`/${cafe.slug}/coffee`} target="_blank" className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-amber-400 transition-opacity"><ExternalLink size={14}/></a>
+                          <a href={`/${cafe.slug}/admin`} title="الدخول للوحة تحكم المقهى" target="_blank" className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-amber-400 transition-opacity"><ExternalLink size={14}/></a>
                         </div>
                         <span className="text-xs font-mono text-slate-500">/{cafe.slug}</span>
                       </td>
