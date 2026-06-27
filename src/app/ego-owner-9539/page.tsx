@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getUltimateDashboardData, forceUpdateCafeSub, provisionNewCafe, updateCafeOwnerCredentials } from "../../actions/saas";
+import { getUltimateDashboardData, forceUpdateCafeSub, provisionNewCafe, updateCafeOwnerCredentials, deleteCafeCompletely } from "../../actions/saas";
 import { 
   Building2, Receipt, ShieldCheck, AlertOctagon, Clock, Search, 
   ExternalLink, Calendar, CheckCircle2, XCircle, ChevronLeft, 
   DollarSign, Activity, Layers, RefreshCcw, Filter,
-  Plus, Sprout, Copy, Check, Sparkles, UserCog // 👈 أضفنا UserCog هنا
+  Plus, Sprout, Copy, Check, Sparkles, UserCog, Trash2 // 👈 أضفنا Trash2 هنا
 } from "lucide-react";
 
 export default function UltimateSuperAdminDashboard() {
@@ -87,6 +87,26 @@ export default function UltimateSuperAdminDashboard() {
       loadAll();
     } else {
       alert("فشل التحديث: " + res.error);
+    }
+  };
+
+  // 🚨 دالة الحذف العميق والنهائي
+  const handleDeepDelete = async () => {
+    if (!inspectedCafe) return;
+    
+    const confirm1 = window.confirm(`⚠️ تحذير خطير: هل أنت متأكد أنك تريد تدمير منصة "${inspectedCafe.name}" بالكامل؟`);
+    if (!confirm1) return;
+    
+    const confirm2 = window.prompt(`هذا الإجراء لا رجعة فيه! سيمسح المقهى، المنتجات، الطلبات، وحساب المالك نهائياً.\nاكتب "DELETE" بالأحرف الكبيرة للتأكيد:`);
+    if (confirm2 !== "DELETE") return;
+
+    const res = await deleteCafeCompletely(inspectedCafe.id, inspectedCafe.owner_auth_id);
+    if (res.success) {
+      alert("تم إعدام المقهى ومسح بياناته من السحابة بنجاح 🗑️");
+      setInspectedCafe(null);
+      loadAll();
+    } else {
+      alert("فشل المسح: " + res.error);
     }
   };
 
@@ -453,6 +473,13 @@ ${origin}/${res.cafe.slug}/kitchen
                     </div>
                   ));
                 })()}
+              </div>
+
+              {/* 🚨 منطقة الخطر (Danger Zone) */}
+              <div className="mt-8 pt-6 border-t border-rose-500/20">
+                <button onClick={handleDeepDelete} className="w-full py-4 bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-500 font-black rounded-xl text-sm transition-all flex items-center justify-center gap-2 border border-rose-500/30">
+                  <Trash2 size={18} /> تدمير المقهى نهائياً (Deep Delete)
+                </button>
               </div>
 
             </div>

@@ -13,8 +13,25 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "مقهى النخبة | قائمة الطلبات",
+  title: "CafeQR",
   description: "نظام الطلبات الذكي عبر QR",
+  manifest: "/manifest.json",
+  openGraph: {
+    title: "CafeQR - Smart Cafe System",
+    description: "النظام الأسرع والأكثر أماناً لإدارة المقاهي في المغرب.",
+    url: "https://cafeqr.egokam.site", // بدلها بالدومين ديالك من بعد
+    siteName: "EgoCafe",
+    images: [
+      {
+        url: "/og-image.jpg", // حط شي تصويرة واعرة للسيستم ديالك في فولدر public سميتها og-image.jpg
+        width: 1200,
+        height: 630,
+        alt: "EgoCafe Platform Preview",
+      },
+    ],
+    locale: "ar_MA",
+    type: "website",
+  },
 };
 
 // 🌟 تلوين شريط المهام في الهواتف الذكية ليتناسب مع الخلفية البيضاء

@@ -236,3 +236,31 @@ export async function updateCafeOwnerCredentials(cafeId: string, authUserId: str
     return { success: false, error: error.message };
   }
 }
+
+// ====================================================================
+// 8. 🚨 الإعدام النهائي (Deep Delete Cafe)
+// ====================================================================
+export async function deleteCafeCompletely(cafeId: string, authUserId: string) {
+  try {
+    // 1. تنظيف الجداول الفرعية لتفادي تعارض الـ Foreign Keys
+    await supabaseAdmin.from('payment_receipts').delete().eq('cafe_id', cafeId);
+    await supabaseAdmin.from('orders').delete().eq('cafe_id', cafeId);
+    await supabaseAdmin.from('tables').delete().eq('cafe_id', cafeId);
+    await supabaseAdmin.from('products').delete().eq('cafe_id', cafeId);
+    
+    // 2. مسح المقهى الأساسي
+    const { error: cafeErr } = await supabaseAdmin.from('cafes').delete().eq('id', cafeId);
+    if (cafeErr) throw cafeErr;
+
+    // 3. إعدام حساب المالك من Supabase Auth
+    if (authUserId) {
+      const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(authUserId);
+      if (authErr) console.error("Auth Delete Error:", authErr); // لا نوقف العملية إذا كان الحساب ممسوحاً مسبقاً
+    }
+
+    revalidatePath('/owner-portal-99');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
