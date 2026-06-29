@@ -49,17 +49,6 @@ const TRANSLATIONS: Record<string, any> = {
 const LANGUAGES = ["ar", "fr", "en"];
 const formatMAD = (price: number) => `${Number(price).toFixed(2)}`;
 
-const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-  const R = 6371e3;
-  const p1 = lat1 * Math.PI/180;
-  const p2 = lat2 * Math.PI/180;
-  const dp = (lat2-lat1) * Math.PI/180;
-  const dl = (lon2-lon1) * Math.PI/180;
-  const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-  return R * c; 
-};
-
 const getSafeUUID = () => {
   if (typeof window !== "undefined" && window.crypto && window.crypto.randomUUID) {
     return window.crypto.randomUUID();
@@ -73,18 +62,18 @@ const getSafeUUID = () => {
 export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug: string, tableNumber: string }> }) {
   const { cafeSlug, tableNumber } = use(params);
   const { items, totalItems, totalPrice, clearCart } = useCart();
-  
+
   const [activeLang, setActiveLang] = useState("ar");
-  const t = TRANSLATIONS[activeLang]; 
+  const t = TRANSLATIONS[activeLang];
   const [activeCategoryId, setActiveCategoryId] = useState("coffee");
-  
+
   const [products, setProducts] = useState<any[]>([]);
   const [cafeData, setCafeData] = useState<any>(null);
   const [tableId, setTableId] = useState<string | null>(null);
-  
+
   const [activeOrders, setActiveOrders] = useState<any[]>([]);
   const [showOrdersModal, setShowOrdersModal] = useState(false);
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -109,10 +98,15 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         setIsTableNotFound(false);
         setIsCafeNotFound(false);
         setIsSuspended(false);
+        // 👻 حقن المصادقة الشبحية الصامتة
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          await supabase.auth.signInAnonymously();
+        }
 
         // 💀 1. الاستشعار الفوري لحالة اشتراك الـ SaaS
         const subCheck = await checkCafeSubscription(cafeSlug);
-        
+
         if (subCheck.status === 'not_found') {
           setIsCafeNotFound(true);
           setIsLoading(false);
@@ -126,19 +120,19 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         }
 
         // 2. التحقق من وجود المقهى
-        const { data: cData } = await supabase.from('cafes').select('id, name, latitude, longitude').eq('slug', cafeSlug).single();
-        if (!cData) { 
+        const { data: cData } = await supabase.from('cafes').select('id, name').eq('slug', cafeSlug).single();
+        if (!cData) {
           setIsCafeNotFound(true);
-          setIsLoading(false); 
-          return; 
+          setIsLoading(false);
+          return;
         }
         setCafeData(cData);
 
         // 3. التحقق الفاصل: هل هذه الطاولة موجودة فعلياً في قاعدة البيانات؟
         const { data: tData } = await supabase.from('tables').select('id').eq('cafe_id', cData.id).eq('table_number', tableNumber).single();
-        
+
         if (!tData) {
-          setIsTableNotFound(true); 
+          setIsTableNotFound(true);
           setIsLoading(false);
           return;
         }
@@ -168,77 +162,58 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   useEffect(() => {
     const sessionId = localStorage.getItem('cafe_lux_client_session');
     if (!sessionId || isTableNotFound || isCafeNotFound || isSuspended) return;
-    
+
     const channel = supabase.channel(`client-orders-${sessionId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` }, 
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` },
       () => { fetchUserOrders(sessionId); }).subscribe();
-      
+
     return () => { supabase.removeChannel(channel); };
   }, [isTableNotFound, isCafeNotFound, isSuspended]);
 
   // 💓 نبض الساس الصامت للكليان: يتأكد كل 60 ثانية أن المقهى مازال مخلص
   useEffect(() => {
-    // إذا كان أصلاً حابس، ما كاين لاش نزيدو نراقبوه
     if (isSuspended || isCafeNotFound || isTableNotFound) return;
 
     const heartbeat = setInterval(async () => {
       try {
         const liveCheck = await checkCafeSubscription(cafeSlug);
         if (!liveCheck.isValid) {
-          setIsSuspended(true); // تفجير شاشة الصيانة الملكية في وجه الكليان فوراً!
+          setIsSuspended(true);
         }
       } catch (error) {
         console.error("Heartbeat error:", error);
       }
-    }, 60000); // كل دقيقة
+    }, 60000);
 
     return () => clearInterval(heartbeat);
   }, [cafeSlug, isSuspended, isCafeNotFound, isTableNotFound]);
 
-  const handleCheckout = () => {
+  // 🚀 إرسال الطلب مباشرة بدون فحص الموقع أو مسافة المقهى
+  const handleCheckout = async () => {
     if (totalItems() === 0 || !cafeData || !tableId) return;
     setIsSubmitting(true);
 
-    if (!navigator.geolocation) {
-      alert(activeLang === 'ar' ? "متصفحك لا يدعم تحديد الموقع." : "Geolocation is not supported by your browser.");
+    try {
+      const sessionId = localStorage.getItem('cafe_lux_client_session');
+      const { data, error } = await supabase.from('orders').insert([{
+        cafe_id: cafeData.id,
+        table_id: tableId,
+        session_id: sessionId,
+        items: items,
+        total_amount: totalPrice(),
+        status: 'pending'
+      }]).select().single();
+
+      if (error) throw error;
+
+      setActiveOrders(prev => [data, ...prev]);
+      setShowOrdersModal(true);
+      clearCart();
+    } catch (error) {
+      alert("حدث خطأ في إرسال الطلب.");
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const userLat = position.coords.latitude;
-        const userLng = position.coords.longitude;
-        
-        if (cafeData.latitude && cafeData.longitude) {
-          const distance = getDistance(userLat, userLng, cafeData.latitude, cafeData.longitude);
-          if (distance > 100) {
-            alert(activeLang === 'ar' ? `عذراً! أنت بعيد عن المقهى بمسافة ${Math.round(distance)} متر.` : `Sorry! You are ${Math.round(distance)}m away.`);
-            setIsSubmitting(false);
-            return;
-          }
-        }
-
-        try {
-          const sessionId = localStorage.getItem('cafe_lux_client_session');
-          const { data, error } = await supabase.from('orders').insert([{ cafe_id: cafeData.id, table_id: tableId, session_id: sessionId, items: items, total_amount: totalPrice(), status: 'pending' }]).select().single();
-          if (error) throw error;
-          
-          setActiveOrders(prev => [data, ...prev]);
-          setShowOrdersModal(true);
-          clearCart();
-        } catch (error) {
-          alert("حدث خطأ في إرسال الطلب.");
-        } finally {
-          setIsSubmitting(false);
-        }
-      },
-      () => {
-        alert(activeLang === 'ar' ? "يرجى السماح بالوصول إلى موقعك لتأكيد الطلب." : "Please allow location access.");
-        setIsSubmitting(false);
-      },
-      { enableHighAccuracy: true }
-    );
   };
 
   const handleCancelOrder = async (orderId: string) => {
@@ -290,7 +265,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         <p className="text-muted-foreground text-sm max-w-xs leading-relaxed mb-8 font-medium">
           {t.tableErrorDesc}
         </p>
-        
+
         <div className="flex gap-1 bg-muted p-1 rounded-full border border-border/50">
           {LANGUAGES.map(lang => (
             <button key={lang} onClick={() => setActiveLang(lang)} className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase transition-colors ${activeLang === lang ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'}`}>{lang}</button>
@@ -302,7 +277,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   return (
     <div className="min-h-screen bg-background pb-32" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
-      
+
       {/* 🌟 نافذة الطلبات الحالية */}
       {showOrdersModal && (
         <div className="fixed inset-0 z-50 bg-background overflow-y-auto p-6 flex flex-col">
@@ -330,7 +305,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
                       {order.status === 'ready' && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><CheckCircle size={12}/> {t.ready}</span>}
                     </div>
                   </div>
-                  
+
                   <div className="bg-muted/30 p-3 rounded-lg text-sm text-foreground font-bold">
                     {order.items.map((item:any, i:number) => (
                       <div key={i} className="flex justify-between">
@@ -367,7 +342,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
               <button key={lang} onClick={() => setActiveLang(lang)} className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-colors ${activeLang === lang ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'}`}>{lang}</button>
             ))}
           </div>
-          
+
           {activeOrders.length > 0 && (
             <button onClick={() => setShowOrdersModal(true)} className="relative p-2 text-foreground bg-muted rounded-full hover:bg-gray-200 transition-colors">
               <Receipt size={20} />
