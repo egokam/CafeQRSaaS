@@ -1,15 +1,12 @@
 "use server";
+
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-// ====================================================================
-// 1. محرك SUPABASE AUTH الرسمي (خاص بـ ملاك المقاهي / المدراء)
-// ====================================================================
-
-// تسجيل دخول المدير عبر الإيميل وكلمة المرور
+// 1. محرك SUPABASE AUTH الرسمي للملاك
 export async function signInAdminWithEmail(email: string, password: string) {
   const { data, error } = await supabaseAdmin.auth.signInWithPassword({
     email,
@@ -20,11 +17,10 @@ export async function signInAdminWithEmail(email: string, password: string) {
     return { success: false, error: "البريد الإلكتروني أو كلمة المرور غير صحيحة" };
   }
 
-  // جلب بيانات المقهى المربوط بهذا الحساب
   const { data: cafeData, error: cafeErr } = await supabaseAdmin
     .from('cafes')
     .select('*')
-    .eq('owner_email', email) // تأكد أن جدول cafes فيه عمود owner_email
+    .eq('owner_email', email) 
     .single();
 
   if (cafeErr || !cafeData) {
@@ -39,12 +35,11 @@ export async function signInAdminWithEmail(email: string, password: string) {
   };
 }
 
-// إنشاء مقهى جديد أوتوماتيكياً (SaaS Self-Onboarding)
 export async function signUpNewCafe(email: string, password: string, cafeName: string, cafeSlug: string) {
   const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    email_confirm: true, // تفعيل فوري لكي يدخل مباشرة
+    email_confirm: true, 
   });
 
   if (authErr || !authData.user) return { success: false, error: authErr?.message || "فشل إنشاء الحساب" };
@@ -55,7 +50,7 @@ export async function signUpNewCafe(email: string, password: string, cafeName: s
     owner_email: email,
     owner_auth_id: authData.user.id,
     plan_type: 'starter',
-    subscription_status: 'pending_verification', // 24 ساعة تجربة مجانية
+    subscription_status: 'pending_verification', 
     max_cashiers: 1
   }]);
 
@@ -64,7 +59,6 @@ export async function signUpNewCafe(email: string, password: string, cafeName: s
   return { success: true };
 }
 
-// دالة إرسال رابط استعادة كلمة المرور الرسمي
 export async function sendRecoveryEmail(email: string) {
   const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback?next=/admin/reset-password`,
@@ -72,10 +66,7 @@ export async function sendRecoveryEmail(email: string) {
   return { success: !error, error: error?.message };
 }
 
-// ====================================================================
-// 2. نظام التوافق الصارم (مخصص لـ الكاشير والمطبخ عبر PIN)
-// ====================================================================
-
+// 2. نظام التوافق الصارم للكاشير والمطبخ
 export async function verifyPin(cafeId: string, role: "admin" | "cashier", pin: string) {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -86,12 +77,10 @@ export async function verifyPin(cafeId: string, role: "admin" | "cashier", pin: 
       .eq('id', cafeId)
       .single();
 
-    // 🔒 منع الكاشير من الدخول إذا كان المقهى مجمداً من طرفك
     if (error || !data || data.subscription_status === 'suspended') return false;
     return pin === data.cashier_pin;
   } 
   
-  // fallback للتوافق المؤقت مع الواجهات القديمة للمدير
   const { data, error } = await supabaseAdmin
     .from('cafes')
     .select('admin_pin')
@@ -112,7 +101,6 @@ export async function verifyOtpAndUpdatePins(email: string, otp: string, cafeId:
   return { success: true };
 }
 
-// دالة تحديث إعدادات المقهى الشاملة (الاسم، الرموز، والحد الأقصى للأجهزة)
 export async function updateCafeSettings(cafeId: string, newName?: string, newAdminPin?: string, newCashierPin?: string, maxCashiers?: number, maxKitchens?: number) {
   const updates: any = {};
   if (newName) updates.name = newName;
@@ -127,10 +115,7 @@ export async function updateCafeSettings(cafeId: string, newName?: string, newAd
   return { success: !error };
 }
 
-// ====================================================================
 // 3. عمليات المنيو والمنتجات 
-// ====================================================================
-
 export async function adminAddProduct(productData: any) {
   const { error } = await supabaseAdmin.from('products').insert([productData]);
   return { success: !error, error: error?.message };
@@ -146,10 +131,7 @@ export async function adminDeleteProduct(id: string) {
   return { success: !error, error: error?.message };
 }
 
-// ====================================================================
 // 4. عمليات الكاشير والمطبخ الحية
-// ====================================================================
-
 export async function cashierUpdateOrderStatus(orderId: string, status: string) {
   const { error } = await supabaseAdmin.from('orders').update({ status }).eq('id', orderId);
   return { success: !error, error: error?.message };
@@ -160,12 +142,9 @@ export async function cashierMarkOutOfStock(productId: string) {
   return { success: !error, error: error?.message };
 }
 
-// ====================================================================
-// عمليات الطاولات (الـ QR) عبر السيرفر الآمن
-// ====================================================================
+// 5. عمليات الطاولات
 export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) {
   try {
-    // 1. فحص هل الطاولة موجودة أصلاً لتفادي التكرار
     const { data: existing } = await supabaseAdmin
       .from('tables')
       .select('id')
@@ -175,7 +154,6 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
 
     if (existing) return { success: true };
 
-    // 2. إذا لم تكن موجودة، نقوم بإضافتها بصلاحيات السيرفر (God Mode)
     const { error } = await supabaseAdmin
       .from('tables')
       .insert([{ cafe_id: cafeId, table_number: tableNumber }]);

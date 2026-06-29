@@ -1,4 +1,5 @@
 "use server";
+
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 
@@ -6,7 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-// 1. فحص حالة الاشتراك (محتفظ بنسختك الأصلية الصارمة 100%)
+// 1. فحص حالة الاشتراك
 export async function checkCafeSubscription(cafeSlug: string) {
   const { data: cafe, error } = await supabaseAdmin
     .from('cafes')
@@ -37,7 +38,7 @@ export async function checkCafeSubscription(cafeSlug: string) {
   return { isValid: true, status: cafe.subscription_status, cafeName: cafe.name, cafeId: cafe.id };
 }
 
-// 2. استقبال الروسي البنكي (مُحصّن ضد السبام والثغرات المجانية 🛡️)
+// 2. استقبال الوصل البنكي
 export async function submitBankTransferReceipt(cafeId: string, receiptUrl: string, amount: number) {
   try {
     const { data: cafeData, error: fetchError } = await supabaseAdmin
@@ -80,7 +81,7 @@ export async function submitBankTransferReceipt(cafeId: string, receiptUrl: stri
   }
 }
 
-// 3. الدالة اللي كانت هاربة: جلب معلومات البنك من داتا بيز
+// 3. جلب معلومات البنك
 export async function getPlatformBankDetails() {
   const { data, error } = await supabaseAdmin
     .from('platform_settings')
@@ -89,14 +90,28 @@ export async function getPlatformBankDetails() {
     .single();
 
   if (error || !data) {
-    return { bank_name: "CIH BANK", rib: "230330000000000000000000", holder_name: "KAMAL EGO-DEV" };
+    return { bank_name: "CIH BANK", rib: "230041540854821102280094", holder_name: "KAMAL El Otmani" };
   }
 
   return data;
 }
 
-// 4. جلب خريطة المنصة الشاملة للمدير الأكبر
-export async function getUltimateDashboardData() {
+// 4. جلب خريطة المنصة الشاملة للمدير الأكبر (🛡️ محصنة باستقبال الـ JWT Token)
+export async function getUltimateDashboardData(accessToken?: string) {
+  if (!accessToken) {
+    throw new Error("SECURITY ALERT: ACCESS TOKEN MISSING!");
+  }
+
+  // تمرير التوكن للمحرك باش يتأكد من الهوية الحقيقية في كلاود Supabase
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
+
+  // كنجيبو الإيميل الحقيقي ديالك من المتغيرات السرية للسيرفر
+  const adminEmail = process.env.SUPER_ADMIN_EMAIL;
+
+  if (error || !user || user.email !== adminEmail) {
+    throw new Error("SECURITY ALERT: UNAUTHORIZED ACCESS BLOCKED!");
+  }
+
   const { data: cafes, error: cafesErr } = await supabaseAdmin
     .from('cafes')
     .select('*, products(count), orders(count)')
@@ -130,7 +145,7 @@ export async function getUltimateDashboardData() {
   };
 }
 
-// 5. دالة تعديل تاريخ الاشتراك أو الحالة يدوياً من الأرشيف
+// 5. تعديل تاريخ الاشتراك يدوياً
 export async function forceUpdateCafeSub(cafeId: string, newStatus: string, newEndsAt: string) {
   const { error } = await supabaseAdmin
     .from('cafes')
@@ -141,13 +156,11 @@ export async function forceUpdateCafeSub(cafeId: string, newStatus: string, newE
     })
     .eq('id', cafeId);
 
-  revalidatePath('/owner-portal-99');
+  revalidatePath('/ego-owner-9539');
   return !error;
 }
 
-// ====================================================================
-// 6. 👑 معمل تفريخ المقاهي (SaaS Cafe Factory Engine) - الإضافة الجديدة
-// ====================================================================
+// 6. معمل تفريخ المقاهي
 export async function provisionNewCafe(payload: {
   name: string;
   slug: string;
@@ -162,11 +175,9 @@ export async function provisionNewCafe(payload: {
     const cleanSlug = payload.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-');
     const pass = payload.ownerPassword || "CafeSaaS2026!";
 
-    // أ. التحقق من عدم تكرار الرابط المختصر
     const { data: existing } = await supabaseAdmin.from('cafes').select('id').eq('slug', cleanSlug).single();
     if (existing) return { success: false, error: `الرابط المختصر "${cleanSlug}" محجوز مسبقاً!` };
 
-    // ب. إنشاء المستخدم في Supabase Auth للمالك
     const { data: authUser, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email: payload.ownerEmail,
       password: pass,
@@ -175,12 +186,10 @@ export async function provisionNewCafe(payload: {
 
     if (authErr || !authUser.user) return { success: false, error: "فشل إنشاء حساب المالك: " + authErr?.message };
 
-    // ج. حساب تاريخ انتهاء التجربة المجانية وحدود الأجهزة حسب الباقة
     const endsAt = new Date(Date.now() + payload.trialDays * 24 * 60 * 60 * 1000).toISOString();
     const maxC = payload.planType === 'enterprise' ? 10 : payload.planType === 'starter' ? 1 : 3;
     const maxK = payload.planType === 'enterprise' ? 5 : payload.planType === 'starter' ? 1 : 2;
 
-    // د. إدراج المقهى في الداتا بيز
     const { data: newCafe, error: dbErr } = await supabaseAdmin.from('cafes').insert([{
       name: payload.name,
       slug: cleanSlug,
@@ -201,7 +210,7 @@ export async function provisionNewCafe(payload: {
       return { success: false, error: "خطأ في قاعدة البيانات: " + dbErr?.message };
     }
 
-    revalidatePath('/owner-portal-99');
+    revalidatePath('/ego-owner-9539');
     return { 
       success: true, 
       cafe: newCafe, 
@@ -211,6 +220,8 @@ export async function provisionNewCafe(payload: {
     return { success: false, error: err.message };
   }
 }
+
+// 7. تحديث حساب المالك
 export async function updateCafeOwnerCredentials(cafeId: string, authUserId: string, newEmail?: string, newPassword?: string) {
   try {
     if (!authUserId) throw new Error("لا يوجد حساب مصادقة (Auth ID) مربوط بهذا المقهى.");
@@ -219,17 +230,15 @@ export async function updateCafeOwnerCredentials(cafeId: string, authUserId: str
     if (newEmail && newEmail.trim() !== '') updates.email = newEmail.trim();
     if (newPassword && newPassword.trim() !== '') updates.password = newPassword.trim();
 
-    // 1. تحديث الحساب في محرك Supabase Auth
     const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(authUserId, updates);
     if (authErr) throw authErr;
 
-    // 2. مزامنة الإيميل الجديد مع جدول cafes ليبقى الأرشيف محدثاً
     if (updates.email) {
       const { error: dbErr } = await supabaseAdmin.from('cafes').update({ owner_email: updates.email }).eq('id', cafeId);
       if (dbErr) throw dbErr;
     }
 
-    revalidatePath('/owner-portal-99');
+    revalidatePath('/ego-owner-9539');
     return { success: true };
   } catch (error: any) {
     console.error("Auth Update Error:", error);
@@ -237,28 +246,23 @@ export async function updateCafeOwnerCredentials(cafeId: string, authUserId: str
   }
 }
 
-// ====================================================================
-// 8. 🚨 الإعدام النهائي (Deep Delete Cafe)
-// ====================================================================
+// 8. الإعدام النهائي
 export async function deleteCafeCompletely(cafeId: string, authUserId: string) {
   try {
-    // 1. تنظيف الجداول الفرعية لتفادي تعارض الـ Foreign Keys
     await supabaseAdmin.from('payment_receipts').delete().eq('cafe_id', cafeId);
     await supabaseAdmin.from('orders').delete().eq('cafe_id', cafeId);
     await supabaseAdmin.from('tables').delete().eq('cafe_id', cafeId);
     await supabaseAdmin.from('products').delete().eq('cafe_id', cafeId);
     
-    // 2. مسح المقهى الأساسي
     const { error: cafeErr } = await supabaseAdmin.from('cafes').delete().eq('id', cafeId);
     if (cafeErr) throw cafeErr;
 
-    // 3. إعدام حساب المالك من Supabase Auth
     if (authUserId) {
       const { error: authErr } = await supabaseAdmin.auth.admin.deleteUser(authUserId);
-      if (authErr) console.error("Auth Delete Error:", authErr); // لا نوقف العملية إذا كان الحساب ممسوحاً مسبقاً
+      if (authErr) console.error("Auth Delete Error:", authErr); 
     }
 
-    revalidatePath('/owner-portal-99');
+    revalidatePath('/ego-owner-9539');
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

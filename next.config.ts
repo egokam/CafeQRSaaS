@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: 'standalone', // 👈 هادي هي اللي كتخلي الـ Docker Image تكون صغيرة وسريعة
+  output: 'standalone', 
   images: {
     remotePatterns: [
       {

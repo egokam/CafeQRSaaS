@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "../../lib/supabase";
 import { getUltimateDashboardData, forceUpdateCafeSub, provisionNewCafe, updateCafeOwnerCredentials, deleteCafeCompletely } from "../../actions/saas";
 import { 
   Building2, Receipt, ShieldCheck, AlertOctagon, Clock, Search, 
   ExternalLink, Calendar, CheckCircle2, XCircle, ChevronLeft, 
   DollarSign, Activity, Layers, RefreshCcw, Filter,
-  Plus, Sprout, Copy, Check, Sparkles, UserCog, Trash2 // 👈 أضفنا Trash2 هنا
+  Plus, Sprout, Copy, Check, Sparkles, UserCog, Trash2,
+  LogOut 
 } from "lucide-react";
 
 export default function UltimateSuperAdminDashboard() {
+  const router = useRouter();
+
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>({ cafes: [], receipts: [], stats: {} });
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,20 +44,58 @@ export default function UltimateSuperAdminDashboard() {
   const [facResult, setFacResult] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const loadAll = async () => {
-    setLoading(true);
-    const res = await getUltimateDashboardData();
-    setData(res);
-    setLoading(false);
+  // 🛡️ دالة التحميل المحدثة (ترسل الـ Access Token للسيرفر)
+  const loadAll = async (token?: string) => {
+    try {
+      let currentToken = token;
+      
+      if (!currentToken) {
+        const { data: { session } } = await supabase.auth.getSession();
+        currentToken = session?.access_token;
+      }
+
+      if (!currentToken) return;
+
+      const res = await getUltimateDashboardData(currentToken);
+      setData(res);
+    } catch (error) {
+      console.error("Dashboard Load Error:", error);
+      // إذا فشل التوكن أو تم الرفض من السيرفر، اطرده لصفحة الدخول
+      router.replace("/ego-owner-9539/login");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { loadAll(); }, []);
+  // 🛡️ الحارس الأمني: التحقق من الدخول قبل تحميل أي شيء
+  useEffect(() => {
+    const checkAuthAndLoad = async () => {
+      setLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // إذا لم يكن مسجلاً للدخول، اطرده إلى صفحة الدخول فوراً
+        router.replace("/ego-owner-9539/login");
+      } else {
+        // إذا كان مسجلاً، مرر التوكن لجلب البيانات
+        await loadAll(session.access_token);
+      }
+    };
+
+    checkAuthAndLoad();
+  }, [router]);
+
+  // 🔐 تسجيل الخروج وقفل المنصة
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/ego-owner-9539/login");
+    router.refresh();
+  };
 
   const handleInspect = (cafe: any) => {
     setInspectedCafe(cafe);
     setNewDateInput(cafe.subscription_ends_at ? cafe.subscription_ends_at.split('T')[0] : "");
     setNewStatusInput(cafe.subscription_status || "active");
-    // تعبئة إيميل المالك الحالي لتسهيل التعديل
     setEditOwnerEmail(cafe.owner_email || "");
     setEditOwnerPassword("");
   };
@@ -70,7 +113,6 @@ export default function UltimateSuperAdminDashboard() {
     }
   };
 
-  // 🔐 دالة تحديث حساب المالك (إيميل وباسورد)
   const handleUpdateCredentials = async () => {
     if (!inspectedCafe || !inspectedCafe.owner_auth_id) {
       return alert("هذا المقهى لا يملك حساب مصادقة مربوط به (Auth ID مفقود)!");
@@ -83,14 +125,13 @@ export default function UltimateSuperAdminDashboard() {
 
     if (res.success) {
       alert("تم تغيير بيانات دخول المالك بنجاح! 🔐");
-      setEditOwnerPassword(""); // تصفير حقل الباسورد للأمان
+      setEditOwnerPassword(""); 
       loadAll();
     } else {
       alert("فشل التحديث: " + res.error);
     }
   };
 
-  // 🚨 دالة الحذف العميق والنهائي
   const handleDeepDelete = async () => {
     if (!inspectedCafe) return;
     
@@ -110,7 +151,6 @@ export default function UltimateSuperAdminDashboard() {
     }
   };
 
-  // 🌟 دالة إطلاق الخادم ونشر المقهى في قاعدة البيانات
   const handleProvisionCafe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!facName || !facSlug || !facEmail) return alert("يرجى إدخال الحقول الأساسية!");
@@ -131,13 +171,12 @@ export default function UltimateSuperAdminDashboard() {
     setFacSubmitting(false);
     if (res.success) {
       setFacResult(res);
-      loadAll(); // تحديث عداد الـ KPIs في الخلفية
+      loadAll(); 
     } else {
       alert(res.error || "حدث خطأ أثناء التفريخ");
     }
   };
 
-  // توليد رسالة واتساب المالك
   const getWhatsAppWelcomeMsg = (res: any) => {
     const origin = typeof window !== 'undefined' ? window.location.origin : "http://localhost:3000";
     return `مرحباً بك في منصة EgoCafe SaaS ☕🚀
@@ -178,7 +217,7 @@ ${origin}/${res.cafe.slug}/kitchen
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center font-mono">
         <Activity className="animate-spin text-amber-500 mb-4" size={48} />
-        <p className="text-sm tracking-widest text-slate-400">LOADING EGODEV INFRASTRECTURE...</p>
+        <p className="text-sm tracking-widest text-slate-400">AUTHENTICATING & LOADING...</p>
       </div>
     );
   }
@@ -186,25 +225,33 @@ ${origin}/${res.cafe.slug}/kitchen
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-10 font-sans selection:bg-amber-500 selection:text-black" dir="rtl">
       
-      {/* 🌟 الهيدر البانورامي مع زر التفريخ الملكي */}
+      {/* 🌟 الهيدر البانورامي مع أزرار التحكم القوية */}
       <header className="max-w-7xl mx-auto mb-8 pb-6 border-b border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-emerald-500 animate-ping"/>
             <span className="text-xs font-mono text-emerald-400 tracking-wider uppercase">Master Control Center v3.0</span>
           </div>
-          <h1 className="text-3xl lg:text-4xl font-black mt-1 text-white tracking-tight">المنصة الشاملة للمستثمر 👁️</h1>
+          <h1 className="text-3xl lg:text-4xl font-black mt-1 text-white tracking-tight">EgoDev Master Panel </h1>
         </div>
         
-        <div className="flex items-center gap-3 self-start md:self-auto">
+        <div className="flex items-center flex-wrap gap-2.5 self-start md:self-auto">
+          {/* زر تفريخ المقهى */}
           <button 
             onClick={() => { setShowFactory(true); setFacResult(null); }} 
-            className="bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black px-6 py-3 rounded-2xl flex items-center gap-2 shadow-xl shadow-amber-500/10 active:scale-95 transition-all text-sm"
+            className="bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black px-5 py-3 rounded-2xl flex items-center gap-2 shadow-xl shadow-amber-500/10 active:scale-95 transition-all text-xs sm:text-sm"
           >
-            <Sprout size={18} /> تفريخ مقهى جديد 🌱
+            <Sprout size={18} /> New Cafee sys 🌱
           </button>
-          <button onClick={loadAll} className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 px-4 py-3 rounded-2xl font-bold text-sm transition-all text-slate-300">
+
+          {/* زر التحديث السريع */}
+          <button onClick={() => loadAll()} title="تحديث البيانات" className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 border border-slate-800 p-3 rounded-2xl font-bold text-sm transition-all text-slate-300">
             <RefreshCcw size={18} />
+          </button>
+
+          {/* زر تسجيل الخروج والقفل */}
+          <button onClick={handleLogout} title="قفل المنصة وتسجيل الخروج" className="flex items-center gap-2 bg-slate-900 hover:bg-rose-500/10 border border-slate-800 hover:border-rose-500/30 p-3 rounded-2xl font-bold text-sm transition-all text-slate-400 hover:text-rose-400">
+            <LogOut size={18} />
           </button>
         </div>
       </header>
@@ -229,7 +276,7 @@ ${origin}/${res.cafe.slug}/kitchen
         </div>
       </div>
 
-      {/* 🌟 نافذة معمل تفريخ المقاهي (SaaS Provisioning Factory Modal) */}
+      {/* 🌟 نافذة معمل تفريخ المقاهي */}
       {showFactory && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-[2.5rem] p-6 lg:p-10 shadow-2xl relative max-h-[90vh] overflow-y-auto text-right">
@@ -389,7 +436,7 @@ ${origin}/${res.cafe.slug}/kitchen
         </div>
       </main>
 
-      {/* 🌟 المفتش العميق الجانبي (Deep Inspector Drawer) */}
+      {/* 🌟 المفتش العميق الجانبي */}
       {inspectedCafe && (
         <div className="fixed inset-0 z-50 flex justify-end bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-2xl bg-slate-900 border-r border-slate-800 h-full overflow-y-auto p-6 lg:p-8 flex flex-col justify-between shadow-2xl">
@@ -402,7 +449,7 @@ ${origin}/${res.cafe.slug}/kitchen
                 <button onClick={() => setInspectedCafe(null)} className="p-2 bg-slate-800 rounded-full hover:bg-slate-700 text-slate-400"><ChevronLeft size={20}/></button>
               </div>
 
-              {/* 🔐 تعديل حساب المالك (Auth Credentials) */}
+              {/* 🔐 تعديل حساب المالك */}
               <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 mb-6 space-y-4">
                 <h4 className="text-sm font-bold text-emerald-400 uppercase font-mono tracking-wider flex items-center gap-2">
                   <UserCog size={18} /> إدارة حساب المالك (Auth)
@@ -422,7 +469,7 @@ ${origin}/${res.cafe.slug}/kitchen
                 </button>
               </div>
 
-              {/* تحكم الطوارئ اليدوي (God Overrides) */}
+              {/* تحكم الطوارئ اليدوي */}
               <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800 mb-8 space-y-4">
                 <h4 className="text-sm font-bold text-amber-400 uppercase font-mono tracking-wider">⚡ تجاوزات النظام اليدوية (God Overrides)</h4>
                 <div className="grid grid-cols-2 gap-4">
