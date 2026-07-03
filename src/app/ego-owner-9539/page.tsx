@@ -6,11 +6,12 @@ import { supabase } from "../../lib/supabase";
 import { getUltimateDashboardData, forceUpdateCafeSub, provisionNewCafe, updateCafeOwnerCredentials, deleteCafeCompletely } from "../../actions/saas";
 import { 
   Building2, Receipt, ShieldCheck, AlertOctagon, Clock, Search, 
-  ExternalLink, Calendar, CheckCircle2, XCircle, ChevronLeft, 
-  DollarSign, Activity, Layers, RefreshCcw, Filter,
-  Plus, Sprout, Copy, Check, Sparkles, UserCog, Trash2,
-  LogOut 
+  ExternalLink, ChevronLeft, DollarSign, Activity, RefreshCcw, 
+  Sprout, Copy, Check, Sparkles, UserCog, Trash2, LogOut, XCircle 
 } from "lucide-react";
+
+// 🛡️ القائمة البيضاء: الإيميل الوحيد المسموح له بالوصول للوحة التحكم المركزية
+const ALLOWED_SUPER_ADMIN = "elotmanikamal607@gmail.com";
 
 export default function UltimateSuperAdminDashboard() {
   const router = useRouter();
@@ -20,17 +21,13 @@ export default function UltimateSuperAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
   
-  // 🌟 النافذة الجانبية للتفتيش العميق (Deep Inspector)
+  // 🌟 حالات النافذة الجانبية والحالات الأخرى (كما هي في كودك الأصلي)
   const [inspectedCafe, setInspectedCafe] = useState<any | null>(null);
   const [newDateInput, setNewDateInput] = useState("");
   const [newStatusInput, setNewStatusInput] = useState("");
-
-  // 🌟 حالات تعديل حساب المالك (Auth Credentials)
   const [editOwnerEmail, setEditOwnerEmail] = useState("");
   const [editOwnerPassword, setEditOwnerPassword] = useState("");
   const [isUpdatingAuth, setIsUpdatingAuth] = useState(false);
-
-  // 🌟 حالات معمل تفريخ المقاهي (SaaS Provisioning Factory)
   const [showFactory, setShowFactory] = useState(false);
   const [facName, setFacName] = useState("");
   const [facSlug, setFacSlug] = useState("");
@@ -44,54 +41,60 @@ export default function UltimateSuperAdminDashboard() {
   const [facResult, setFacResult] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // 🛡️ دالة التحميل المحدثة (ترسل الـ Access Token للسيرفر)
   const loadAll = async (token?: string) => {
     try {
       let currentToken = token;
-      
       if (!currentToken) {
         const { data: { session } } = await supabase.auth.getSession();
         currentToken = session?.access_token;
       }
-
       if (!currentToken) return;
 
       const res = await getUltimateDashboardData(currentToken);
       setData(res);
     } catch (error) {
       console.error("Dashboard Load Error:", error);
-      // إذا فشل التوكن أو تم الرفض من السيرفر، اطرده لصفحة الدخول
       router.replace("/ego-owner-9539/login");
     } finally {
       setLoading(false);
     }
   };
 
-  // 🛡️ الحارس الأمني: التحقق من الدخول قبل تحميل أي شيء
+  // 🛡️ الحارس الأمني المحدث: التحقق من الدخول والصلاحية
   useEffect(() => {
     const checkAuthAndLoad = async () => {
       setLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!session) {
-        // إذا لم يكن مسجلاً للدخول، اطرده إلى صفحة الدخول فوراً
+      // 1. التحقق من وجود الجلسة
+      if (!session || !user) {
         router.replace("/ego-owner-9539/login");
-      } else {
-        // إذا كان مسجلاً، مرر التوكن لجلب البيانات
-        await loadAll(session.access_token);
+        return;
       }
+
+      // 2. التحقق من صلاحية الوصول (Whitelist Check)
+      if (user.email !== ALLOWED_SUPER_ADMIN) {
+        await supabase.auth.signOut();
+        alert("⛔ تحذير أمني: رصد محاولة دخول غير مصرح بها لمنصة التحكم المركزية.");
+        router.replace("/ego-owner-9539/login");
+        return;
+      }
+
+      await loadAll(session.access_token);
     };
 
     checkAuthAndLoad();
   }, [router]);
 
-  // 🔐 تسجيل الخروج وقفل المنصة
+  // 🔐 تسجيل الخروج
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/ego-owner-9539/login");
     router.refresh();
   };
 
+  
   const handleInspect = (cafe: any) => {
     setInspectedCafe(cafe);
     setNewDateInput(cafe.subscription_ends_at ? cafe.subscription_ends_at.split('T')[0] : "");
@@ -330,7 +333,7 @@ ${origin}/${res.cafe.slug}/kitchen
                 </div>
 
                 <button disabled={facSubmitting} type="submit" className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/10 flex items-center justify-center gap-2 mt-4 active:scale-95 transition-all">
-                  {facSubmitting ? "جاري التجهيز ونشر الخوادم..." : "🚀 إطلاق المقهى وحقن القواعد في السحابة"}
+                  {facSubmitting ? "جاري التجهيز ونشر الخوادم..." : "Launch New Cafe and dont forgot to add email on SB Auth🚀"}
                 </button>
               </form>
             ) : (

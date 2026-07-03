@@ -5,15 +5,15 @@ import { supabase } from "../../../lib/supabase";
 import { 
   Plus, Trash2, Image as ImageIcon, Loader2, QrCode, PackageSearch, 
   Printer, Lock, Settings, Edit, X, AlertTriangle, CheckCircle2, 
-  CreditCard, TrendingUp, DollarSign, History, Calendar, MonitorSmartphone 
+  CreditCard, TrendingUp, DollarSign, History, Calendar, MonitorSmartphone,
+  MessageCircle, KeyRound // 🌟 إضافة أيقونة المفتاح
 } from "lucide-react";
 import QRCode from "react-qr-code";
-import { signInAdminWithEmail, sendRecoveryEmail, updateCafeSettings, adminAddProduct, adminUpdateProduct, adminDeleteProduct, adminCheckOrAddTable } from "../../../actions/auth";
+import { signInAdminWithEmail, updateCafeSettings, adminAddProduct, adminUpdateProduct, adminDeleteProduct, adminCheckOrAddTable } from "../../../actions/auth";
 import BillingTab from "../../../components/BillingTab";
 
 const CATEGORIES = ["القهوة", "الحلوى", "عصائر", "مخبوزات"];
 
-// 🌟 محرك ضغط الصور الصاروخي (WebP + 800px Max Width)
 const compressImageBeforeUpload = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -23,7 +23,7 @@ const compressImageBeforeUpload = (file: File): Promise<File> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 800; // عرض مثالي جداً لشاشات القوائم
+        const MAX_WIDTH = 800; 
         let width = img.width;
         let height = img.height;
 
@@ -48,7 +48,7 @@ const compressImageBeforeUpload = (file: File): Promise<File> => {
             resolve(compressedFile);
           },
           "image/webp",
-          0.75 // 75% جودة بصرية
+          0.75 
         );
       };
       img.onerror = (err) => reject(err);
@@ -65,19 +65,20 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   
   const [emailInput, setEmailInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
   
-  const [isRecovering, setIsRecovering] = useState(false);
-  const [recoveryEmail, setRecoveryEmail] = useState("");
+  // 🌟 نظام المراحل الجديد: login | otp | reset
+  const [authMode, setAuthMode] = useState<"login" | "otp" | "reset">("login");
+  const [otpInput, setOtpInput] = useState("");
+  const [newPasswordInput, setNewPasswordInput] = useState("");
   
   const [cafeName, setCafeName] = useState("");
   const [newAdminPin, setNewAdminPin] = useState("");
   const [newCashierPin, setNewCashierPin] = useState("");
   
-  // 🌟 إعدادات وحدود الأجهزة
   const [maxCashiers, setMaxCashiers] = useState("2"); 
   const [maxKitchens, setMaxKitchens] = useState("1"); 
   
-  // 🌟 استشعار الأجهزة المتصلة الحية (Live Presence)
   const [activeCashiers, setActiveCashiers] = useState(0);
   const [activeKitchens, setActiveKitchens] = useState(0);
 
@@ -134,9 +135,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   };
 
   useEffect(() => {
-    const sessionKey = `admin_auth_${cafeSlug}`;
-    if (sessionStorage.getItem(sessionKey) === 'true') setIsAuthenticated(true);
-
     const initAdmin = async () => {
       setIsLoading(true);
       const { data: cafeData } = await supabase.from('cafes').select('*').eq('slug', cafeSlug).single();
@@ -152,6 +150,25 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       if (cafeData.max_cashiers) setMaxCashiers(cafeData.max_cashiers.toString());
       if (cafeData.max_kitchens) setMaxKitchens(cafeData.max_kitchens.toString());
       
+      // 🌟 حفظ إيميل المالك والتحقق الصارم من الجلسة
+      if (cafeData.owner_email) {
+        setOwnerEmail(cafeData.owner_email);
+        
+        const sessionKey = `admin_auth_${cafeSlug}`;
+        if (sessionStorage.getItem(sessionKey) === 'true') {
+          const { data: { user } } = await supabase.auth.getUser();
+          
+          // 🛡️ الحارس الأمني: التأكد أن المستخدم الحالي هو المالك الفعلي
+          if (user && user.email?.toLowerCase() === cafeData.owner_email.toLowerCase()) {
+            setIsAuthenticated(true);
+          } else {
+            sessionStorage.removeItem(sessionKey);
+            await supabase.auth.signOut();
+            setIsAuthenticated(false);
+          }
+        }
+      }
+      
       await Promise.all([
         fetchProducts(cafeData.id),
         fetchMonthlySales(cafeData.id)
@@ -162,7 +179,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     initAdmin();
   }, [cafeSlug]);
 
-  // 📡 الرادار الحي لمراقبة عدد الكاشيرات والمطابخ المشتعلة الآن
   useEffect(() => {
     if (!cafeId || !isAuthenticated) return;
 
@@ -184,9 +200,16 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     };
   }, [cafeId, isAuthenticated]);
 
+  // 1️⃣ تسجيل الدخول مع الحماية الصارمة
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailInput || !passwordInput || !cafeId) return;
+
+    // 🛡️ المنع المباشر: إذا كتب إيميل آخر غير إيميل المقهى
+    if (emailInput.toLowerCase() !== ownerEmail.toLowerCase()) {
+      alert("⛔ وصول مرفوض: هذا البريد غير مصرح له بإدارة هذا المقهى.");
+      return;
+    }
 
     setIsChecking(true);
     const res = await signInAdminWithEmail(emailInput, passwordInput);
@@ -200,17 +223,65 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     }
   };
 
-  const handleSendRecovery = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!recoveryEmail) return;
+  // 2️⃣ إرسال كود OTP لاستعادة كلمة المرور
+  const handleAutoRecovery = async () => {
+    if (!ownerEmail) {
+      alert("عذراً، لم يتم العثور على بريد إلكتروني مسجل لمالك هذا المقهى.");
+      return;
+    }
+    
     setIsChecking(true);
-    const { success, error } = await sendRecoveryEmail(recoveryEmail);
+    // نستخدم resetPassword مباشرة لضمان تشغيل قالب الاستعادة
+    const { error } = await supabase.auth.resetPasswordForEmail(ownerEmail);
     setIsChecking(false);
-    if (success) { 
-      alert("تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني 📩"); 
-      setIsRecovering(false);
+    
+    if (!error) { 
+      setAuthMode("otp"); // الانتقال لمرحلة الـ OTP
+      const maskedEmail = ownerEmail.replace(/^(.)(.*)(.@.*)$/, (_, a, b, c) => a + b.replace(/./g, '*') + c);
+      alert(`تم إرسال رمز استعادة كلمة المرور إلى: ${maskedEmail} 📩`); 
     } else {
-      alert(error || "حدث خطأ أثناء الإرسال.");
+      alert("حدث خطأ أثناء الإرسال: " + error.message);
+    }
+  };
+
+  // 3️⃣ التحقق من كود الـ OTP
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpInput || !ownerEmail) return;
+
+    setIsChecking(true);
+    const { error } = await supabase.auth.verifyOtp({
+      email: ownerEmail,
+      token: otpInput,
+      type: 'recovery', 
+    });
+    setIsChecking(false);
+
+    if (error) {
+      alert("الرمز غير صحيح أو منتهي الصلاحية ❌");
+    } else {
+      setAuthMode("reset"); // الانتقال لمرحلة تعيين باسورد جديد
+    }
+  };
+
+  // 4️⃣ تعيين الباسورد الجديد في الداتابيز
+  const handleSetNewPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPasswordInput) return;
+    
+    setIsChecking(true);
+    const { error } = await supabase.auth.updateUser({
+      password: newPasswordInput
+    });
+    setIsChecking(false);
+
+    if (error) {
+      alert("فشل تحديث كلمة المرور: " + error.message);
+    } else {
+      alert("تم تغيير كلمة المرور بنجاح! يمكنك الآن الدخول للمنصة 🔓");
+      setIsAuthenticated(true);
+      sessionStorage.setItem(`admin_auth_${cafeSlug}`, 'true');
+      setAuthMode("login");
     }
   };
 
@@ -236,9 +307,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       let finalImageUrl = undefined;
       
       if (imageFile) {
-        // 🌟 تمرير الصورة للمحرك لضغطها أولاً قبل الرفع
         const optimizedFile = await compressImageBeforeUpload(imageFile);
-        const fileName = `${Date.now()}-${Math.random()}.webp`; // فرض امتداد webp الصاروخي
+        const fileName = `${Date.now()}-${Math.random()}.webp`; 
 
         const { error: uploadError } = await supabase.storage.from('products').upload(fileName, optimizedFile);
         if (uploadError) throw uploadError;
@@ -246,7 +316,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         const { data: publicUrlData } = supabase.storage.from('products').getPublicUrl(fileName);
         finalImageUrl = publicUrlData.publicUrl;
 
-        // مسح الصورة القديمة في حالة التعديل
         if (editingId) {
           const oldProduct = products.find(p => p.id === editingId);
           if (oldProduct && oldProduct.image_url) {
@@ -295,7 +364,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     setQrReady(false);
     const formattedTableNumber = `table_${tableNum}`;
 
-    // مناداة السيرفر للقيام بالعملية الثقيلة بأمان
     const { success } = await adminCheckOrAddTable(cafeId, formattedTableNumber);
     
     if (success) {
@@ -327,11 +395,26 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     return (
       <div className="min-h-screen bg-muted/20 flex flex-col items-center justify-center p-6" dir="rtl">
         <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-border w-full max-w-md text-center">
-          <div className="bg-primary/10 w-20 h-20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6 shadow-inner"><Lock size={36} /></div>
-          <h2 className="text-2xl font-black mb-2 tracking-tight">{isRecovering ? "استعادة كلمة المرور" : "تسجيل دخول الإدارة"}</h2>
-          <p className="text-muted-foreground mb-8 text-sm font-bold">{isRecovering ? "أدخل بريدك الإلكتروني التابع للمقهى" : "قم بتسجيل الدخول للتحكم في حساب مشروعك"}</p>
           
-          {!isRecovering ? (
+          {authMode === "reset" ? (
+            <div className="bg-emerald-500/10 w-20 h-20 rounded-3xl flex items-center justify-center text-emerald-600 mx-auto mb-6 shadow-inner"><KeyRound size={36} /></div>
+          ) : (
+            <div className="bg-primary/10 w-20 h-20 rounded-3xl flex items-center justify-center text-primary mx-auto mb-6 shadow-inner"><Lock size={36} /></div>
+          )}
+          
+          <h2 className="text-2xl font-black mb-2 tracking-tight">
+            {authMode === "login" && "تسجيل دخول الإدارة"}
+            {authMode === "otp" && "أدخل رمز التحقق"}
+            {authMode === "reset" && "كلمة مرور جديدة"}
+          </h2>
+          <p className="text-muted-foreground mb-8 text-sm font-bold">
+            {authMode === "login" && "قم بتسجيل الدخول للتحكم في حساب مشروعك"}
+            {authMode === "otp" && "تم إرسال رمز سري إلى بريدك الإلكتروني"}
+            {authMode === "reset" && "يرجى كتابة كلمة المرور الجديدة لحسابك"}
+          </p>
+          
+          {/* 🌟 تبديل الفورم بناءً على حالة الـ Auth Mode */}
+          {authMode === "login" && (
             <form onSubmit={handleLogin} className="flex flex-col gap-4 text-right">
               <div>
                 <label className="block text-xs font-bold text-muted-foreground mb-1.5 pr-1">البريد الإلكتروني</label>
@@ -341,19 +424,77 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
                 <label className="block text-xs font-bold text-muted-foreground mb-1.5 pr-1">كلمة المرور</label>
                 <input required type="password" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} className="w-full border-2 border-border rounded-2xl p-4 text-left font-mono text-sm focus:border-primary outline-none bg-muted/20 transition-colors" placeholder="••••••••" disabled={isChecking} />
               </div>
-              <button disabled={isChecking} type="submit" className="py-4 rounded-2xl font-black text-base text-white bg-foreground hover:opacity-90 mt-2 shadow-xl transition-all active:scale-95">{isChecking ? "جاري المصادقة..." : "دخول للمنصة 🚀"}</button>
-              <button type="button" onClick={() => setIsRecovering(true)} className="text-xs text-primary font-bold mt-3 hover:underline text-center block w-full">هل نسيت كلمة المرور؟</button>
-            </form>
-          ) : (
-            <form onSubmit={handleSendRecovery} className="flex flex-col gap-4 text-right">
-              <div>
-                <label className="block text-xs font-bold text-muted-foreground mb-1.5 pr-1">البريد الإلكتروني</label>
-                <input required type="email" value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className="w-full border-2 border-border rounded-2xl p-4 text-left font-mono text-sm focus:border-primary outline-none bg-muted/20" placeholder="owner@cafe.ma" autoFocus disabled={isChecking} />
-              </div>
-              <button disabled={isChecking} type="submit" className="py-4 rounded-2xl font-black text-white bg-primary shadow-lg active:scale-95 transition-all">{isChecking ? "جاري الإرسال..." : "إرسال رابط التجديد 📩"}</button>
-              <button type="button" onClick={() => setIsRecovering(false)} className="text-xs text-muted-foreground font-bold mt-2 hover:underline text-center block w-full">العودة لتسجيل الدخول</button>
+              <button disabled={isChecking} type="submit" className="py-4 rounded-2xl font-black text-base text-white bg-foreground hover:opacity-90 mt-2 shadow-xl transition-all active:scale-95">
+                {isChecking ? "جاري المصادقة..." : "دخول للمنصة 🚀"}
+              </button>
+              
+              <button type="button" onClick={handleAutoRecovery} disabled={isChecking} className="text-xs text-primary font-bold mt-3 hover:underline text-center block w-full disabled:opacity-50">
+                هل نسيت كلمة المرور؟
+              </button>
             </form>
           )}
+
+          {authMode === "otp" && (
+            <form onSubmit={handleVerifyOtp} className="flex flex-col gap-4 text-right animate-in fade-in zoom-in duration-300">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5 pr-1">الرمز السري (OTP)</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={otpInput} 
+                  onChange={(e) => setOtpInput(e.target.value)} 
+                  className="w-full border-2 border-border rounded-2xl p-4 text-center font-mono text-2xl tracking-[0.5em] focus:border-primary outline-none bg-muted/20 transition-colors" 
+                  placeholder="••••••" 
+                  autoFocus 
+                  disabled={isChecking} 
+                  maxLength={6} 
+                />
+              </div>
+              <button disabled={isChecking || otpInput.length < 6} type="submit" className="py-4 rounded-2xl font-black text-base text-white bg-primary hover:opacity-90 mt-2 shadow-xl transition-all active:scale-95 disabled:opacity-50">
+                {isChecking ? "جاري التحقق..." : "التحقق من الرمز ✅"}
+              </button>
+              
+              <button type="button" onClick={() => setAuthMode("login")} className="text-xs text-muted-foreground font-bold mt-3 hover:underline text-center block w-full">
+                العودة لتسجيل الدخول
+              </button>
+            </form>
+          )}
+
+          {authMode === "reset" && (
+            <form onSubmit={handleSetNewPassword} className="flex flex-col gap-4 text-right animate-in fade-in zoom-in duration-300">
+              <div>
+                <label className="block text-xs font-bold text-muted-foreground mb-1.5 pr-1">كلمة المرور الجديدة</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={newPasswordInput} 
+                  onChange={(e) => setNewPasswordInput(e.target.value)} 
+                  className="w-full border-2 border-emerald-500/50 rounded-2xl p-4 text-left font-mono text-sm focus:border-emerald-500 outline-none bg-emerald-50 transition-colors" 
+                  placeholder="أدخل كلمة مرور قوية..." 
+                  autoFocus 
+                  disabled={isChecking} 
+                />
+              </div>
+              <button disabled={isChecking || newPasswordInput.length < 6} type="submit" className="py-4 rounded-2xl font-black text-base text-white bg-emerald-500 hover:bg-emerald-600 mt-2 shadow-xl transition-all active:scale-95 disabled:opacity-50">
+                {isChecking ? "جاري الحفظ..." : "حفظ الدخول 💾"}
+              </button>
+            </form>
+          )}
+
+          {/* 🌟 زر التواصل مع الدعم الفني عبر الواتساب لتغيير الإيميل */}
+          <div className="mt-8 pt-6 border-t border-border flex flex-col items-center gap-3">
+            <p className="text-xs text-muted-foreground font-bold">لتعديل البريد الإلكتروني للإدارة، يرجى التواصل مع الدعم الفني.</p>
+            <a 
+              href="https://wa.me/212781991384" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="flex items-center justify-center gap-2 w-full bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 py-3.5 rounded-2xl font-bold text-sm transition-colors"
+            >
+              <MessageCircle size={20} />
+              تواصل عبر واتساب
+            </a>
+          </div>
+
         </div>
       </div>
     );
@@ -378,6 +519,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         </div>
       </header>
 
+      {/* باقي الأقسام تبدأ من هنا (المبيعات، الإعدادات، المنتجات، QR، الخ) -- لا تغيير فيها */}
+      
       {activeTab === 'sales' && (
         <div className="space-y-8 max-w-5xl mx-auto animate-in fade-in duration-200">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -457,7 +600,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       {activeTab === 'settings' && (
         <div className="space-y-6 max-w-2xl mx-auto animate-in fade-in duration-300">
           
-          {/* 🌟 1. شاشة مراقبة الأسطول الحي */}
           <div className="bg-white p-6 rounded-3xl border border-border shadow-sm flex flex-col sm:flex-row justify-between items-center gap-6">
             <div>
               <h3 className="font-extrabold text-lg mb-1 flex items-center gap-2">
@@ -487,7 +629,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
             </div>
           </div>
 
-          {/* 🌟 2. نموذج الإعدادات (المعدّل ليدعم المطبخ والكاشير معاً) */}
           <div className="bg-white p-8 lg:p-10 rounded-3xl shadow-sm border border-border">
             <h2 className="text-2xl font-bold mb-6 border-b pb-4">إعدادات وضوابط المقهى</h2>
             <form onSubmit={handleUpdateSettings} className="space-y-6">
