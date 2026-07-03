@@ -96,16 +96,13 @@ export async function getPlatformBankDetails() {
   return data;
 }
 
-// 4. جلب خريطة المنصة الشاملة للمدير الأكبر (🛡️ محصنة باستقبال الـ JWT Token)
+// 4. جلب خريطة المنصة الشاملة للمدير الأكبر
 export async function getUltimateDashboardData(accessToken?: string) {
   if (!accessToken) {
     throw new Error("SECURITY ALERT: ACCESS TOKEN MISSING!");
   }
 
-  // تمرير التوكن للمحرك باش يتأكد من الهوية الحقيقية في كلاود Supabase
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
-
-  // كنجيبو الإيميل الحقيقي ديالك من المتغيرات السرية للسيرفر
   const adminEmail = process.env.SUPER_ADMIN_EMAIL;
 
   if (error || !user || user.email !== adminEmail) {
@@ -221,27 +218,77 @@ export async function provisionNewCafe(payload: {
   }
 }
 
-// 7. تحديث حساب المالك
-export async function updateCafeOwnerCredentials(cafeId: string, authUserId: string, newEmail?: string, newPassword?: string) {
+// 7. تحديث حساب المالك (استراتيجية SWAP AND BURN 💣)
+export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: string, newEmail?: string, newPassword?: string) {
   try {
-    if (!authUserId) throw new Error("لا يوجد حساب مصادقة (Auth ID) مربوط بهذا المقهى.");
+    if (!newEmail || newEmail.trim() === '') throw new Error("البريد الإلكتروني مطلوب!");
 
-    const updates: any = { email_confirm: true }; 
-    if (newEmail && newEmail.trim() !== '') updates.email = newEmail.trim();
-    if (newPassword && newPassword.trim() !== '') updates.password = newPassword.trim();
+    const cleanEmail = newEmail.trim();
+    const cleanPassword = newPassword && newPassword.trim() !== '' ? newPassword.trim() : undefined;
 
-    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(authUserId, updates);
-    if (authErr) throw authErr;
+    // 1. جلب الإيميل الحالي للمقهى لمعرفة هل تم تغييره أم لا
+    const { data: currentCafe } = await supabaseAdmin.from('cafes').select('owner_email').eq('id', cafeId).single();
 
-    if (updates.email) {
-      const { error: dbErr } = await supabaseAdmin.from('cafes').update({ owner_email: updates.email }).eq('id', cafeId);
-      if (dbErr) throw dbErr;
+    // 2. إذا كان الإيميل هو نفسه، نحاول تحديث كلمة المرور فقط
+    if (currentCafe?.owner_email === cleanEmail) {
+      const updates: any = { email_confirm: true };
+      if (cleanPassword) updates.password = cleanPassword;
+
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(oldAuthUserId, updates);
+
+      // إذا نجح التحديث، نخرج بسلام
+      if (!updateErr) {
+        revalidatePath('/ego-owner-9539');
+        return { success: true };
+      }
+
+      // إذا كان الخطأ شيئاً آخر غير "User not found"، نرجع الخطأ (إذا كان User not found سننتقل للخطوة 3)
+      if (!updateErr.message.includes("not found") && !updateErr.message.includes("not exist")) {
+        throw updateErr;
+      }
+    }
+
+    // 3. استراتيجية (SWAP AND BURN): الإيميل تغير أو الحساب مفقود (Ghost ID)
+    const passToUse = cleanPassword || "EgoCafe2026!";
+
+    // أ- (CREATE) إنشاء حساب جديد كلياً
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: cleanEmail,
+      password: passToUse,
+      email_confirm: true
+    });
+
+    if (createError) throw new Error("فشل إنشاء الحساب الجديد: " + createError.message);
+
+    const newAuthId = newUser.user.id;
+
+    // ب- (LINK) ربط الحساب الجديد في جدول المقاهي
+    const { error: dbError } = await supabaseAdmin
+      .from('cafes')
+      .update({ 
+        owner_email: cleanEmail,
+        owner_auth_id: newAuthId 
+      })
+      .eq('id', cafeId);
+
+    if (dbError) {
+      // Rollback: تدمير الحساب إذا فشل الربط
+      await supabaseAdmin.auth.admin.deleteUser(newAuthId);
+      throw new Error("فشل ربط الحساب بالمقهى: " + dbError.message);
+    }
+
+    // ج- (BURN) تدمير الحساب القديم بصمت لتنظيف النظام
+    if (oldAuthUserId && oldAuthUserId !== newAuthId) {
+      await supabaseAdmin.auth.admin.deleteUser(oldAuthUserId).catch(() => {
+        // نتجاهل الخطأ لأن الحساب قد يكون محذوفاً مسبقاً
+      });
     }
 
     revalidatePath('/ego-owner-9539');
     return { success: true };
+
   } catch (error: any) {
-    console.error("Auth Update Error:", error);
+    console.error("Auth Swap Error:", error);
     return { success: false, error: error.message };
   }
 }
