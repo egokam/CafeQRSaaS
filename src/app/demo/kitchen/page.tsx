@@ -4,7 +4,56 @@ import { useState, useEffect } from "react";
 import { ChefHat, CheckCircle2, Clock, Flame } from "lucide-react";
 import { useDemoOrders } from "@/lib/demoStore";
 
+// 🌟 قاموس الترجمات (Translation Dictionary)
+const translations = {
+  EN: {
+    loading: "Starting Demo Kitchen Environment...",
+    demoBadge: "LIVE SYNC DEMO",
+    kdsSub: "Kitchen Display System",
+    title: "CafeQR Demo - Prep Station",
+    preparingNow: "Preparing now:",
+    noOrdersTitle: "No pending orders",
+    noOrdersSub: "Kitchen is clear. Waiting for cashier orders (Demo)",
+    tablePrefix: "Table",
+    directPos: "Direct (POS)",
+    minsAbbr: "min",
+    readyBtn: "Ready to Serve 🔔"
+  },
+  FR: {
+    loading: "Démarrage de l'environnement cuisine...",
+    demoBadge: "DÉMO EN DIRECT",
+    kdsSub: "Système d'Affichage Cuisine",
+    title: "Démo CafeQR - Station de Prép.",
+    preparingNow: "En préparation :",
+    noOrdersTitle: "Aucune commande en attente",
+    noOrdersSub: "Cuisine calme. En attente de commandes de la caisse (Démo)",
+    tablePrefix: "Table",
+    directPos: "Direct (Caisse)",
+    minsAbbr: "min",
+    readyBtn: "Prêt à servir 🔔"
+  },
+  AR: {
+    loading: "جاري تشغيل بيئة المطبخ التجريبية...",
+    demoBadge: "مزامنة حية (ديمو)",
+    kdsSub: "نظام عرض المطبخ",
+    title: "CafeQR Demo - محطة التحضير",
+    preparingNow: "قيد التحضير دابا:",
+    noOrdersTitle: "لا توجد طلبات معلقة",
+    noOrdersSub: "المطبخ مرتاح حالياً.. بانتظار طلبات الكاشير (ديمو)",
+    tablePrefix: "طاولة",
+    directPos: "مباشر (POS)",
+    minsAbbr: "دقيقة",
+    readyBtn: "جاهز للتقديم 🔔"
+  }
+};
+
+type LangType = "AR" | "FR" | "EN";
+
 export default function KitchenDemoDisplay() {
+  // 🌟 إعدادات اللغة الافتراضية
+  const [lang, setLang] = useState<LangType>("EN");
+  const t = translations[lang];
+
   const [isLoading, setIsLoading] = useState(true);
   
   // 🌟 استدعاء الداتا الحية المشتركة
@@ -33,31 +82,55 @@ export default function KitchenDemoDisplay() {
     new Audio('/bell.mp3').play().catch(() => {});
   };
 
-  if (isLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center font-bold text-white">جاري تشغيل بيئة المطبخ التجريبية...</div>;
+  // دالة لجلب اسم المنتج حسب اللغة
+  const getProductName = (item: any) => {
+    if (lang === "AR") return item.name_ar;
+    if (lang === "FR") return item.name_fr || item.name_en || item.name_ar;
+    return item.name_en || item.name_ar;
+  };
+
+  const dir = lang === "AR" ? "rtl" : "ltr";
+
+  if (isLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center font-bold text-white">{t.loading}</div>;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-8 font-sans select-none relative" dir="rtl">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-8 font-sans select-none relative" dir={dir}>
       
       {/* 🌟 لافتة الديمو */}
-      <div className="absolute top-0 left-0 bg-amber-500 text-slate-950 text-xs font-black px-4 py-1.5 rounded-br-2xl tracking-widest uppercase z-50">
-        Live Sync Demo Mode
+      <div className={`absolute top-0 ${lang === "AR" ? "left-0 rounded-br-2xl" : "right-0 rounded-bl-2xl"} bg-amber-500 text-slate-950 text-xs font-black px-4 py-1.5 tracking-widest uppercase z-50`}>
+        {t.demoBadge}
       </div>
 
       {/* هيدر المطبخ الصارم */}
-      <header className="mb-8 flex items-center justify-between bg-slate-900/80 border border-amber-500/30 p-6 rounded-3xl mt-4">
+      <header className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between bg-slate-900/80 border border-amber-500/30 p-6 rounded-3xl mt-4 gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-amber-500 text-slate-950 rounded-2xl font-black shadow-lg shadow-amber-500/10">
+          <div className="p-3.5 bg-amber-500 text-slate-950 rounded-2xl font-black shadow-lg shadow-amber-500/10 shrink-0">
             <Flame size={28} />
           </div>
           <div>
-            <span className="text-[10px] font-mono text-amber-400 tracking-widest block uppercase">Kitchen Display System</span>
-            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-white">CafeQR Demo - محطة التحضير</h1>
+            <span className="text-[10px] font-mono text-amber-400 tracking-widest block uppercase">{t.kdsSub}</span>
+            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-white">{t.title}</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 px-5 py-2.5 rounded-2xl">
-          <Clock className="text-amber-400 animate-spin" size={18} />
-          <span className="font-mono font-bold text-sm">قيد التحضير دابا: <strong className="text-amber-400 text-lg">{kitchenOrders.length}</strong></span>
+        <div className="flex items-center gap-4 flex-wrap shrink-0">
+          {/* 🌟 أزرار تغيير اللغة (Language Switcher) 🌟 */}
+          <div className="flex bg-slate-950 border border-slate-800 p-1 rounded-full w-max">
+            {(["AR", "FR", "EN"] as LangType[]).map(l => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                className={`px-4 py-1.5 rounded-full text-xs font-black transition-all ${lang === l ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-white'}`}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 px-5 py-2.5 rounded-2xl">
+            <Clock className="text-amber-400 animate-spin" size={18} />
+            <span className="font-mono font-bold text-sm">{t.preparingNow} <strong className="text-amber-400 text-lg mx-1">{kitchenOrders.length}</strong></span>
+          </div>
         </div>
       </header>
 
@@ -66,8 +139,8 @@ export default function KitchenDemoDisplay() {
         {kitchenOrders.length === 0 ? (
           <div className="py-32 text-center border-2 border-dashed border-slate-800 rounded-[3rem] bg-slate-900/20">
             <CheckCircle2 className="mx-auto text-emerald-500/40 mb-4" size={64} />
-            <h2 className="text-2xl font-black text-slate-400">لا توجد طلبات معلقة</h2>
-            <p className="text-slate-600 text-sm mt-1">المطبخ مرتاح حالياً.. بانتظار طلبات الكاشير (ديمو)</p>
+            <h2 className="text-2xl font-black text-slate-400">{t.noOrdersTitle}</h2>
+            <p className="text-slate-600 text-sm mt-1">{t.noOrdersSub}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -83,19 +156,19 @@ export default function KitchenDemoDisplay() {
                       <div>
                         <span className="text-xs font-mono text-slate-500 block">#{ord.id}</span>
                         <h3 className="text-2xl font-black text-white mt-0.5">
-                          {ord.tables?.table_number ? `طاولة ${ord.tables.table_number.replace('table_', '')}` : "مباشر (POS)"}
+                          {ord.tables?.table_number ? `${t.tablePrefix} ${ord.tables.table_number.replace('table_', '')}` : t.directPos}
                         </h3>
                       </div>
-                      <span className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border ${isLate ? 'bg-rose-500 text-white border-rose-400' : 'bg-slate-950 text-amber-400 border-slate-800'}`}>
-                        ⏱️ {waitingMinutes} دقيقة
+                      <span className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1 ${isLate ? 'bg-rose-500 text-white border-rose-400' : 'bg-slate-950 text-amber-400 border-slate-800'}`} dir="ltr">
+                        ⏱️ {waitingMinutes} {t.minsAbbr}
                       </span>
                     </div>
 
                     <div className="space-y-3 my-6 max-h-[35vh] overflow-y-auto pr-1">
                       {ord.items.map((item: any, i: number) => (
                         <div key={i} className="flex items-center justify-between bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/80 text-base font-bold">
-                          <span className="text-slate-200 truncate pr-2">{item.name_ar}</span>
-                          <span className="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-xl text-lg shrink-0">
+                          <span className="text-slate-200 truncate pr-2">{getProductName(item)}</span>
+                          <span className="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-xl text-lg shrink-0" dir="ltr">
                             x{item.quantity}
                           </span>
                         </div>
@@ -108,7 +181,7 @@ export default function KitchenDemoDisplay() {
                     className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-lg rounded-2xl shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 transition-all mt-4"
                   >
                     <CheckCircle2 size={24} />
-                    <span>جاهز للتقديم 🔔</span>
+                    <span>{t.readyBtn}</span>
                   </button>
 
                 </div>

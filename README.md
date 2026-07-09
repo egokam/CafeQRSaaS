@@ -1,37 +1,266 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+> [!WARNING]
+> **Proprietary and Not Open Source**
+>
+> This repository is a private, proprietary portfolio showcase for **CafeQR SaaS**. It is provided for high-level technical review only. Unauthorized copying, modification, redistribution, reverse engineering, resale, or commercial use of any part of this codebase is strictly prohibited. All rights are reserved.
 
-## Getting Started
+<div align="center">
 
-First, run the development server:
+# CafeQR SaaS
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### The Premium QR Menu, POS Cashier, KDS, and Multi-Tenant Control Platform for Modern Cafes
+
+![Next.js](https://img.shields.io/badge/Next.js-16.2.9-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL_&_Auth-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![PM2](https://img.shields.io/badge/PM2-Process_Manager-2B037A?style=for-the-badge&logo=pm2&logoColor=white)
+![Caddy](https://img.shields.io/badge/Caddy-Reverse_Proxy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white)
+
+**Live Platform:** [cafeqr.egokam.site](https://cafeqr.egokam.site)
+
+</div>
+
+---
+
+## ✦ Platform Overview
+
+**CafeQR SaaS** is a premium, mobile-first hospitality platform built for cafes that want a polished digital ordering experience without sacrificing operational speed.
+
+It combines a dynamic QR menu, walk-in POS ordering, kitchen display workflows, tenant administration, subscription control, and a private SaaS factory into one cohesive Next.js application. Every cafe runs through a tenant slug, allowing one production codebase to serve many isolated cafe instances.
+
+> **Design intent:** fast enough for daily service, elegant enough for premium hospitality, and structured enough to scale as a serious SaaS product.
+
+---
+
+## ✦ Experience Preview
+
+Add polished screenshots or GIFs here when preparing the GitHub showcase:
+
+| Surface | Preview |
+| --- | --- |
+| Guest QR Menu | ![Dynamic QR Menu - Mobile Guest Ordering](./public/screenshots/client.png) |
+| POS Cashier | ![POS Cashier View - Walk-in Orders](./public/screenshots/pos.png) |
+| Kitchen Display System | ![KDS View - Accepted Orders and Prep Queue](./public/screenshots/kitchen.png) |
+| Cafe Admin (Menu & Products) | ![Cafe Admin Dashboard - Products](./public/screenshots/admin1.png) |
+| Cafe Admin (Sales & Analytics) | ![Cafe Admin Dashboard - Sales](./public/screenshots/admin2.png) |
+| Cafe Admin (QR Table Generation) | ![Cafe Admin Dashboard - QR Tables](./public/screenshots/admin3.png) |
+
+---
+
+## ✦ Core Product Suite
+
+### 🧾 Dynamic QR Menus
+
+Guests scan a table-specific QR route and enter a fast, app-like menu experience. The menu supports Arabic, French, and English labels, category filtering, real-time product availability, active order tracking, and direct order cancellation while an order is still pending.
+
+The production route validates the cafe slug, table record, subscription state, and customer session before allowing orders to flow into Supabase.
+
+### 💳 Omnichannel POS Cashier
+
+The cashier terminal is designed for both QR-driven and walk-in service. Cashiers can accept or reject guest orders, print receipts, mark products out of stock, and create manual POS orders that go directly to the kitchen as accepted orders.
+
+Cashier access is PIN-protected and includes failed-attempt lockout behavior, subscription heartbeat checks, realtime order subscriptions, audible alerts, and presence-based terminal limits per cafe plan.
+
+### 🔥 Kitchen Display System
+
+The KDS receives accepted orders only, keeping the kitchen focused on work that has already been approved by the cashier. Orders are sorted oldest-first, visually highlight aging tickets, and can be moved to ready state with one action.
+
+Like the POS, the KDS is PIN-gated, subscription-aware, realtime-enabled, and limited through Supabase presence according to the tenant's allowed kitchen screen count.
+
+### 🏛️ Cafe Admin Console
+
+Each cafe owner gets a private admin surface for product management, multilingual menu entries, compressed image uploads, QR table generation, monthly sales review, settings, staff PIN updates, device limits, and subscription billing.
+
+The admin login flow verifies the owner email against the cafe record before granting access, and includes OTP/password recovery flows through Supabase Auth.
+
+### ⚜️ SaaS Master Control Factory
+
+The private operator console acts as the SaaS command center. It verifies a whitelisted super-admin account, loads global cafe KPIs, tracks tenant subscription states, audits payment receipts, provisions new cafe instances, updates owner credentials, forces subscription changes, and performs full tenant deletion when required.
+
+This is the operational layer that turns CafeQR from a single cafe app into a multi-tenant SaaS platform.
+
+---
+
+## ✦ Architecture Highlights
+
+**Multi-tenant routing:** tenant surfaces live under `src/app/[cafeSlug]`, including admin, cashier, kitchen, and table-specific QR menu routes.
+
+**Supabase-backed isolation:** tenant data is keyed by cafe records, slugs, table ids, products, orders, receipts, owner auth ids, and subscription status.
+
+**Realtime operations:** POS, KDS, and guest order views use Supabase realtime channels for live order updates and presence channels for concurrent device limits.
+
+**Session fingerprinting:** middleware issues an HTTP-only `cafe_lux_session` cookie, while guest ordering also uses a browser-side client session id to track active orders per visitor.
+
+**Subscription enforcement:** tenant routes call subscription checks and run heartbeat validation, allowing the platform to suspend guest menus, cashier terminals, and kitchen screens when a cafe is expired or suspended.
+
+---
+
+## ✦ Security & Infrastructure
+
+> **Security posture:** the platform uses a layered approach across middleware headers, Supabase Auth, server actions, tenant checks, PIN controls, presence limits, and subscription state enforcement.
+
+| Layer | Implementation |
+| --- | --- |
+| HTTP security headers | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin` |
+| Session fingerprinting | `cafe_lux_session` cookie with `httpOnly`, `sameSite: lax`, production-only `secure`, and 12-hour lifetime |
+| Tenant validation | Cafe slug and table validation before guest ordering |
+| Admin authorization | Owner email verification against the cafe record plus Supabase Auth session checks |
+| Staff authorization | PIN verification for cashier and kitchen access |
+| Super-admin protection | Whitelisted owner portal plus server-side token verification |
+| Deployment posture | Next.js standalone output, PM2 process management, and Caddy reverse proxy readiness |
+| Media sources | Remote image patterns restricted to Unsplash and the configured Supabase project host |
+
+---
+
+## ✦ Technology Stack
+
+| Area | Stack |
+| --- | --- |
+| Framework | Next.js 16.2.9 App Router, React 19 |
+| Language | TypeScript |
+| Styling | Tailwind CSS 4, shadcn/Radix primitives, lucide-react icons |
+| Database & Auth | Supabase PostgreSQL, Supabase Auth, Supabase Storage, Supabase Realtime |
+| State | Zustand cart store and localStorage-backed demo store |
+| Motion & UX | Framer Motion, realtime audio alerts, mobile-first RTL interface |
+| QR | `react-qr-code` |
+| Deployment | Standalone Next.js build, PM2, Caddy, VPS-ready production profile |
+
+---
+
+## ✦ Project Structure
+
+```text
+CafeQrSaaS/
+├── middleware.ts
+├── next.config.ts
+└── src/
+    ├── actions/
+    │   ├── auth.ts              # Owner auth, PIN checks, menu mutations, order status, table creation
+    │   └── saas.ts              # Subscription checks, billing receipts, factory provisioning, super-admin data
+    ├── app/
+    │   ├── page.tsx             # Premium public landing experience
+    │   ├── layout.tsx           # RTL root shell, fonts, metadata, viewport theme
+    │   ├── globals.css          # Tailwind theme tokens and global app styling
+    │   ├── get-started/
+    │   │   └── page.tsx         # Plan selection and contact CTA
+    │   ├── demo/
+    │   │   ├── admin/page.tsx   # LocalStorage demo admin
+    │   │   ├── client/page.tsx  # LocalStorage demo guest QR menu
+    │   │   ├── kitchen/page.tsx # LocalStorage demo KDS
+    │   │   └── pos/page.tsx     # LocalStorage demo POS cashier
+    │   ├── ego-owner-9539/
+    │   │   ├── login/page.tsx   # Restricted super-admin login and OTP flow
+    │   │   └── page.tsx         # SaaS Master Control Factory
+    │   └── [cafeSlug]/
+    │       ├── admin/page.tsx   # Tenant admin console
+    │       ├── cashier/page.tsx # Tenant POS cashier terminal
+    │       ├── kitchen/page.tsx # Tenant kitchen display system
+    │       └── [tableNumber]/
+    │           └── page.tsx     # Guest-facing QR menu and ordering flow
+    └── lib/
+        ├── supabase.ts          # Browser Supabase client
+        ├── demoStore.ts         # Shared local demo products/orders store
+        └── utils.ts             # Tailwind class merge helper
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ✦ Key Workflows
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Guest QR Order Flow
 
-## Learn More
+1. Guest scans `/{cafeSlug}/{tableNumber}`.
+2. The app signs in anonymously when needed.
+3. Subscription, cafe, and table validity are checked.
+4. Active products are loaded for the tenant.
+5. Guest submits an order with a session id.
+6. POS receives the order in realtime for approval.
+7. Guest tracks order status until ready, completed, rejected, or cancelled.
 
-To learn more about Next.js, take a look at the following resources:
+### POS to Kitchen Flow
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Cashier unlocks the terminal with the cafe PIN.
+2. Supabase presence checks whether the cafe has available cashier seats.
+3. Pending guest orders can be accepted or rejected.
+4. Walk-in orders can be created from the POS drawer.
+5. Accepted orders appear in the KDS.
+6. Kitchen marks orders ready.
+7. Cashier completes and prints the receipt.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### SaaS Factory Flow
 
-## Deploy on Vercel
+1. Super-admin signs into the private owner portal.
+2. The server validates the access token and super-admin email.
+3. A new cafe is provisioned with slug, owner auth account, plan, trial window, staff PINs, and device limits.
+4. The platform generates ready-to-share admin, cashier, and kitchen links.
+5. Subscription state, credentials, receipts, and tenant lifecycle can be managed centrally.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ✦ Live Interactive Demo
 
+Experience the product from each role:
+
+**Explore:** [https://cafeqr.egokam.site](https://cafeqr.egokam.site)
+
+Suggested showcase paths:
+
+- Guest menu demo: `https://cafeqr.egokam.site/demo/client`
+- POS demo: `https://cafeqr.egokam.site/demo/pos`
+- Kitchen demo: `https://cafeqr.egokam.site/demo/kitchen`
+- Admin demo: `https://cafeqr.egokam.site/demo/admin`
+
+> Demo views use a browser-local synchronized store so reviewers can experience the end-to-end flow without production tenant credentials.
+
+---
+
+## ✦ Installation & Deployment
+
+> [!IMPORTANT]
+> These commands are included for technical review and deployment context only. This project remains proprietary and is not licensed for public reuse.
+
+```bash
+git clone https://github.com/yourusername/CafeQRSaaS.git
+cd CafeQRSaaS
+npm install
+npm run build
+pm2 start npm --name "cafeqr" -- start
+```
+
+Recommended production profile:
+
+- Build with Next.js standalone output.
+- Run the Node process under PM2.
+- Reverse proxy through Caddy with HTTPS.
+- Configure Supabase environment variables for public client access and server-side service-role actions.
+- Keep super-admin credentials, service-role keys, and production secrets outside source control.
+
+---
+
+## ✦ Roadmap
+
+- Advanced analytics dashboard with peak hours, revenue breakdowns, and product performance.
+- AI-assisted menu descriptions and demand forecasting.
+- Multi-currency support and deeper localization.
+- Custom domain onboarding for premium tenants.
+- Expanded billing automation and receipt review workflows.
+
+---
+
+## ✦ Contact & Partnership
+
+For cafe owners, technical partners, or premium SaaS inquiries:
+
+**Instagram:** [@w.zd7](https://www.instagram.com/w.zd7)  
+**Email:** [egokam.business@gmail.com](mailto:egokam.business@gmail.com)  
+**WhatsApp:** [+212 781 991 384](https://wa.me/212781991384)
+
+---
+
+## ✦ License & Usage Restrictions
+
+**CafeQR SaaS is proprietary and confidential.**
+
+This repository is showcased solely as a portfolio artifact to demonstrate product architecture, UI execution, and SaaS engineering capability. No license is granted for personal use, public distribution, derivative work, resale, or commercial deployment.
+
+**All rights reserved.**

@@ -4,14 +4,28 @@ import { useState, useEffect } from "react";
 
 // بيانات البداية (Seed Data)
 const INITIAL_PRODUCTS = [
-  { id: "1", name_ar: "فلات وايت", name_en: "Flat White", name_fr: "Flat White", description_ar: "قهوة غنية بالحليب", price: 32, category: "القهوة", image_url: "https://images.unsplash.com/photo-1578314675249-a694eb286151?w=400&q=80" },
-  { id: "2", name_ar: "كرواسون باللوز", name_en: "Almond Croissant", name_fr: "Croissant aux amandes", description_ar: "مخبوزات طازجة", price: 26, category: "مخبوزات", image_url: "https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400&q=80" },
-  { id: "3", name_ar: "ماتشا كلاود", name_en: "Matcha Cloud", name_fr: "Matcha", description_ar: "ماتشا يابانية", price: 42, category: "القهوة", image_url: "https://images.unsplash.com/photo-1515823662972-da6a2b4d3002?w=400&q=80" }
+  { id: "1", name_ar: "فلات وايت", name_en: "Flat White", name_fr: "Flat White", description_ar: "قهوة غنية بالحليب", price: 32, category: "القهوة", image_url: "/demo/flatwhite.jpg" },
+  { id: "2", name_ar: "كرواسون باللوز", name_en: "Almond Croissant", name_fr: "Croissant aux amandes", description_ar: "مخبوزات طازجة", price: 26, category: "مخبوزات", image_url: "/demo/croissant.jpg" },
+  { id: "3", name_ar: "ماتشا كلاود", name_en: "Matcha Cloud", name_fr: "Matcha", description_ar: "ماتشا يابانية", price: 42, category: "القهوة", image_url: "/demo/matcha.jpg" }
 ];
 
 const INITIAL_ORDERS = [
   { id: "ORD-9381", tables: { table_number: "table_4" }, items: [{quantity: 2, name_ar: "فلات وايت"}], total_amount: 64, status: "pending", created_at: new Date().toISOString() }
 ];
+
+// 🌟 الكود الجديد: تنظيف الذاكرة عند بدء جلسة جديدة (إغلاق وفتح المتصفح)
+if (typeof window !== 'undefined') {
+  const isSessionActive = document.cookie.includes('cafe_demo_session=active');
+  
+  if (!isSessionActive) {
+    // هادي أول مرة كيتحل فيها المتصفح في هاد الجلسة -> نظف الذاكرة
+    localStorage.removeItem('demo_products');
+    localStorage.removeItem('demo_orders');
+    
+    // زرع الكوكيز ديال الجلسة (بدون تاريخ انتهاء باش يموت بوحدو ملي يتسد المتصفح)
+    document.cookie = "cafe_demo_session=active; path=/";
+  }
+}
 
 // دوال التحكم في LocalStorage
 const getDemoData = (key: string, initial: any) => {
@@ -23,7 +37,7 @@ const getDemoData = (key: string, initial: any) => {
 const setDemoData = (key: string, data: any) => {
   if (typeof window === 'undefined') return;
   localStorage.setItem(key, JSON.stringify(data));
-  window.dispatchEvent(new Event('demo-storage-update')); // تحديث فوري في نفس الصفحة
+  window.dispatchEvent(new Event('demo-storage-update')); 
 };
 
 // 🌟 هوك المنتجات (Shared Products Hook)
@@ -34,8 +48,8 @@ export function useDemoProducts() {
     setProducts(getDemoData('demo_products', INITIAL_PRODUCTS));
     const sync = () => setProducts(getDemoData('demo_products', INITIAL_PRODUCTS));
     
-    window.addEventListener('storage', sync); // كيسمع للتغييرات بين الـ Tabs
-    window.addEventListener('demo-storage-update', sync); // كيسمع في نفس الـ Window
+    window.addEventListener('storage', sync); 
+    window.addEventListener('demo-storage-update', sync); 
     return () => {
       window.removeEventListener('storage', sync);
       window.removeEventListener('demo-storage-update', sync);
