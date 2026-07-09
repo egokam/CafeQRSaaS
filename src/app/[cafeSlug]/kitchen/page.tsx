@@ -6,8 +6,91 @@ import { ChefHat, CheckCircle2, Clock, Bell, Lock, AlertTriangle, Flame } from "
 import { verifyPin, cashierUpdateOrderStatus } from "../../../actions/auth";
 import { checkCafeSubscription } from "../../../actions/saas";
 
+// 🌟 Translation System
+const TRANSLATIONS: Record<string, any> = {
+  en: {
+    loading: "Starting Kitchen Display System...",
+    notFoundTitle: "404 - Cafe Not Found",
+    suspendedTitle: "Kitchen Display Suspended 🚫",
+    suspendedSub: "Cafe subscription to central servers has expired.",
+    sessionFullTitle: "Kitchen Station Full (Access Denied)",
+    sessionFullSub1: "Sorry, this cafe is operating at the maximum allowed kitchen screens (",
+    sessionFullSub2: " screens simultaneously). Please close an old screen to continue.",
+    retryBtn: "Retry 🔄",
+    kdsZone: "Kitchen Display (KDS)",
+    enterPin: "Enter staff PIN to view orders",
+    loginBtn: "Enter Kitchen",
+    wrongPin: "Invalid PIN ❌",
+    updateFail: "Failed to update status",
+    kdsSub: "Kitchen Display System",
+    prepStation: "Prep Station",
+    preparingNow: "Preparing now:",
+    noOrdersTitle: "No pending orders",
+    noOrdersSub: "Kitchen is clear. Waiting for cashier orders",
+    tablePrefix: "Table",
+    directPos: "Direct (POS)",
+    minsAbbr: "min",
+    readyBtn: "Ready to Serve 🔔"
+  },
+  fr: {
+    loading: "Démarrage du système de cuisine...",
+    notFoundTitle: "404 - Café Introuvable",
+    suspendedTitle: "Système de Cuisine Suspendu 🚫",
+    suspendedSub: "L'abonnement du café aux serveurs centraux a expiré.",
+    sessionFullTitle: "Station de Cuisine Pleine (Accès Refusé)",
+    sessionFullSub1: "Désolé, ce café fonctionne au nombre maximum d'écrans de cuisine autorisés (",
+    sessionFullSub2: " écrans simultanément). Veuillez fermer un ancien écran pour continuer.",
+    retryBtn: "Réessayer 🔄",
+    kdsZone: "Affichage Cuisine (KDS)",
+    enterPin: "Entrez le PIN du personnel pour voir les commandes",
+    loginBtn: "Entrer en Cuisine",
+    wrongPin: "Code PIN invalide ❌",
+    updateFail: "Échec de la mise à jour du statut",
+    kdsSub: "Système d'Affichage Cuisine",
+    prepStation: "Station de Prép.",
+    preparingNow: "En préparation :",
+    noOrdersTitle: "Aucune commande en attente",
+    noOrdersSub: "Cuisine calme. En attente des commandes de la caisse",
+    tablePrefix: "Table",
+    directPos: "Direct (Caisse)",
+    minsAbbr: "min",
+    readyBtn: "Prêt à servir 🔔"
+  },
+  ar: {
+    loading: "جاري تشغيل شاشة المطبخ...",
+    notFoundTitle: "404 - المقهى غير موجود",
+    suspendedTitle: "شاشة المطبخ متوقفة 🚫",
+    suspendedSub: "انتهت صلاحية اشتراك المقهى في الخوادم المركزية.",
+    sessionFullTitle: "محطة المطبخ ممتلئة (Access Denied)",
+    sessionFullSub1: "عذراً، تعمل هذه المقهى بالحد الأقصى المسموح به من شاشات المطبخ (",
+    sessionFullSub2: " شاشات في نفس الوقت). قم بإغلاق إحدى الشاشات القديمة للمتابعة.",
+    retryBtn: "إعادة المحاولة 🔄",
+    kdsZone: "شاشة المطبخ (KDS)",
+    enterPin: "أدخل رمز الطاقم لعرض الطلبات",
+    loginBtn: "دخول للمطبخ",
+    wrongPin: "الرمز غير صحيح ❌",
+    updateFail: "فشل تحديث الحالة",
+    kdsSub: "Kitchen Display System",
+    prepStation: "محطة التحضير",
+    preparingNow: "قيد التحضير دابا:",
+    noOrdersTitle: "لا توجد طلبات معلقة",
+    noOrdersSub: "المطبخ مرتاح حالياً.. بانتظار طلبات الكاشير",
+    tablePrefix: "طاولة",
+    directPos: "مباشر (POS)",
+    minsAbbr: "دقيقة",
+    readyBtn: "جاهز للتقديم 🔔"
+  }
+};
+
+const LANGUAGES = ["en", "fr", "ar"];
+
 export default function KitchenDisplaySystem({ params }: { params: Promise<{ cafeSlug: string }> }) {
   const { cafeSlug } = use(params);
+
+  // 🌟 Language State (Default: en)
+  const [activeLang, setActiveLang] = useState("en");
+  const t = TRANSLATIONS[activeLang];
+  const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [pinInput, setPinInput] = useState("");
@@ -25,6 +108,12 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
 
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
+
+  const getProductName = (item: any) => {
+    if (activeLang === "ar") return item.name_ar;
+    if (activeLang === "fr") return item.name_fr || item.name_en || item.name_ar;
+    return item.name_en || item.name_ar;
+  };
 
   // 🌟 جلب الطلبات المقبولة فقط (التي تنتظر التحضير)
   const fetchKitchenOrders = async (cId: string) => {
@@ -160,7 +249,7 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
       new Audio('/bell.mp3').play().catch(() => {});
     } else {
       setPinInput("");
-      alert("الرمز غير صحيح ❌");
+      alert(t.wrongPin);
     }
   };
 
@@ -169,19 +258,35 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
     if (success) {
       setOrders(prev => prev.filter(o => o.id !== orderId));
     } else {
-      alert("فشل تحديث الحالة");
+      alert(t.updateFail);
     }
   };
 
-  if (isLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center font-bold text-white">جاري تشغيل شاشة المطبخ...</div>;
-  if (isNotFound) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center text-2xl font-bold">404 - المقهى غير موجود</div>;
+  // Language Switcher Component specific to Kitchen styling
+  const LanguageToggle = () => (
+    <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-full w-max" dir="ltr">
+      {LANGUAGES.map(lang => (
+        <button
+          key={lang}
+          onClick={() => setActiveLang(lang)}
+          className={`px-4 py-1.5 rounded-full text-xs font-black transition-all ${activeLang === lang ? 'bg-amber-500 text-slate-950 shadow-sm' : 'text-slate-500 hover:text-white'}`}
+        >
+          {lang}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (isLoading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center font-bold text-white">{t.loading}</div>;
+  if (isNotFound) return <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center text-2xl font-bold">{t.notFoundTitle}</div>;
 
   if (isSuspended) {
     return (
-      <div className="min-h-screen bg-rose-950 text-white flex flex-col items-center justify-center p-6 text-center font-sans" dir="rtl">
+      <div className="min-h-screen bg-rose-950 text-white flex flex-col items-center justify-center p-6 text-center font-sans" dir={dir}>
+        <div className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'}`}><LanguageToggle /></div>
         <Lock size={64} className="text-rose-500 mb-4 animate-pulse" />
-        <h1 className="text-3xl font-black mb-2">شاشة المطبخ متوقفة 🚫</h1>
-        <p className="text-rose-200/80">انتهت صلاحية اشتراك المقهى في الخوادم المركزية.</p>
+        <h1 className="text-3xl font-black mb-2">{t.suspendedTitle}</h1>
+        <p className="text-rose-200/80">{t.suspendedSub}</p>
       </div>
     );
   }
@@ -189,18 +294,18 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
   // ⛔ شاشة منع تجاوز عدد أجهزة المطبخ
   if (isSessionFull) {
     return (
-      <div className="min-h-screen bg-stone-950 text-white flex flex-col items-center justify-center p-6 text-center font-sans" dir="rtl">
+      <div className="min-h-screen bg-stone-950 text-white flex flex-col items-center justify-center p-6 text-center font-sans" dir={dir}>
+        <div className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'}`}><LanguageToggle /></div>
         <Lock size={64} className="text-red-500 mb-4 animate-bounce" />
-        <h1 className="text-3xl font-black mb-2 tracking-tight">محطة المطبخ ممتلئة (Access Denied)</h1>
+        <h1 className="text-3xl font-black mb-2 tracking-tight">{t.sessionFullTitle}</h1>
         <p className="text-stone-400 max-w-md mb-8 leading-relaxed text-sm">
-          عذراً، تعمل هذه المقهى بالحد الأقصى المسموح به من شاشات المطبخ ({cafeDataObj?.max_kitchens || 1} شاشات في نفس الوقت). 
-          قم بإغلاق إحدى الشاشات القديمة للمتابعة.
+          {t.sessionFullSub1}{cafeDataObj?.max_kitchens || 1}{t.sessionFullSub2}
         </p>
         <button 
           onClick={() => window.location.reload()} 
           className="bg-white text-stone-950 px-8 py-4 rounded-2xl font-black text-sm active:scale-95 transition-all shadow-lg"
         >
-          إعادة المحاولة 🔄
+          {t.retryBtn}
         </button>
       </div>
     );
@@ -208,16 +313,17 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans" dir="rtl">
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 font-sans" dir={dir}>
+        <div className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'}`}><LanguageToggle /></div>
         <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] w-full max-w-sm text-center shadow-2xl">
           <div className="bg-amber-500/10 text-amber-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 border border-amber-500/20">
             <ChefHat size={40} />
           </div>
-          <h2 className="text-2xl font-black text-white mb-2">شاشة المطبخ (KDS)</h2>
-          <p className="text-slate-400 mb-8 text-xs font-bold">أدخل رمز الطاقم لعرض الطلبات</p>
+          <h2 className="text-2xl font-black text-white mb-2">{t.kdsZone}</h2>
+          <p className="text-slate-400 mb-8 text-xs font-bold">{t.enterPin}</p>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <input type="password" inputMode="numeric" value={pinInput} onChange={(e) => setPinInput(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-center text-3xl tracking-[0.5em] font-mono text-white focus:border-amber-500 outline-none" placeholder="••••" autoFocus />
-            <button type="submit" className="py-4 rounded-2xl font-black text-slate-950 bg-amber-500 hover:bg-amber-400 text-lg">دخول للمطبخ</button>
+            <input type="password" inputMode="numeric" value={pinInput} onChange={(e) => setPinInput(e.target.value)} className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-center text-3xl tracking-[0.5em] font-mono text-white focus:border-amber-500 outline-none" placeholder="••••" autoFocus dir="ltr" />
+            <button type="submit" className="py-4 rounded-2xl font-black text-slate-950 bg-amber-500 hover:bg-amber-400 text-lg">{t.loginBtn}</button>
           </form>
         </div>
       </div>
@@ -225,23 +331,26 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-8 font-sans select-none" dir="rtl">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 lg:p-8 font-sans select-none" dir={dir}>
       
       {/* هيدر المطبخ الصارم */}
-      <header className="mb-8 flex items-center justify-between bg-slate-900/80 border border-slate-800 p-6 rounded-3xl">
+      <header className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between bg-slate-900/80 border border-slate-800 p-6 rounded-3xl gap-4">
         <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-amber-500 text-slate-950 rounded-2xl font-black shadow-lg shadow-amber-500/10">
+          <div className="p-3.5 bg-amber-500 text-slate-950 rounded-2xl font-black shadow-lg shadow-amber-500/10 shrink-0">
             <Flame size={28} />
           </div>
           <div>
-            <span className="text-[10px] font-mono text-amber-400 tracking-widest block uppercase">Kitchen Display System</span>
-            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-white">{cafeName} - محطة التحضير</h1>
+            <span className="text-[10px] font-mono text-amber-400 tracking-widest block uppercase">{t.kdsSub}</span>
+            <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-white">{cafeName} - {t.prepStation}</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 px-5 py-2.5 rounded-2xl">
-          <Clock className="text-amber-400 animate-spin" size={18} />
-          <span className="font-mono font-bold text-sm">قيد التحضير دابا: <strong className="text-amber-400 text-lg">{orders.length}</strong></span>
+        <div className="flex items-center gap-4 flex-wrap shrink-0">
+          <LanguageToggle />
+          <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 px-5 py-2.5 rounded-2xl">
+            <Clock className="text-amber-400 animate-spin" size={18} />
+            <span className="font-mono font-bold text-sm">{t.preparingNow} <strong className="text-amber-400 text-lg mx-1">{orders.length}</strong></span>
+          </div>
         </div>
       </header>
 
@@ -250,8 +359,8 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
         {orders.length === 0 ? (
           <div className="py-32 text-center border-2 border-dashed border-slate-800 rounded-[3rem] bg-slate-900/20">
             <CheckCircle2 className="mx-auto text-emerald-500/40 mb-4" size={64} />
-            <h2 className="text-2xl font-black text-slate-400">لا توجد طلبات معلقة</h2>
-            <p className="text-slate-600 text-sm mt-1">المطبخ مرتاح حالياً.. بانتظار طلبات الكاشير</p>
+            <h2 className="text-2xl font-black text-slate-400">{t.noOrdersTitle}</h2>
+            <p className="text-slate-600 text-sm mt-1">{t.noOrdersSub}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -267,19 +376,19 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
                       <div>
                         <span className="text-xs font-mono text-slate-500 block">#{ord.id.split('-')[0]}</span>
                         <h3 className="text-2xl font-black text-white mt-0.5">
-                          {ord.tables?.table_number ? `طاولة ${ord.tables.table_number.replace('table_', '')}` : "مباشر (POS)"}
+                          {ord.tables?.table_number ? `${t.tablePrefix} ${ord.tables.table_number.replace('table_', '')}` : t.directPos}
                         </h3>
                       </div>
-                      <span className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border ${isLate ? 'bg-rose-500 text-white border-rose-400' : 'bg-slate-950 text-amber-400 border-slate-800'}`}>
-                        ⏱️ {waitingMinutes} دقيقة
+                      <span className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1 ${isLate ? 'bg-rose-500 text-white border-rose-400' : 'bg-slate-950 text-amber-400 border-slate-800'}`} dir="ltr">
+                        ⏱️ {waitingMinutes} {t.minsAbbr}
                       </span>
                     </div>
 
                     <div className="space-y-3 my-6 max-h-[35vh] overflow-y-auto pr-1">
                       {ord.items.map((item: any, i: number) => (
                         <div key={i} className="flex items-center justify-between bg-slate-950/80 p-3.5 rounded-2xl border border-slate-800/80 text-base font-bold">
-                          <span className="text-slate-200 truncate pr-2">{item.name_ar}</span>
-                          <span className="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-xl text-lg shrink-0">
+                          <span className="text-slate-200 truncate pr-2">{getProductName(item)}</span>
+                          <span className="bg-amber-500 text-slate-950 font-black px-3 py-1 rounded-xl text-lg shrink-0" dir="ltr">
                             x{item.quantity}
                           </span>
                         </div>
@@ -292,7 +401,7 @@ export default function KitchenDisplaySystem({ params }: { params: Promise<{ caf
                     className="w-full py-5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-lg rounded-2xl shadow-lg shadow-emerald-500/10 flex items-center justify-center gap-2 transition-all mt-4"
                   >
                     <CheckCircle2 size={24} />
-                    <span>جاهز للتقديم 🔔</span>
+                    <span>{t.readyBtn}</span>
                   </button>
 
                 </div>

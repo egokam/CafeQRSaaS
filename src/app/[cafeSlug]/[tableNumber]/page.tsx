@@ -63,7 +63,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const { cafeSlug, tableNumber } = use(params);
   const { items, totalItems, totalPrice, clearCart } = useCart();
 
-  const [activeLang, setActiveLang] = useState("ar");
+  const [activeLang, setActiveLang] = useState("en");
   const t = TRANSLATIONS[activeLang];
   const [activeCategoryId, setActiveCategoryId] = useState("coffee");
 

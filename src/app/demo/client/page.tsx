@@ -62,7 +62,7 @@ export default function ClientMenuDemo() {
   const { products } = useDemoProducts();
   const { orders, updateOrders } = useDemoOrders();
 
-  const [activeLang, setActiveLang] = useState("ar");
+  const [activeLang, setActiveLang] = useState("en");
   const t = TRANSLATIONS[activeLang];
   const [activeCategoryId, setActiveCategoryId] = useState("coffee");
 
