@@ -68,14 +68,12 @@ const TRANSLATIONS: Record<string, any> = {
     connectedDevices: "Connected Devices",
     liveMonitoring: "Live monitoring of the active fleet in the cafe.",
     cashierSlot: "Cashier 💳",
-    kitchenSlot: "Kitchen 👨‍🍳",
     cafeSettings: "Cafe Settings & Controls",
     cafeNameLabel: "Cafe Name",
     maxCashierLabel: "Max Cashier Screens",
-    maxKitchenLabel: "Max Kitchen Screens",
     adminPinLabel: "Update Backup Admin PIN",
     leaveEmptyToKeep: "Leave empty to keep current",
-    staffPinLabel: "Update Cashier & Kitchen PIN",
+    staffPinLabel: "Update Cashier PIN",
     saveChangesBtn: "Save Changes 💾",
     settingsSaved: "Settings saved!",
     settingsSaveError: "Error saving settings.",
@@ -160,14 +158,12 @@ const TRANSLATIONS: Record<string, any> = {
     connectedDevices: "Appareils Connectés",
     liveMonitoring: "Surveillance en direct de la flotte active.",
     cashierSlot: "Caisse 💳",
-    kitchenSlot: "Cuisine 👨‍🍳",
     cafeSettings: "Paramètres du Café",
     cafeNameLabel: "Nom du Café",
     maxCashierLabel: "Écrans Caisse Max",
-    maxKitchenLabel: "Écrans Cuisine Max",
     adminPinLabel: "Mettre à jour le code PIN Admin",
     leaveEmptyToKeep: "Laisser vide pour conserver",
-    staffPinLabel: "Mettre à jour le PIN Caisse/Cuisine",
+    staffPinLabel: "Mettre à jour le PIN Caisse",
     saveChangesBtn: "Enregistrer 💾",
     settingsSaved: "Paramètres enregistrés !",
     settingsSaveError: "Erreur d'enregistrement.",
@@ -252,14 +248,12 @@ const TRANSLATIONS: Record<string, any> = {
     connectedDevices: "الأجهزة المتصلة الآن",
     liveMonitoring: "مراقبة حية للأسطول النشط في المقهى.",
     cashierSlot: "الكاشير 💳",
-    kitchenSlot: "المطبخ 👨‍🍳",
     cafeSettings: "إعدادات وضوابط المقهى",
     cafeNameLabel: "اسم المقهى",
     maxCashierLabel: "الحد الأقصى لشاشات الكاشير",
-    maxKitchenLabel: "الحد الأقصى لشاشات المطبخ",
     adminPinLabel: "تحديث رمز المدير البديل (PIN)",
     leaveEmptyToKeep: "اتركه فارغاً للإبقاء على القديم",
-    staffPinLabel: "تحديث رمز الكاشير والمطبخ (PIN)",
+    staffPinLabel: "تحديث رمز الكاشير (PIN)",
     saveChangesBtn: "حفظ التغييرات 💾",
     settingsSaved: "تم حفظ الإعدادات!",
     settingsSaveError: "حدث خطأ أثناء الحفظ.",
@@ -369,10 +363,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [newCashierPin, setNewCashierPin] = useState("");
   
   const [maxCashiers, setMaxCashiers] = useState("2"); 
-  const [maxKitchens, setMaxKitchens] = useState("1"); 
   
   const [activeCashiers, setActiveCashiers] = useState(0);
-  const [activeKitchens, setActiveKitchens] = useState(0);
 
   const [activeTab, setActiveTab] = useState("products"); 
   const [products, setProducts] = useState<any[]>([]);
@@ -440,7 +432,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       setCafeId(cafeData.id);
       if (cafeData.name) setCafeName(cafeData.name);
       if (cafeData.max_cashiers) setMaxCashiers(cafeData.max_cashiers.toString());
-      if (cafeData.max_kitchens) setMaxKitchens(cafeData.max_kitchens.toString());
       
       if (cafeData.owner_email) {
         setOwnerEmail(cafeData.owner_email);
@@ -478,15 +469,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       setActiveCashiers(Object.keys(state).length);
     }).subscribe();
 
-    const kitchenChannel = supabase.channel(`kitchen_slots_${cafeId}`);
-    kitchenChannel.on('presence', { event: 'sync' }, () => {
-      const state = kitchenChannel.presenceState();
-      setActiveKitchens(Object.keys(state).length);
-    }).subscribe();
-
     return () => {
       supabase.removeChannel(cashierChannel);
-      supabase.removeChannel(kitchenChannel);
     };
   }, [cafeId, isAuthenticated]);
 
@@ -573,7 +557,10 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     e.preventDefault();
     if (!cafeId) return;
     setIsChecking(true);
-    const { success } = await updateCafeSettings(cafeId, cafeName, newAdminPin, newCashierPin, Number(maxCashiers), Number(maxKitchens));
+    
+    // 🔥 We pass 0 or a dummy value for the kitchen parameter since it was removed from the backend call
+    const { success } = await updateCafeSettings(cafeId, cafeName, newAdminPin, newCashierPin, Number(maxCashiers), 0);
+    
     setIsChecking(false);
     if (success) { alert(t.settingsSaved); setNewAdminPin(""); setNewCashierPin(""); }
     else alert(t.settingsSaveError);
@@ -919,15 +906,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
                   <span className="text-sm font-bold text-muted-foreground">/ {maxCashiers}</span>
                 </div>
               </div>
-              <div className="flex-1 sm:flex-none text-center px-6 py-4 bg-muted/20 border rounded-2xl">
-                <span className="block text-xs font-bold text-muted-foreground mb-1">{t.kitchenSlot}</span>
-                <div className="flex items-baseline justify-center gap-1" dir="ltr">
-                  <span className={`text-3xl font-black ${activeKitchens > 0 ? 'text-amber-500 animate-pulse' : 'text-slate-300'}`}>
-                    {activeKitchens}
-                  </span>
-                  <span className="text-sm font-bold text-muted-foreground">/ {maxKitchens}</span>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -939,15 +917,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
                 <input type="text" required value={cafeName} onChange={(e) => setCafeName(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 font-bold ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} />
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold mb-1 text-primary">{t.maxCashierLabel}</label>
-                  <input type="number" min="1" max="10" required value={maxCashiers} onChange={(e) => setMaxCashiers(e.target.value)} className="w-full border-2 border-primary/30 rounded-xl p-3 bg-primary/5 font-bold text-xl text-center focus:border-primary outline-none" dir="ltr" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold mb-1 text-amber-600">{t.maxKitchenLabel}</label>
-                  <input type="number" min="1" max="10" required value={maxKitchens} onChange={(e) => setMaxKitchens(e.target.value)} className="w-full border-2 border-amber-500/30 rounded-xl p-3 bg-amber-500/5 font-bold text-xl text-center focus:border-amber-500 outline-none" dir="ltr" />
-                </div>
+              <div>
+                <label className="block text-xs font-bold mb-1 text-primary">{t.maxCashierLabel}</label>
+                <input type="number" min="1" max="10" required value={maxCashiers} onChange={(e) => setMaxCashiers(e.target.value)} className="w-full border-2 border-primary/30 rounded-xl p-3 bg-primary/5 font-bold text-xl text-center focus:border-primary outline-none" dir="ltr" />
               </div>
 
               <div className="pt-4 border-t border-border/50">

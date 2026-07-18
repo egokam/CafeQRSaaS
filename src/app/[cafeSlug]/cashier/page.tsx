@@ -320,20 +320,29 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     }
   };
 
-  const updateOrderStatus = async (orderId: string, newStatus: string) => {
-    const { success } = await cashierUpdateOrderStatus(orderId, newStatus);
-    if (!success) alert(t.updateError);
+  const handlePrintReceipt = (order: any) => {
+    setPrintOrder(order);
+    setTimeout(() => { window.print(); }, 150);
+  };
+
+  // 🌟 تحديث حالة الطلب والطباعة التلقائية للمطبخ
+  const updateOrderStatus = async (order: any, newStatus: string) => {
+    const { success } = await cashierUpdateOrderStatus(order.id, newStatus);
+    if (!success) {
+      alert(t.updateError);
+      return;
+    }
+    
+    // 🔥 الطباعة التلقائية بمجرد القبول
+    if (newStatus === 'accepted') {
+      handlePrintReceipt(order);
+    }
   };
 
   const markOutOfStock = async (productId: string, productName: string) => {
     if(!confirm(`${t.confirmDisable} "${productName}"?`)) return;
     const { success } = await cashierMarkOutOfStock(productId);
     if (success) alert(`"${productName}" ${t.disabledSuccess}`);
-  };
-
-  const handlePrintReceipt = (order: any) => {
-    setPrintOrder(order);
-    setTimeout(() => { window.print(); }, 150);
   };
 
   // 🌟 دوال إدارة سلة الـ POS اليدوية
@@ -367,15 +376,25 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       const dummySession = "manual_pos_" + Date.now();
       const totalAmount = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
 
-      // يرسل مقبولاً (accepted) مباشرة لكي يراه المطبخ فوراً دون مراجعة ثانية
-      const { error } = await supabase.from('orders').insert([{
+      // يرسل مقبولاً (accepted) ويجلب البيانات المُدخلة للطباعة (.select)
+      const { data, error } = await supabase.from('orders').insert([{
         cafe_id: cafeId, table_id: selectedTableId, session_id: dummySession,
         items: cartItems, total_amount: totalAmount, status: 'accepted'
-      }]);
+      }]).select();
 
       if (error) throw error;
 
       new Audio('/bell.mp3').play().catch(()=>{});
+
+      // 🔥 طباعة الطلب المباشر فوراً للمطبخ
+      if (data && data[0]) {
+        const selectedTable = tables.find(t => t.id === selectedTableId);
+        handlePrintReceipt({
+          ...data[0],
+          tables: { table_number: selectedTable?.table_number || "" }
+        });
+      }
+
       setPosCart({});
       setShowPOS(false);
       fetchOrders(cafeId);
@@ -597,8 +616,8 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
               <div className="grid grid-cols-2 gap-3 mt-auto">
                 {order.status === 'pending' && (
                   <>
-                    <button onClick={() => updateOrderStatus(order.id, 'accepted')} className="bg-foreground text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 active:scale-95 transition-transform"><Check size={18} /> {t.acceptBtn}</button>
-                    <button onClick={() => updateOrderStatus(order.id, 'rejected')} className="bg-red-50 text-red-600 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition-colors"><X size={18} /> {t.rejectBtn}</button>
+                    <button onClick={() => updateOrderStatus(order, 'accepted')} className="bg-foreground text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 active:scale-95 transition-transform"><Check size={18} /> {t.acceptBtn}</button>
+                    <button onClick={() => updateOrderStatus(order, 'rejected')} className="bg-red-50 text-red-600 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition-colors"><X size={18} /> {t.rejectBtn}</button>
                   </>
                 )}
 
@@ -610,7 +629,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 )}
 
                 {order.status === 'ready' && (
-                  <button onClick={() => updateOrderStatus(order.id, 'completed')} className="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-base flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+                  <button onClick={() => updateOrderStatus(order, 'completed')} className="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-base flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
                     <Check size={22} /> {t.completeBtn} 
                   </button>
                 )}

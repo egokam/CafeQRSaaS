@@ -29,7 +29,7 @@ export default function Home() {
               See every angle of the experience
             </h2>
             <p className="mt-4 text-pretty text-lg leading-relaxed text-zinc-400">
-              Switch between the views your guests, kitchen and cashiers see in
+              Switch between the views your guests and cashiers see in
               real time.
             </p>
           </div>
