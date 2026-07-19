@@ -21,7 +21,7 @@ const translations = {
     demoBadge: "LIVE SYNC DEMO",
     posTerminal: "Live POS Terminal",
     title: "Cashier & Order Management 💳",
-    subtitle: "Create, receive, and send orders to the kitchen serverlessly.",
+    subtitle: "Accept orders here, then switch to the Kitchen tab to see the 3D printer in action!",
     newOrderBtn: "Direct POS Order",
     quickMenu: "Quick Menu",
     all: "All",
@@ -38,11 +38,11 @@ const translations = {
     print: "Print",
     accept: "Accept",
     reject: "Reject",
-    preparing: "Preparing in the kitchen... 👨‍🍳",
+    preparing: "Preparing in the kitchen... (Go tear the receipt! 🏃‍♂️)",
     complete: "Complete Order",
     outOfStockPrompt: "Confirm out of stock for",
     outOfStockAlert: "marked out of stock. (Simulation only in Demo)",
-    orderSuccess: "Order registered and sent to the kitchen successfully! ⚡",
+    orderSuccess: "Sent! Switch to the Kitchen tab quickly to see it print! 🏃‍♂️⚡",
     printDemo: "Smart QR System",
     orderNo: "Order No",
   },
@@ -50,7 +50,7 @@ const translations = {
     demoBadge: "DÉMO EN DIRECT",
     posTerminal: "Terminal de Caisse",
     title: "Caisse & Commandes 💳",
-    subtitle: "Créez, recevez et envoyez des commandes en cuisine sans serveur.",
+    subtitle: "Acceptez les commandes ici, puis passez à l'onglet Cuisine pour voir l'imprimante 3D !",
     newOrderBtn: "Nouvelle Commande",
     quickMenu: "Menu Rapide",
     all: "Tout",
@@ -67,11 +67,11 @@ const translations = {
     print: "Imprimer",
     accept: "Accepter",
     reject: "Refuser",
-    preparing: "Préparation en cuisine... 👨‍🍳",
-    complete: "Terminer",
+    preparing: "En cuisine... (Allez déchirer le ticket ! 🏃‍♂️)",
+    complete: "Terminer la Commande",
     outOfStockPrompt: "Confirmer la rupture de stock pour",
     outOfStockAlert: "marqué en rupture. (Simulation uniquement)",
-    orderSuccess: "Commande envoyée en cuisine avec succès ! ⚡",
+    orderSuccess: "Envoyé ! Passez vite à l'onglet Cuisine pour le voir s'imprimer ! 🏃‍♂️⚡",
     printDemo: "Système QR Intelligent",
     orderNo: "Commande N°",
   },
@@ -79,7 +79,7 @@ const translations = {
     demoBadge: "مزامنة حية (ديمو)",
     posTerminal: "محطة الكاشير المباشرة",
     title: "شاشة الكاشير وإدارة الطلبات 💳",
-    subtitle: "يقوم بإنشاء واستقبال الطلبات وإرسالها للمطبخ بدون سيرفر.",
+    subtitle: "اقبل الطلبات هنا، ثم انتقل لتبويب المطبخ لترى طابعة الفواتير 3D في العمل!",
     newOrderBtn: "تسجيل طلب مباشر",
     quickMenu: "المنيو السريع",
     all: "الجميع",
@@ -96,11 +96,11 @@ const translations = {
     print: "طباعة",
     accept: "قبول",
     reject: "رفض",
-    preparing: "جاري التحضير في المطبخ... 👨‍🍳",
+    preparing: "في المطبخ... (اذهب واقطع الفاتورة! 🏃‍♂️)",
     complete: "إنهاء الطلب",
     outOfStockPrompt: "تأكيد إيقاف",
     outOfStockAlert: "تم إيقاف. (محاكاة فقط في بيئة التجربة)",
-    orderSuccess: "تم تسجيل الطلب وإرساله للمطبخ بنجاح! ⚡",
+    orderSuccess: "تم الإرسال! انتقل لتبويب المطبخ بسرعة لتراها تُطبع! 🏃‍♂️⚡",
     printDemo: "نظام QR الذكي",
     orderNo: "رقم الطلب",
   }
@@ -132,21 +132,23 @@ export default function CashierDemoDashboard() {
 
   const activeOrders = orders.filter(o => !['completed', 'rejected', 'cancelled'].includes(o.status));
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
+  const handlePrintReceipt = (order: any) => {
+    setPrintOrder(order);
+    setTimeout(() => { window.print(); }, 150);
+  };
+
+  const updateOrderStatus = (order: any, newStatus: string) => {
     const updatedOrders = orders.map(o => 
-      o.id === orderId ? { ...o, status: newStatus } : o
+      o.id === order.id ? { ...o, status: newStatus } : o
     );
     updateOrders(updatedOrders);
+    
+    // تم إلغاء الطباعة التلقائية (window.print) هنا لكي لا تقاطع تجربة الانتقال لتبويب المطبخ 3D
   };
 
   const markOutOfStock = (productId: string, productName: string) => {
     if(!confirm(`${t.outOfStockPrompt} "${productName}"?`)) return;
     alert(`"${productName}" ${t.outOfStockAlert}`);
-  };
-
-  const handlePrintReceipt = (order: any) => {
-    setPrintOrder(order);
-    setTimeout(() => { window.print(); }, 150);
   };
 
   const addToPos = (prod: any) => {
@@ -226,7 +228,7 @@ export default function CashierDemoDashboard() {
           </div>
           
           <div className="flex items-center gap-4 shrink-0 flex-wrap">
-            {/* 🌟 Language Switcher (The Pill Toggle) 🌟 */}
+            {/* 🌟 Language Switcher */}
             <div className="flex bg-muted/60 p-1 rounded-full w-max border">
               {(["AR", "FR", "EN"] as LangType[]).map(l => (
                 <button
@@ -275,7 +277,7 @@ export default function CashierDemoDashboard() {
                       </div>
                       <div>
                         <h4 className="font-bold text-xs truncate">{getProductName(p)}</h4>
-                        <span className="font-black text-sm text-primary mt-1 block">{formatMAD(p.price)}</span>
+                        <span className="font-black text-sm text-primary mt-1 block" dir="ltr">{formatMAD(p.price)}</span>
                       </div>
                     </div>
                   ))}
@@ -291,7 +293,7 @@ export default function CashierDemoDashboard() {
 
                   <div className="mb-6">
                     <label className="block text-xs font-bold text-muted-foreground mb-1.5">{t.targetTable}</label>
-                    <select value={selectedTableId} onChange={(e) => setSelectedTableId(e.target.value)} className="w-full p-3 bg-muted/40 border-2 rounded-xl font-bold text-sm focus:border-primary outline-none">
+                    <select value={selectedTableId} onChange={(e) => setSelectedTableId(e.target.value)} className={`w-full p-3 bg-muted/40 border-2 rounded-xl font-bold text-sm focus:border-primary outline-none ${lang === "AR" ? "text-right" : "text-left"}`}>
                       {DEMO_TABLES.map(tb => <option key={tb.id} value={tb.id}>{t.table} {tb.table_number.replace('table_', '')}</option>)}
                     </select>
                   </div>
@@ -317,7 +319,7 @@ export default function CashierDemoDashboard() {
                 <div className="pt-4 border-t space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-sm text-muted-foreground">{t.total}</span>
-                    <span className="text-2xl font-black text-primary">{formatMAD(cartItemsArray.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0))}</span>
+                    <span className="text-2xl font-black text-primary" dir="ltr">{formatMAD(cartItemsArray.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0))}</span>
                   </div>
 
                   <button 
@@ -350,7 +352,8 @@ export default function CashierDemoDashboard() {
                   <p className="text-xs font-bold text-muted-foreground mt-1">#{order.id.split('-')[0]}</p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  <span className="text-xl font-black text-primary">{formatMAD(order.total_amount)}</span>
+                  <span className="text-xl font-black text-primary" dir="ltr">{formatMAD(order.total_amount)}</span>
+                  {/* إبقاء زر الطباعة اليدوية متاحاً للكاشير إذا أراد نسخة ورقية */}
                   <button onClick={() => handlePrintReceipt(order)} className="flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-xl text-sm font-bold"><Printer size={16} /> {t.print}</button>
                 </div>
               </div>
@@ -359,7 +362,7 @@ export default function CashierDemoDashboard() {
                 {order.items.map((item: any, idx: number) => (
                   <div key={idx} className="flex justify-between items-center bg-muted/30 p-2.5 rounded-xl border">
                     <div className="flex items-center gap-3">
-                      <span className="bg-primary text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold text-sm">x{item.quantity}</span>
+                      <span className="bg-primary text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold text-sm" dir="ltr">x{item.quantity}</span>
                       <span className="font-bold">{getProductName(item)}</span>
                     </div>
                     <button onClick={() => markOutOfStock(item.id, getProductName(item))} className="text-red-500 bg-red-50 p-2 rounded-lg hover:bg-red-500 hover:text-white"><AlertOctagon size={18} /></button>
@@ -370,11 +373,12 @@ export default function CashierDemoDashboard() {
               <div className="grid grid-cols-2 gap-3 mt-auto">
                 {order.status === 'pending' && (
                   <>
-                    <button onClick={() => updateOrderStatus(order.id, 'accepted')} className="bg-foreground text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 active:scale-95 transition-transform"><Check size={18} /> {t.accept}</button>
-                    <button onClick={() => updateOrderStatus(order.id, 'rejected')} className="bg-red-50 text-red-600 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition-colors"><X size={18} /> {t.reject}</button>
+                    <button onClick={() => updateOrderStatus(order, 'accepted')} className="bg-foreground text-white py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 active:scale-95 transition-transform"><Check size={18} /> {t.accept}</button>
+                    <button onClick={() => updateOrderStatus(order, 'rejected')} className="bg-red-50 text-red-600 py-3.5 rounded-xl font-bold flex justify-center items-center gap-2 hover:bg-red-100 transition-colors"><X size={18} /> {t.reject}</button>
                   </>
                 )}
 
+                {/* عندما يقبل الكاشير الطلب، ينتظر تمزيق الفاتورة في المطبخ */}
                 {order.status === 'accepted' && (
                   <div className="col-span-2 bg-blue-50 text-blue-700 py-4 rounded-xl font-bold flex justify-center items-center gap-2 border border-blue-200 select-none">
                     <Clock className="animate-spin text-blue-500" size={18} /> 
@@ -382,8 +386,9 @@ export default function CashierDemoDashboard() {
                   </div>
                 )}
 
+                {/* 🔥 بمجرد سحب وتمزيق الفاتورة من طابعة المطبخ، يتحول لـ ready ويظهر هذا الزر */}
                 {order.status === 'ready' && (
-                  <button onClick={() => updateOrderStatus(order.id, 'completed')} className="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-base flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
+                  <button onClick={() => updateOrderStatus(order, 'completed')} className="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-base flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
                     <Check size={22} /> {t.complete} 
                   </button>
                 )}
@@ -403,7 +408,7 @@ export default function CashierDemoDashboard() {
           </div>
           <div className="mb-4 text-xs space-y-1 font-bold">
             <p>{t.table}: {printOrder.tables?.table_number?.replace('table_', '')}</p>
-            <p>{t.orderNo}: #{printOrder.id}</p>
+            <p>{t.orderNo}: #{printOrder.id.split('-')[0]}</p>
           </div>
           <div className="border-b-2 border-dashed border-gray-400 pb-4 mb-4">
             <table className="w-full text-sm">
@@ -418,7 +423,7 @@ export default function CashierDemoDashboard() {
             </table>
           </div>
           <div className="text-center">
-            <p className="text-xl font-extrabold">{formatMAD(printOrder.total_amount)}</p>
+            <p className="text-xl font-extrabold" dir="ltr">{formatMAD(printOrder.total_amount)}</p>
           </div>
         </div>
       )}

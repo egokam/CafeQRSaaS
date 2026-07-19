@@ -4,6 +4,7 @@ import {
   Smartphone,
   CreditCard,
   Settings,
+  ChefHat,
 } from "lucide-react";
 import { Sandbox, type SandboxView } from "./Sandbox";
 
@@ -38,6 +39,18 @@ const VIEWS: SandboxView[] = [
     ),
   },
   {
+    id: "kitchen",
+    label: "Kitchen Display",
+    icon: ChefHat,
+    content: (
+      <iframe 
+        src="/demo/kitchen" 
+        className="w-full h-[650px] border-none bg-[#121212] rounded-b-2xl"
+        title="Live Kitchen Display"
+      />
+    ),
+  },
+  {
     id: "admin",
     label: "Admin Panel",
     icon: Settings,
@@ -62,7 +75,7 @@ export function LivePreview() {
           See every angle of the experience
         </h3>
         <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
-          Switch between the views your guests and cashiers see in real-time. 
+          Switch between the views your guests, kitchen, and cashiers see in real-time. 
           Go ahead, try adding a product or placing an order!
         </p>
       </div>
