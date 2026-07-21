@@ -1,5 +1,6 @@
 //i spent two months building this saas, i really hope to get something from it.
 
+import { getTranslations } from "next-intl/server";
 import { Background3D } from "../components/landing/Background3D";
 import { Navbar } from "../components/landing/Navbar";
 import { Hero } from "../components/landing/Hero";
@@ -8,12 +9,13 @@ import { Features } from "../components/landing/Features";
 import { ProjectGuide } from "../components/landing/ProjectGuide";
 import { Footer } from "../components/landing/Footer";
 
-export default function Home() {
+export default async function Home() {
+  const t = await getTranslations("Landing.Home");
+
   return (
     <div
       id="top"
-      dir="ltr"
-      className="relative min-h-screen w-full overflow-x-hidden bg-zinc-950 font-sans text-zinc-50"
+      className="relative min-h-screen w-full overflow-x-hidden bg-zinc-950 text-zinc-50"
     >
       <Background3D />
       <Navbar />
@@ -26,14 +28,13 @@ export default function Home() {
         <section id="demo" className="scroll-mt-28">
           <div className="mx-auto mb-12 max-w-2xl text-center">
             <p className="mb-3 text-sm font-medium uppercase tracking-widest text-amber-300">
-              Live Preview
+              {t("demoEyebrow")}
             </p>
             <h2 className="text-balance text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-              See every angle of the experience
+              {t("demoTitle")}
             </h2>
             <p className="mt-4 text-pretty text-lg leading-relaxed text-zinc-400">
-              Switch between the views your guests and cashiers see in
-              real time.
+              {t("demoDescription")}
             </p>
           </div>
           <LivePreview />

@@ -1,85 +1,88 @@
 "use client";
 
-import {
-  Smartphone,
-  CreditCard,
-  Settings,
-  ChefHat,
-} from "lucide-react";
+import { Smartphone, CreditCard, Settings, ChefHat } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { Sandbox, type SandboxView } from "./Sandbox";
 
-
-const VIEWS: SandboxView[] = [
-  {
-    id: "client",
-    label: "Client Menu",
-    icon: Smartphone,
-    content: (
-      <iframe 
-        src="/demo/client" 
-        className="w-full h-[650px] border-none bg-background rounded-b-2xl"
-        title="Live Client Menu"
-      />
-    ),
-  },
-  {
-    id: "pos",
-    label: "POS Cashier",
-    icon: CreditCard,
-    content: (
-      <iframe 
-        src="/demo/pos" 
-        className="w-full h-[650px] border-none bg-zinc-950 rounded-b-2xl"
-        title="Live POS Terminal"
-      />
-    ),
-  },
-  {
-    id: "kitchen",
-    label: "Kitchen Display",
-    icon: ChefHat,
-    content: (
-      <iframe 
-        src="/demo/kitchen" 
-        className="w-full h-[650px] border-none bg-[#121212] rounded-b-2xl"
-        title="Live Kitchen Display"
-      />
-    ),
-  },
-  {
-    id: "admin",
-    label: "Admin Panel",
-    icon: Settings,
-    content: (
-      <iframe 
-        src="/demo/admin" 
-        className="w-full h-[650px] border-none bg-muted/20 rounded-b-2xl"
-        title="Live Admin Panel"
-      />
-    ),
-  },
-];
-
 export function LivePreview() {
+  const t = useTranslations("Landing.LivePreview");
+  const locale = useLocale();
+
+  const views: SandboxView[] = [
+    {
+      id: "client",
+      label: t("views.client"),
+      icon: Smartphone,
+      content: (
+        <iframe
+          key={`client-${locale}`}
+          src="/demo/client"
+          className="h-[650px] w-full rounded-b-2xl border-none bg-background"
+          title={t("titles.client")}
+        />
+      ),
+    },
+    {
+      id: "pos",
+      label: t("views.pos"),
+      icon: CreditCard,
+      content: (
+        <iframe
+          key={`pos-${locale}`}
+          src="/demo/pos"
+          className="h-[650px] w-full rounded-b-2xl border-none bg-zinc-950"
+          title={t("titles.pos")}
+        />
+      ),
+    },
+    {
+      id: "kitchen",
+      label: t("views.kitchen"),
+      icon: ChefHat,
+      content: (
+        <iframe
+          key={`kitchen-${locale}`}
+          src="/demo/kitchen"
+          className="h-[650px] w-full rounded-b-2xl border-none bg-[#121212]"
+          title={t("titles.kitchen")}
+        />
+      ),
+    },
+    {
+      id: "admin",
+      label: t("views.admin"),
+      icon: Settings,
+      content: (
+        <iframe
+          key={`admin-${locale}`}
+          src="/demo/admin"
+          className="h-[650px] w-full rounded-b-2xl border-none bg-muted/20"
+          title={t("titles.admin")}
+        />
+      ),
+    },
+  ];
+
   return (
     <section className="relative z-10 mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-12 text-center">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-amber-500 mb-2">
-          Live Interactive Demo
+        <h2 className="mb-2 text-sm font-bold uppercase tracking-widest text-amber-500">
+          {t("eyebrow")}
         </h2>
-        <h3 className="text-3xl font-black text-white sm:text-4xl md:text-5xl tracking-tight mb-4">
-          See every angle of the experience
+        <h3 className="mb-4 text-3xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
+          {t("title")}
         </h3>
-        <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
-          Switch between the views your guests, kitchen, and cashiers see in real-time. 
-          Go ahead, try adding a product or placing an order!
+        <p className="mx-auto max-w-2xl text-lg text-zinc-400">
+          {t("description")}
         </p>
       </div>
-      
-      {/* هنا نمرر الـ VIEWS لـ Sandbox ليعرضها بشكل نافذة macOS أنيقة 
-        قمنا بتغيير الرابط الوهمي ليناسب فكرة التطبيق المتكامل
-      */}
-      <Sandbox views={VIEWS} url="app.cafeqr.io/live-demo" />
+
+      <Sandbox
+        key={locale}
+        views={views}
+        tabsLabel={t("tabsLabel")}
+        url="app.cafeqr.io/live-demo"
+      />
     </section>
   );
 }

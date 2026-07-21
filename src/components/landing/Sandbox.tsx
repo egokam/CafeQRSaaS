@@ -13,6 +13,7 @@ export type SandboxView = {
 
 type SandboxProps = {
   views: SandboxView[];
+  tabsLabel: string;
   /** Address-bar style label shown in the window chrome. */
   url?: string;
 };
@@ -24,7 +25,11 @@ type SandboxProps = {
  * the tab switcher (Framer Motion `layoutId` pill) and the animated
  * ViewPort (`AnimatePresence`). Pass real components via `views[].content`.
  */
-export function Sandbox({ views, url = "app.cafeqr.io" }: SandboxProps) {
+export function Sandbox({
+  views,
+  tabsLabel,
+  url = "app.cafeqr.io",
+}: SandboxProps) {
   const [activeId, setActiveId] = useState(views[0]?.id);
   const active = views.find((v) => v.id === activeId) ?? views[0];
 
@@ -57,7 +62,7 @@ export function Sandbox({ views, url = "app.cafeqr.io" }: SandboxProps) {
         {/* ---- tab switcher ---- */}
         <div
           role="tablist"
-          aria-label="Sandbox views"
+          aria-label={tabsLabel}
           className="flex flex-wrap items-center gap-1 border-b border-white/10 bg-white/[0.02] p-2"
         >
           {views.map((view) => {

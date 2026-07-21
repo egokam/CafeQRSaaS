@@ -1,0 +1,495 @@
+{
+  "Metadata": {
+    "title": "CafeQR",
+    "description": "Le système intelligent de commande par QR pour les cafés modernes.",
+    "ogTitle": "CafeQR - Système intelligent pour cafés",
+    "ogDescription": "Une plateforme plus rapide et plus sûre pour gérer les cafés modernes au Maroc et ailleurs.",
+    "siteName": "CafeQR",
+    "locale": "fr_FR",
+    "imageAlt": "Aperçu de la plateforme CafeQR",
+    "tutorialTitle": "Guide produit CafeQR",
+    "tutorialDescription": "Une visite visuelle de CafeQR SaaS : commande QR, caisse POS, impression cuisine, architecture tenant, sécurité et workflows."
+  },
+  "Common": {
+    "currency": "MAD",
+    "brand": "CafeQR"
+  },
+  "Landing": {
+    "Navbar": {
+      "brand": "CafeQR",
+      "links": {
+        "features": "Fonctionnalités",
+        "demo": "Démo live",
+        "pricing": "Tarifs"
+      },
+      "getStarted": "Commencer",
+      "language": {
+        "label": "Choisir la langue",
+        "options": {
+          "en": "🇬🇧 English",
+          "fr": "🇫🇷 Français",
+          "ar": "🇲🇦 العربية"
+        }
+      }
+    },
+    "Home": {
+      "demoEyebrow": "Aperçu live",
+      "demoTitle": "Découvrez chaque angle de l’expérience",
+      "demoDescription": "Passez d’une vue à l’autre pour voir ce que vivent vos clients et vos caissiers en temps réel."
+    },
+    "Hero": {
+      "badge": "La plateforme tout-en-un pour les cafés modernes",
+      "titleBefore": "Modernisez votre café,",
+      "titleHighlight": "un scan à la fois.",
+      "description": "Vos clients scannent, consultent et commandent en quelques secondes. Les commandes arrivent directement en cuisine et à la caisse, sans application, sans attente et sans friction.",
+      "startTrial": "Essai gratuit",
+      "viewDemo": "Voir la démo live",
+      "note": "Aucune carte bancaire requise · Configuration en moins de 5 minutes"
+    },
+    "LivePreview": {
+      "eyebrow": "Démo interactive live",
+      "title": "Découvrez chaque angle de l’expérience",
+      "description": "Passez entre les vues client, cuisine et caisse en temps réel. Essayez d’ajouter un produit ou de passer une commande.",
+      "tabsLabel": "Vues de la démo interactive",
+      "views": {
+        "client": "Menu client",
+        "pos": "Caisse POS",
+        "kitchen": "Cuisine",
+        "admin": "Admin"
+      },
+      "titles": {
+        "client": "Menu client live",
+        "pos": "Terminal POS live",
+        "kitchen": "Affichage cuisine live",
+        "admin": "Panneau admin live"
+      }
+    },
+    "Features": {
+      "title": "Tout ce dont votre café a besoin pour fonctionner",
+      "description": "Une plateforme qui connecte vos clients, votre cuisine et votre comptoir avec élégance.",
+      "items": {
+        "scan": {
+          "title": "Scanner & commander",
+          "description": "Les clients scannent un QR à table et commandent en quelques secondes, sans téléchargement d’application."
+        },
+        "kitchen": {
+          "title": "Synchronisation cuisine",
+          "description": "Les commandes apparaissent instantanément côté cuisine, triées et horodatées automatiquement."
+        },
+        "pos": {
+          "title": "POS intégré",
+          "description": "Clôturez les tickets, gérez les additions et encaissez depuis un écran caisse clair."
+        },
+        "realtime": {
+          "title": "Mises à jour en temps réel",
+          "description": "Chaque changement de statut se synchronise entre client, cuisine et caisse en quelques millisecondes."
+        },
+        "secure": {
+          "title": "Sécurisé par défaut",
+          "description": "Les accès par rôle et les sessions protégées gardent vos données et vos revenus en sécurité."
+        },
+        "setup": {
+          "title": "Configuration en 5 minutes",
+          "description": "Ajoutez votre menu, imprimez vos QR codes et commencez à recevoir des commandes le jour même."
+        }
+      }
+    },
+    "ProjectGuide": {
+      "badge": "Walkthrough produit",
+      "titleBefore": "Comprendre CafeQR en",
+      "titleHighlight": "5 minutes",
+      "description": "Vous voulez voir comment tout fonctionne avant d’essayer la démo ? Lisez un guide clair pensé pour les propriétaires de cafés, les clients et les profils techniques.",
+      "button": "Lire le guide complet",
+      "path": "/tutorial",
+      "topics": {
+        "qr": "Commande QR",
+        "pos": "Workflow POS",
+        "kitchen": "Impression ticket cuisine",
+        "admin": "Tableau de bord admin",
+        "saas": "Architecture SaaS multi-tenant",
+        "business": "Besoins métier",
+        "security": "Sécurité"
+      },
+      "steps": [
+        "Scan du QR de table",
+        "Envoi de commande",
+        "Validation caisse",
+        "Impression cuisine"
+      ],
+      "note": "Un guide visuel sur le flux produit, l’architecture tenant, la mise en place métier, la sécurité, le déploiement et la feuille de route."
+    },
+    "Footer": {
+      "title": "Prêt à moderniser votre café ?",
+      "description": "Rejoignez les cafés qui servent plus vite, plus intelligemment et plus sereinement avec CafeQR.",
+      "getStarted": "Commencer gratuitement",
+      "copyright": "© {year} CafeQR. Conçu pour les cafés modernes."
+    }
+  },
+  "Tutorial": {
+    "header": {
+      "back": "Retour à l’accueil",
+      "demos": "Ouvrir la démo"
+    },
+    "toc": {
+      "title": "Dans cette page",
+      "introduction": "Introduction",
+      "platformOverview": "Vue d’ensemble",
+      "coreSuite": "Suite produit",
+      "architecture": "Architecture",
+      "security": "Sécurité",
+      "businessRequirements": "Besoins métier",
+      "technologyStack": "Stack technique",
+      "projectStructure": "Structure du projet",
+      "guestOrderWorkflow": "Workflow commande client",
+      "posWorkflow": "Workflow POS",
+      "saasFlow": "Flux SaaS multi-tenant",
+      "liveDemo": "Démo live",
+      "roadmap": "Roadmap"
+    },
+    "hero": {
+      "badge": "Guide CafeQR",
+      "title": "Une visite visuelle de la plateforme de commande QR pour cafés modernes.",
+      "description": "CafeQR réunit le menu client, la caisse, le passage en cuisine, l’administration du café et les opérations SaaS dans un seul produit App Router. Ce guide explique la plateforme de façon concrète pour les clients, partenaires et recruteurs techniques.",
+      "tags": [
+        "Commande QR",
+        "POS",
+        "Impression cuisine",
+        "SaaS tenant",
+        "Supabase",
+        "Next.js"
+      ]
+    },
+    "overview": {
+      "eyebrow": "Vue d’ensemble",
+      "title": "Une seule plateforme pour clients, staff, propriétaires et opérateurs",
+      "paragraphs": [
+        "CafeQR s’adresse aux cafés qui veulent une expérience de commande digitale élégante sans ralentir le service. Les clients commandent depuis un menu QR, les caissiers valident les tickets, la cuisine reçoit les reçus imprimés et les propriétaires contrôlent le menu depuis une console privée.",
+        "Techniquement, chaque café est traité comme un tenant. Un slug relie le menu QR public, le terminal caisse, la configuration d’impression cuisine, l’admin, les produits, les commandes, les tables et l’état d’abonnement."
+      ],
+      "calloutTitle": "Intention produit",
+      "calloutBody": "Assez rapide pour le service quotidien, assez élégant pour l’hospitalité premium, et assez structuré pour devenir un vrai SaaS."
+    },
+    "coreSuite": {
+      "eyebrow": "Suite produit",
+      "title": "Cinq outils coordonnés plutôt que des écrans isolés",
+      "items": {
+        "qr": {
+          "title": "Menu QR",
+          "body": "Les clients scannent une route propre à leur table, parcourent le menu actif, gèrent leur panier et commandent sans installer d’application.",
+          "points": [
+            "Commande mobile-first",
+            "Sessions liées aux tables",
+            "Disponibilité produit en direct"
+          ]
+        },
+        "pos": {
+          "title": "Caisse POS",
+          "body": "Les caissiers valident les commandes QR, créent des tickets sur place, gèrent les statuts et gardent le comptoir fluide.",
+          "points": [
+            "File de commandes en attente",
+            "Commandes POS manuelles",
+            "Encaissement prêt pour reçu"
+          ]
+        },
+        "kitchen": {
+          "title": "Impression ticket cuisine",
+          "body": "Les commandes acceptées partent vers l’imprimante cuisine afin que l’équipe reçoive un ticket clair avec table, articles, quantités, notes et heure.",
+          "points": [
+            "Impression après validation",
+            "Tickets pensés pour la préparation",
+            "Passage clair depuis la caisse"
+          ]
+        },
+        "admin": {
+          "title": "Console admin",
+          "body": "Les propriétaires gèrent les produits, les textes multilingues, les tables QR, les PIN staff, les paramètres et les ventes.",
+          "points": [
+            "Gestion du menu",
+            "Génération des QR de table",
+            "Ventes et paramètres"
+          ]
+        },
+        "saas": {
+          "title": "Panneau SaaS",
+          "body": "La couche opérateur provisionne les cafés, gère les abonnements, suit les reçus et organise le cycle de vie des tenants.",
+          "points": [
+            "Provisionnement tenant",
+            "Contrôle d’abonnement",
+            "Gestion du cycle de vie"
+          ]
+        }
+      }
+    },
+    "architecture": {
+      "eyebrow": "Architecture",
+      "title": "Routing multi-tenant et opérations temps réel",
+      "paragraph": "L’application utilise Next.js App Router pour séparer les expériences client, caisse, cuisine, admin, démo et onboarding. Les routes tenant lisent le slug du café, valident la surface demandée et gardent les commandes attachées au bon café.",
+      "features": {
+        "routing": {
+          "title": "Routing tenant",
+          "body": "Les surfaces café vivent sous des routes dynamiques, tandis que la démo et l’onboarding restent séparés."
+        },
+        "isolation": {
+          "title": "Isolation Supabase",
+          "body": "Cafés, produits, tables, commandes, reçus, propriétaires et abonnements sont reliés aux données du tenant."
+        },
+        "realtime": {
+          "title": "Synchronisation temps réel",
+          "body": "Les commandes client arrivent vite au POS, puis passent par validation, impression, prêt et terminé."
+        },
+        "actions": {
+          "title": "Server actions",
+          "body": "Les mutations sensibles passent par des actions côté serveur avec validation avant changement métier."
+        }
+      },
+      "codeTitle": "route-map.ts",
+      "codeLanguage": "texte",
+      "code": "src/app/\n|-- page.tsx                  landing page publique\n|-- tutorial/page.tsx         guide produit\n|-- get-started/page.tsx      plans et contact\n|-- demo/\n|   |-- client/page.tsx       démo client locale\n|   |-- pos/page.tsx          démo caisse locale\n|   |-- kitchen/page.tsx      démo cuisine locale\n|   |-- admin/page.tsx        démo admin locale\n|-- [cafeSlug]/\n|   |-- [tableNumber]/page.tsx  menu QR tenant\n|   |-- cashier/page.tsx        terminal caisse tenant\n|   |-- admin/page.tsx          console admin tenant"
+    },
+    "security": {
+      "eyebrow": "Sécurité",
+      "title": "Des contrôles par couches autour des tenants, rôles, sessions et abonnements",
+      "paragraph": "CafeQR adopte une posture de sécurité pragmatique pour un SaaS hospitality : valider le tenant avant d’exposer une surface, limiter les rôles, garder les secrets hors du code et appliquer l’état d’abonnement sur les opérations de commande.",
+      "features": {
+        "headers": {
+          "title": "Durcissement HTTP",
+          "body": "Le middleware ajoute des headers défensifs et émet un cookie de session HTTP-only."
+        },
+        "owner": {
+          "title": "Autorisation propriétaire",
+          "body": "L’accès admin dépend de l’identité authentifiée du propriétaire et des contrôles d’appartenance au café."
+        },
+        "pin": {
+          "title": "PIN staff",
+          "body": "Les accès caisse et cuisine peuvent être protégés par PIN et limites de terminaux."
+        },
+        "subscription": {
+          "title": "Contrôle d’abonnement",
+          "body": "Les cafés expirés ou suspendus peuvent être bloqués sur les surfaces de commande et d’opération."
+        }
+      },
+      "calloutTitle": "Aucun secret dans le guide",
+      "calloutBody": "Cette documentation publique décrit l’architecture sans exposer clés service-role, routes opérateur privées, identifiants de production ou secrets base de données."
+    },
+    "business": {
+      "eyebrow": "Besoins métier",
+      "title": "Une installation légère pour petits et moyens cafés",
+      "paragraph": "Le produit s’appuie sur du matériel déjà familier : une caisse dans le navigateur, une impression client optionnelle, une imprimante thermique cuisine, des QR codes sur les tables et les téléphones des clients.",
+      "items": {
+        "printer": {
+          "title": "Imprimante cuisine",
+          "body": "Une imprimante thermique compatible ESC/POS est recommandée pour les tickets cuisine après validation caisse."
+        },
+        "pos": {
+          "title": "Terminal POS",
+          "body": "Un PC Windows, laptop, tablette ou écran tactile avec navigateur moderne peut faire tourner la caisse."
+        },
+        "admin": {
+          "title": "Appareil admin",
+          "body": "Un laptop ou une tablette offre la meilleure gestion, avec support mobile pour les mises à jour rapides."
+        },
+        "internet": {
+          "title": "Internet fiable",
+          "body": "Les commandes temps réel, l’authentification et les données tenant exigent une connexion stable pendant le service."
+        },
+        "guests": {
+          "title": "Téléphones clients",
+          "body": "Les clients ont seulement besoin d’un smartphone moderne capable de scanner un QR et d’ouvrir un navigateur."
+        }
+      }
+    },
+    "stack": {
+      "eyebrow": "Stack technique",
+      "title": "Des outils web modernes pour le service temps réel",
+      "rows": [
+        ["Framework", "Next.js App Router, React"],
+        ["Langage", "TypeScript"],
+        ["Style", "Tailwind CSS, primitives shadcn/Radix"],
+        ["Base de données et auth", "Supabase PostgreSQL, Auth, Storage, Realtime"],
+        ["État et démo", "Zustand et données démo locales navigateur"],
+        ["Motion et UX", "Framer Motion, alertes audio temps réel, lucide-react"],
+        ["QR et impression", "react-qr-code et workflows d’impression navigateur"],
+        ["Déploiement", "Build Next.js standalone, PM2, profil VPS prêt pour Caddy"]
+      ]
+    },
+    "structure": {
+      "eyebrow": "Structure du projet",
+      "title": "Une organisation App Router centrée sur les routes",
+      "paragraph": "Le code est organisé autour des surfaces produit, actions serveur, utilitaires partagés, composants landing et état démo. L’aperçu garde les détails opérationnels privés hors champ tout en montrant la composition du produit public.",
+      "codeTitle": "CafeQrSaaS",
+      "codeLanguage": "texte",
+      "code": "CafeQrSaaS/\n|-- middleware.ts\n|-- next.config.ts\n|-- src/\n|   |-- actions/\n|   |   |-- auth.ts        auth owner, PIN, menu et commandes\n|   |   |-- saas.ts        abonnement et opérations tenant\n|   |-- app/\n|   |   |-- page.tsx       landing page\n|   |   |-- tutorial/      guide produit\n|   |   |-- demo/          surfaces démo interactives locales\n|   |   |-- [cafeSlug]/    routes client, caisse et admin tenant\n|   |-- components/\n|   |   |-- landing/       marketing public et démo\n|   |-- lib/\n|       |-- supabase.ts    client Supabase navigateur\n|       |-- demoStore.ts   produits et commandes démo partagés\n|       |-- utils.ts       helper de fusion Tailwind"
+    },
+    "guestFlow": {
+      "eyebrow": "Workflow commande client",
+      "title": "Du scan de table au ticket cuisine",
+      "paragraph": "Le parcours client reste volontairement court. Un scan QR ouvre le bon café et la bonne table, l’application vérifie que la commande est disponible, puis le client envoie une commande en attente vers le POS.",
+      "diagramTitle": "Flux commande client",
+      "steps": [
+        ["Client", "Scanne le QR de table."],
+        ["Menu QR", "Charge le menu et le panier."],
+        ["POS", "Reçoit la commande en attente."],
+        ["Imprimante cuisine", "Imprime seulement après validation."],
+        ["Cuisine", "Prépare depuis un ticket clair."]
+      ]
+    },
+    "posFlow": {
+      "eyebrow": "Workflow POS",
+      "title": "La validation caisse garde la cuisine propre",
+      "paragraph": "Le POS est le hub opérationnel. Les caissiers déverrouillent le terminal, reçoivent les commandes QR, les acceptent ou les refusent, créent des commandes sur place, déclenchent les tickets cuisine et suivent les statuts.",
+      "codeTitle": "pos-workflow.ts",
+      "codeLanguage": "pseudo",
+      "lines": [
+        ["caissier", "déverrouille le terminal avec PIN"],
+        ["système", "vérifie tenant actif et limites appareils"],
+        ["pos", "reçoit les commandes client en temps réel"],
+        ["caissier", "accepte, refuse ou crée une commande directe"],
+        ["imprimante", "imprime le ticket cuisine confirmé"],
+        ["pos", "marque la commande prête, payée et terminée"]
+      ]
+    },
+    "saasFlow": {
+      "eyebrow": "Flux SaaS multi-tenant",
+      "title": "Provisionner une fois, opérer plusieurs cafés",
+      "paragraph": "La couche SaaS transforme le produit d’une app mono-café en plateforme gérée. Les opérateurs provisionnent un café, connectent un propriétaire, configurent les limites de plan, puis chaque équipe travaille dans son propre périmètre tenant.",
+      "diagramTitle": "Cycle de vie tenant",
+      "steps": [
+        ["Super Admin", "Contrôle la création tenant."],
+        ["Provisionner café", "Crée plan, slug, owner et limites."],
+        ["Propriétaire", "Gère menu, tables QR et accès staff."],
+        ["Admin", "Maintient produits et paramètres."],
+        ["Caissier", "Valide commandes et paiements."],
+        ["Clients", "Commandent depuis les QR de table."]
+      ]
+    },
+    "liveDemo": {
+      "eyebrow": "Démo live",
+      "title": "Explorez chaque surface produit",
+      "paragraph": "Les routes de démo utilisent un store synchronisé dans le navigateur. Les reviewers peuvent tester le flux complet sans identifiants de production.",
+      "cards": {
+        "client": "Menu client",
+        "pos": "Caisse POS",
+        "kitchen": "Affichage cuisine",
+        "admin": "Console admin"
+      }
+    },
+    "roadmap": {
+      "eyebrow": "Roadmap",
+      "title": "Les prochaines évolutions possibles",
+      "items": [
+        "Analytics avancés sur heures de pointe, revenus et performance produit.",
+        "Descriptions de menus assistées par IA et prévision de demande.",
+        "Multi-devises et localisation plus profonde.",
+        "Onboarding de domaines personnalisés pour tenants premium.",
+        "Automatisation plus poussée de la facturation et revue des reçus."
+      ],
+      "ctaTitle": "Prêt à voir le produit en mouvement ?",
+      "ctaBody": "Ouvrez la démo interactive ou revenez au CTA de la landing page.",
+      "exploreDemo": "Essayer la démo",
+      "getStarted": "Commencer"
+    }
+  },
+  "Demo": {
+    "common": {
+      "currency": "MAD",
+      "loading": "Chargement...",
+      "noImage": "Aucune image",
+      "mode": "Mode démo synchronisé live",
+      "table": "Table",
+      "confirmCancel": "Êtes-vous sûr ?",
+      "cafeName": "Café Démo",
+      "categories": {
+        "coffee": "Café",
+        "sweets": "Desserts",
+        "juice": "Jus",
+        "bakery": "Boulangerie",
+        "all": "Tout"
+      }
+    },
+    "client": {
+      "subtitle": "Découvrez le goût authentique ☕",
+      "empty": "Aucun produit dans cette catégorie.",
+      "confirmOrder": "Confirmer la commande",
+      "sending": "Envoi...",
+      "itemsCount": "articles",
+      "total": "Total",
+      "reviewing": "En vérification ⏳",
+      "preparing": "En préparation 👨‍🍳",
+      "ready": "Prêt ! 🚶‍♂️",
+      "orderNum": "Commande #",
+      "addMore": "+ Ajouter",
+      "cancel": "Annuler",
+      "myOrders": "Mes commandes",
+      "emptyOrders": "Aucune commande active.",
+      "close": "Fermer"
+    },
+    "pos": {
+      "demoBadge": "DÉMO LIVE",
+      "posTerminal": "Terminal POS live",
+      "title": "Caisse & gestion des commandes 💳",
+      "subtitle": "Validez les commandes ici, puis passez à l’onglet cuisine pour voir l’imprimante 3D en action.",
+      "newOrderBtn": "Commande POS directe",
+      "quickMenu": "Menu rapide",
+      "noProducts": "Aucun produit disponible. Ajoutez-en depuis l’admin d’abord.",
+      "ticketTitle": "Ticket de commande directe",
+      "targetTable": "Choisir la table :",
+      "emptyCart": "Cliquez sur un produit pour l’ajouter au ticket",
+      "total": "Total :",
+      "sending": "Envoi...",
+      "sendKitchen": "Confirmer & envoyer cuisine ⚡",
+      "noOrders": "Aucune commande active pour le moment.",
+      "noOrdersSub": "Cliquez sur [+ Commande POS directe] pour créer une commande et tester la synchronisation.",
+      "print": "Imprimer",
+      "accept": "Accepter",
+      "reject": "Refuser",
+      "preparing": "Préparation en cuisine...",
+      "complete": "Terminer la commande",
+      "outOfStockPrompt": "Confirmer la rupture de stock pour",
+      "outOfStockAlert": "marqué en rupture. Simulation uniquement dans la démo.",
+      "orderSuccess": "Envoyé. Passez à l’onglet cuisine pour voir l’impression.",
+      "printDemo": "Système QR intelligent",
+      "orderNo": "Commande n°"
+    },
+    "admin": {
+      "demoBadge": "DÉMO LIVE",
+      "title": "Tableau de bord admin ⚙️",
+      "subtitle": "Les données se synchronisent instantanément avec cuisine et caisse.",
+      "tabMenu": "Menu",
+      "tabTables": "Tables",
+      "tabSales": "Ventes",
+      "salesRevenue": "Revenus des commandes",
+      "totalOrders": "Total commandes",
+      "orderUnit": "Commandes",
+      "liveSalesLog": "Journal des ventes live",
+      "noOrders": "Créez des commandes depuis le POS pour les voir ici.",
+      "directPOS": "Direct (POS)",
+      "addProduct": "Ajouter produit",
+      "editProduct": "Modifier produit",
+      "nameAr": "Nom (arabe)",
+      "nameEn": "Nom (anglais)",
+      "nameFr": "Nom (français)",
+      "priceLabel": "Prix",
+      "categoryLabel": "Catégorie",
+      "imageLabel": "Image",
+      "changeImage": "Changer l’image",
+      "chooseImage": "Choisir l’image",
+      "saving": "Enregistrement...",
+      "saveChanges": "Enregistrer",
+      "publishProduct": "Publier",
+      "currentProducts": "Produits actuels",
+      "confirmDelete": "Confirmer la suppression ?",
+      "saveSuccess": "Produit enregistré et synchronisé.",
+      "qrTitle": "Générateur QR (démo interactive)",
+      "tableNumber": "Numéro de table :",
+      "generateCode": "Générer le code",
+      "cafeName": "Démo CafeQR"
+    },
+    "kitchen": {
+      "title": "Affichage cuisine",
+      "tear": "Tirez vers le bas pour détacher le reçu",
+      "awaiting": "En attente de commandes...",
+      "ticketTitle": "TICKET CUISINE",
+      "table": "Table"
+    }
+  }
+}
