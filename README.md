@@ -7,7 +7,7 @@
 
 # CafeQR SaaS
 
-### The Premium QR Menu, POS Cashier, KDS, and Multi-Tenant Control Platform for Modern Cafes
+### The Premium QR Menu, POS Cashier, Kitchen Printing, and Multi-Tenant Control Platform for Modern Cafes
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.2.9-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
@@ -26,7 +26,7 @@
 
 **CafeQR SaaS** is a premium, mobile-first hospitality platform built for cafes that want a polished digital ordering experience without sacrificing operational speed.
 
-It combines a dynamic QR menu, walk-in POS ordering, kitchen display workflows, tenant administration, subscription control, and a private SaaS factory into one cohesive Next.js application. Every cafe runs through a tenant slug, allowing one production codebase to serve many isolated cafe instances.
+It combines a dynamic QR menu, walk-in POS ordering, automatic kitchen receipt printing, tenant administration, subscription control, and a private SaaS factory into one cohesive Next.js application. Every cafe runs through a tenant slug, allowing one production codebase to serve many isolated cafe instances.
 
 > **Design intent:** fast enough for daily service, elegant enough for premium hospitality, and structured enough to scale as a serious SaaS product.
 
@@ -40,7 +40,7 @@ Add polished screenshots or GIFs here when preparing the GitHub showcase:
 | --- | --- |
 | Guest QR Menu | ![Dynamic QR Menu - Mobile Guest Ordering](./public/screenshots/client.png) |
 | POS Cashier | ![POS Cashier View - Walk-in Orders](./public/screenshots/pos.png) |
-| Kitchen Display System | ![KDS View - Accepted Orders and Prep Queue](./public/screenshots/kitchen.png) |
+| Kitchen Receipt Printing | ![Kitchen Receipt Printing](./public/screenshots/kitchen.png) |
 | Cafe Admin (Menu & Products) | ![Cafe Admin Dashboard - Products](./public/screenshots/admin1.png) |
 | Cafe Admin (Sales & Analytics) | ![Cafe Admin Dashboard - Sales](./public/screenshots/admin2.png) |
 | Cafe Admin (QR Table Generation) | ![Cafe Admin Dashboard - QR Tables](./public/screenshots/admin3.png) |
@@ -61,11 +61,11 @@ The cashier terminal is designed for both QR-driven and walk-in service. Cashier
 
 Cashier access is PIN-protected and includes failed-attempt lockout behavior, subscription heartbeat checks, realtime order subscriptions, audible alerts, and presence-based terminal limits per cafe plan.
 
-### 🔥 Kitchen Display System
+### 🖨️ Automatic Kitchen Receipt Printing
 
-The KDS receives accepted orders only, keeping the kitchen focused on work that has already been approved by the cashier. Orders are sorted oldest-first, visually highlight aging tickets, and can be moved to ready state with one action.
+Accepted orders are instantly printed on the dedicated kitchen thermal printer, allowing kitchen staff to begin preparation immediately without requiring an additional display.
 
-Like the POS, the KDS is PIN-gated, subscription-aware, realtime-enabled, and limited through Supabase presence according to the tenant's allowed kitchen screen count.
+Each receipt includes the table number, ordered items, quantities, notes, and timestamps. Printing occurs only after cashier approval, ensuring the kitchen receives confirmed orders while the POS remains the central hub for order management and status updates.
 
 ### 🏛️ Cafe Admin Console
 
@@ -87,11 +87,11 @@ This is the operational layer that turns CafeQR from a single cafe app into a mu
 
 **Supabase-backed isolation:** tenant data is keyed by cafe records, slugs, table ids, products, orders, receipts, owner auth ids, and subscription status.
 
-**Realtime operations:** POS, KDS, and guest order views use Supabase realtime channels for live order updates and presence channels for concurrent device limits.
+**Realtime operations:** Guest orders arrive instantly in the POS through Supabase Realtime. Once accepted, the system automatically prints a kitchen receipt while the POS continues managing the complete order lifecycle.
 
 **Session fingerprinting:** middleware issues an HTTP-only `cafe_lux_session` cookie, while guest ordering also uses a browser-side client session id to track active orders per visitor.
 
-**Subscription enforcement:** tenant routes call subscription checks and run heartbeat validation, allowing the platform to suspend guest menus, cashier terminals, and kitchen screens when a cafe is expired or suspended.
+**Subscription enforcement:** tenant routes call subscription checks and run heartbeat validation, allowing the platform to suspend guest menus, cashier terminals, and kitchen printing when a cafe is expired or suspended.
 
 ---
 
@@ -154,7 +154,7 @@ CafeQrSaaS/
     │   └── [cafeSlug]/
     │       ├── admin/page.tsx   # Tenant admin console
     │       ├── cashier/page.tsx # Tenant POS cashier terminal
-    │       ├── kitchen/page.tsx # Tenant kitchen display system
+    │       ├── kitchen/page.tsx # Kitchen receipt printing configuration
     │       └── [tableNumber]/
     │           └── page.tsx     # Guest-facing QR menu and ordering flow
     └── lib/
@@ -177,15 +177,15 @@ CafeQrSaaS/
 6. POS receives the order in realtime for approval.
 7. Guest tracks order status until ready, completed, rejected, or cancelled.
 
-### POS to Kitchen Flow
+### POS to Kitchen Printing Flow
 
 1. Cashier unlocks the terminal with the cafe PIN.
 2. Supabase presence checks whether the cafe has available cashier seats.
 3. Pending guest orders can be accepted or rejected.
 4. Walk-in orders can be created from the POS drawer.
-5. Accepted orders appear in the KDS.
-6. Kitchen marks orders ready.
-7. Cashier completes and prints the receipt.
+5. Accepted orders are automatically printed on the connected kitchen thermal printer.
+6. Kitchen staff prepares the order using the printed receipt.
+7. Cashier updates the order to Ready and Completed while printing the customer receipt when needed.
 
 ### SaaS Factory Flow
 
@@ -244,6 +244,22 @@ Recommended production profile:
 - Multi-currency support and deeper localization.
 - Custom domain onboarding for premium tenants.
 - Expanded billing automation and receipt review workflows.
+
+---
+
+## ✦ Business Requirements
+
+CafeQR SaaS is designed to run with minimal hardware, making it suitable for small and medium-sized cafes without requiring specialized infrastructure.
+
+| Component | Requirement |
+| --- | --- |
+| 🖨️ Kitchen Receipt Printer | ESC/POS-compatible thermal receipt printer for automatic kitchen order printing after cashier approval. |
+| 💳 POS Terminal | Windows PC, laptop, tablet, or touchscreen device running a modern web browser. A thermal receipt printer is recommended for customer receipts. |
+| 🏛️ Admin Console | Laptop or tablet (recommended) for the best management experience. The responsive interface also supports modern smartphones for day-to-day administration. |
+| 🌐 Internet Connection | Stable internet connection for realtime order synchronization and cloud services. |
+| 📱 Guest Devices | Any smartphone capable of scanning QR codes and opening a modern web browser. |
+
+> **Recommended setup:** One POS device connected to a kitchen thermal printer, plus one laptop or tablet for administration. Cafe owners can also access the admin console from their phone whenever needed.
 
 ---
 
