@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-// بيانات البداية (Seed Data)
+
 const INITIAL_PRODUCTS = [
   { id: "1", name_ar: "فلات وايت", name_en: "Flat White", name_fr: "Flat White", description_ar: "قهوة غنية بالحليب", price: 32, category: "القهوة", image_url: "/demo/flatwhite.jpg" },
   { id: "2", name_ar: "كرواسون باللوز", name_en: "Almond Croissant", name_fr: "Croissant aux amandes", description_ar: "مخبوزات طازجة", price: 26, category: "مخبوزات", image_url: "/demo/croissant.jpg" },
@@ -13,21 +13,21 @@ const INITIAL_ORDERS = [
   { id: "ORD-9381", tables: { table_number: "table_4" }, items: [{quantity: 2, name_ar: "فلات وايت"}], total_amount: 64, status: "pending", created_at: new Date().toISOString() }
 ];
 
-// 🌟 الكود الجديد: تنظيف الذاكرة عند بدء جلسة جديدة (إغلاق وفتح المتصفح)
+
 if (typeof window !== 'undefined') {
   const isSessionActive = document.cookie.includes('cafe_demo_session=active');
   
   if (!isSessionActive) {
-    // هادي أول مرة كيتحل فيها المتصفح في هاد الجلسة -> نظف الذاكرة
+
     localStorage.removeItem('demo_products');
     localStorage.removeItem('demo_orders');
     
-    // زرع الكوكيز ديال الجلسة (بدون تاريخ انتهاء باش يموت بوحدو ملي يتسد المتصفح)
+
     document.cookie = "cafe_demo_session=active; path=/";
   }
 }
 
-// دوال التحكم في LocalStorage
+
 const getDemoData = (key: string, initial: any) => {
   if (typeof window === 'undefined') return initial;
   const stored = localStorage.getItem(key);
