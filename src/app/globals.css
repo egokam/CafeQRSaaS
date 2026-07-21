@@ -26,6 +26,10 @@
   --primary: 15 20% 30%;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);

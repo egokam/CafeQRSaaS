@@ -5,6 +5,7 @@ import { Navbar } from "../components/landing/Navbar";
 import { Hero } from "../components/landing/Hero";
 import { LivePreview } from "@/components/landing/LivePreview";
 import { Features } from "../components/landing/Features";
+import { ProjectGuide } from "../components/landing/ProjectGuide";
 import { Footer } from "../components/landing/Footer";
 
 export default function Home() {
@@ -40,6 +41,10 @@ export default function Home() {
 
         <section id="features" className="scroll-mt-28">
           <Features />
+        </section>
+
+        <section id="guide" className="scroll-mt-28">
+          <ProjectGuide />
         </section>
 
         <section id="pricing" className="scroll-mt-28">
