@@ -8,11 +8,7 @@ import {
 } from "lucide-react";
 import { Sandbox, type SandboxView } from "./Sandbox";
 
-/**
- * LivePreview - The Ultimate Sync Demo
- * * تم استبدال المكونات الثابتة بنوافذ (iframes) حية تتصل مباشرة ببيئة الـ Demo
- * التي بنيناها. كل نافذة تقرأ وتكتب في نفس الـ localStorage.
- */
+
 const VIEWS: SandboxView[] = [
   {
     id: "client",

@@ -1,7 +1,9 @@
+//i spent two months building this saas, i really hope to get something from it.
+
 import { Background3D } from "../components/landing/Background3D";
 import { Navbar } from "../components/landing/Navbar";
 import { Hero } from "../components/landing/Hero";
-import { LivePreview } from "../components/landing/LivePreview";
+import { LivePreview } from "@/components/landing/LivePreview";
 import { Features } from "../components/landing/Features";
 import { Footer } from "../components/landing/Footer";
 
@@ -47,3 +49,6 @@ export default function Home() {
     </div>
   );
 }
+
+
+

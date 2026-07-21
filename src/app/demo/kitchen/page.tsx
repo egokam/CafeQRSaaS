@@ -1,201 +1,211 @@
-// src/app/demo/kitchen/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Canvas } from "@react-three/fiber";
+import { Environment, ContactShadows, Text } from "@react-three/drei";
+import { motion as motion3d } from "framer-motion-3d";
+import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { useDemoOrders } from "@/lib/demoStore";
 
-const formatMAD = (price: number) => `${Number(price).toFixed(2)} MAD`;
-
-export default function KitchenPrinterDemo() {
+export default function KitchenPrinter3D() {
   const { orders, updateOrders } = useDemoOrders();
-  
   const [hangingReceipts, setHangingReceipts] = useState<any[]>([]);
   const [fallenReceipts, setFallenReceipts] = useState<any[]>([]);
   const [processedIds, setProcessedIds] = useState<Set<string>>(new Set());
 
+  // 🌟 إحداثيات السحب المخفية
+  const dragY = useMotionValue(0);
+
   const playSound = (type: "print" | "tear") => {
     const audio = new Audio(`/${type}.mp3`);
     audio.volume = type === "tear" ? 0.8 : 0.4;
-    audio.play().catch(() => {}); // صامت إذا لم توجد الملفات
+    audio.play().catch(() => {});
   };
 
   useEffect(() => {
-    // جلب الطلبات المقبولة فقط من الكاشير
     const acceptedOrders = orders.filter(o => o.status === 'accepted');
     const newOrders = acceptedOrders.filter(o => !processedIds.has(o.id));
 
     if (newOrders.length > 0) {
       playSound("print");
-      
       setProcessedIds(prev => {
         const updated = new Set(prev);
         newOrders.forEach(o => updated.add(o.id));
         return updated;
       });
-
-      // وضع الفواتير الجديدة في الأعلى لدفع القديمة للأسفل
       setHangingReceipts(prev => [...newOrders, ...prev]);
     }
   }, [orders, processedIds]);
 
-  const handleTear = (index: number) => {
+  const handleTear = () => {
+    if (hangingReceipts.length === 0) return;
     playSound("tear");
     
-    // سحب الورقة يقطعها هي وكل ما تحتها
-    const torn = hangingReceipts.slice(index);
-    const remaining = hangingReceipts.slice(0, index);
+    const tornOrder = hangingReceipts[0];
+    
+    setHangingReceipts(prev => prev.slice(1));
+    setFallenReceipts(prev => [tornOrder, ...prev]);
+    dragY.set(0); 
 
-    setHangingReceipts(remaining);
-    setFallenReceipts(prev => [...torn, ...prev]);
-
-    // تحويل حالة الطلبات المقطوعة إلى "جاهزة"
-    const tornIds = torn.map(t => t.id);
     const updatedOrders = orders.map(o => 
-      tornIds.includes(o.id) ? { ...o, status: 'ready' } : o
+      o.id === tornOrder.id ? { ...o, status: 'ready' } : o
     );
     updateOrders(updatedOrders);
 
-    // إخفاء الفواتير الساقطة بعد فترة
     setTimeout(() => {
-      setFallenReceipts(prev => prev.filter(r => !torn.find(t => t.id === r.id)));
-    }, 2000);
+      setFallenReceipts(prev => prev.filter(r => r.id !== tornOrder.id));
+    }, 3000);
   };
 
   return (
-    <div className="relative min-h-screen bg-[#121212] overflow-hidden flex flex-col items-center select-none font-mono">
+    <div className="relative w-full h-screen bg-[#0a0a0c] overflow-hidden select-none cursor-grab active:cursor-grabbing">
       
-      {/* 🖨️ Hardware: هيكل الطابعة من الأعلى */}
-      <div className="absolute top-0 w-full flex justify-center z-50 pointer-events-none">
-        <div className="w-[340px] h-16 bg-gradient-to-b from-zinc-800 to-zinc-950 rounded-b-2xl shadow-[0_20px_25px_-5px_rgba(0,0,0,0.8)] border-b-2 border-zinc-700 flex justify-center items-end pb-2">
-          {/* فتحة خروج الورق */}
-          <div className="w-[280px] h-2 bg-black rounded-full shadow-inner opacity-80" />
-        </div>
+      {/* 🔪 الشق العلوي البسيط الذي تخرج منه الورقة */}
+      <div className="absolute top-0 w-full h-6 bg-gradient-to-b from-black to-zinc-950 border-b border-zinc-800 shadow-[0_10px_30px_rgba(0,0,0,1)] z-50 flex justify-center items-end pb-1">
+        <div className="w-[300px] h-2 bg-black rounded-full shadow-inner opacity-90" />
       </div>
 
-      {/* 📃 منطقة الفواتير المعلقة في الطابعة */}
-      <div className="relative z-40 mt-14 w-[280px] flex flex-col items-center pointer-events-auto">
-        <AnimatePresence mode="popLayout">
-          {hangingReceipts.map((order, index) => (
-            <Receipt
-              key={`hanging-${order.id}`}
-              order={order}
-              index={index}
-              isBottom={index === hangingReceipts.length - 1}
-              onTear={() => handleTear(index)}
-            />
-          ))}
-        </AnimatePresence>
+      {/* 🌟 واجهة السحب المخفية لالتقاط الماوس */}
+      <div className="absolute inset-0 z-50 flex justify-center pt-20">
+        {hangingReceipts.length > 0 && (
+          <motion.div
+            drag="y"
+            dragDirectionLock
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={0.2}
+            style={{ y: dragY, width: 300, height: 450 }}
+            onDragEnd={(e, info) => {
+              if (info.offset.y > 100 || info.velocity.y > 500) {
+                handleTear();
+              }
+            }}
+            className="opacity-0" 
+          />
+        )}
       </div>
 
-      {/* 🍂 منطقة الفواتير المتساقطة المقطوعة */}
-      <div className="absolute top-0 z-30 mt-14 w-[280px] flex flex-col items-center pointer-events-none">
+      {/* تعليمات UI */}
+      <div className="absolute top-12 w-full text-center z-40 pointer-events-none">
+        <h1 className="text-zinc-500 font-mono tracking-widest text-sm uppercase mb-2">Kitchen Display</h1>
+        {hangingReceipts.length > 0 ? (
+          <p className="text-amber-500 font-bold animate-pulse">Pull downwards to tear the receipt</p>
+        ) : (
+          <p className="text-zinc-700 font-bold">Awaiting Orders...</p>
+        )}
+      </div>
+
+      {/* 🎮 محرك الـ WebGL */}
+      <Canvas camera={{ position: [0, 1, 8], fov: 45 }}>
+        <ambientLight intensity={0.6} />
+        <spotLight position={[0, 6, 5]} angle={0.4} penumbra={1} intensity={2.5} castShadow />
+        
+        <Environment preset="city" />
+
+        {/* 📃 الفاتورة المعلقة تتأثر بالماوس */}
         <AnimatePresence>
-          {fallenReceipts.map((order) => (
-            <FallenReceipt key={`fallen-${order.id}`} order={order} />
-          ))}
+          {hangingReceipts.length > 0 && (
+            <HangingReceipt3D 
+              order={hangingReceipts[0]} 
+              dragY={dragY} 
+            />
+          )}
         </AnimatePresence>
-      </div>
 
-      {hangingReceipts.length > 0 ? (
-        <div className="absolute bottom-10 text-zinc-500 text-sm animate-pulse z-10 font-sans pointer-events-none">
-          ↓ Drag receipt downwards to tear it off ↓
-        </div>
-      ) : (
-        <div className="absolute top-1/2 -translate-y-1/2 text-zinc-700 text-sm font-bold font-sans pointer-events-none">
-          Waiting for new orders...
-        </div>
-      )}
+        {/* 🍂 الفواتير المقطوعة */}
+        {fallenReceipts.map(order => (
+          <FallenReceipt3D key={`fallen-${order.id}`} order={order} />
+        ))}
+
+        {/* ظل تفاعلي على الأرضية */}
+        <ContactShadows position={[0, -5, 0]} opacity={0.5} scale={20} blur={2.5} far={10} />
+      </Canvas>
     </div>
   );
 }
 
 // ==========================================
-// 🌟 المكون الفرعي: الفاتورة القابلة للسحب
+// 📃 الفاتورة المعلقة 3D (تتأثر بسحب الماوس)
 // ==========================================
-function Receipt({ order, index, isBottom, onTear }: { order: any, index: number, isBottom: boolean, onTear: () => void }) {
+function HangingReceipt3D({ order, dragY }: { order: any, dragY: any }) {
+  // الفاتورة تتدلى من أعلى الشاشة (y = 4.5)
+  const yPosition = useTransform(dragY, [0, 300], [4.5, 2.5]);
+  const zPosition = useTransform(dragY, [0, 300], [0, 1.5]);
+  const rotateX = useTransform(dragY, [0, 300], [0, -Math.PI / 5]); // تنحني للأمام قليلاً عند السحب
+
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: -50, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.2 } }}
+    <motion3d.group
+      position-y={yPosition}
+      position-z={zPosition}
+      rotation-x={rotateX}
+      initial={{ scaleY: 0, y: 5.5, opacity: 0 }}
+      animate={{ scaleY: 1, opacity: 1 }}
+      exit={{ opacity: 0 }}
       transition={{ type: "spring", stiffness: 200, damping: 20 }}
-      // فيزياء السحب
-      drag="y"
-      dragDirectionLock
-      dragConstraints={{ top: 0, bottom: 0 }} 
-      dragElastic={0.08} 
-      whileDrag={{ scale: 1.02, rotateZ: (index % 2 === 0 ? 1 : -1) }} 
-      onDragEnd={(e, info) => {
-        if (info.offset.y > 60 || info.velocity.y > 400) {
-          onTear();
-        }
-      }}
-      className={`w-full bg-[#fdfdfc] text-zinc-900 px-5 pt-6 pb-8 shadow-xl relative cursor-grab active:cursor-grabbing
-        ${index > 0 ? 'border-t-2 border-dashed border-zinc-300' : ''} 
-      `}
-      style={{
-        boxShadow: isBottom ? '0px 15px 20px -5px rgba(0,0,0,0.5)' : 'none',
-      }}
     >
-      {/* جسر التمزيق (Perforation) */}
-      {index > 0 && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-zinc-200 text-zinc-400 text-[8px] px-2 rounded-full uppercase tracking-widest font-sans font-bold">
-          Tear Here
-        </div>
-      )}
+      <mesh castShadow receiveShadow position={[0, -2, 0]}>
+        <planeGeometry args={[3.2, 4.5]} />
+        <meshStandardMaterial color="#fdfdfc" roughness={0.8} />
+      </mesh>
 
-      <div className="text-center border-b-2 border-zinc-300 border-dashed pb-3 mb-3">
-        <h2 className="text-xl font-black uppercase tracking-tighter">Kitchen Ticket</h2>
-        <p className="text-sm font-bold mt-1">Table: <span className="text-xl">{order.tables?.table_number?.replace('table_', '')}</span></p>
-        <p className="text-[10px] text-zinc-500 mt-1">#{order.id.split('-')[0]}</p>
-      </div>
+      <group position={[0, -0.2, 0.01]}>
+        <Text position={[0, 0, 0]} fontSize={0.28} color="#000000" anchorY="top" maxWidth={2.8} textAlign="center" font="/fonts/Inter-Bold.ttf">
+          KITCHEN TICKET
+        </Text>
+        
+        <Text position={[0, -0.5, 0]} fontSize={0.16} color="#333333" anchorY="top">
+          {`Table: ${order.tables?.table_number?.replace('table_', '')}  |  #${order.id.split('-')[0]}`}
+        </Text>
 
-      <div className="space-y-2 mb-4">
-        {order.items.map((item: any, i: number) => (
-          <div key={i} className="flex justify-between items-start text-sm">
-            <span className="font-bold flex-1 pr-2 leading-tight">
-              {item.name_en || item.name_ar}
-            </span>
-            <span className="font-black text-lg">x{item.quantity}</span>
-          </div>
-        ))}
-      </div>
+        {/* خط منقط */}
+        <Text position={[0, -0.8, 0]} fontSize={0.15} color="#666666" anchorY="top">
+          -------------------------
+        </Text>
 
-      <div className="text-center border-t-2 border-zinc-300 border-dashed pt-2">
-        <p className="font-bold">{formatMAD(order.total_amount)}</p>
-      </div>
-    </motion.div>
+        <Text position={[-1.3, -1.1, 0]} fontSize={0.2} color="#000000" anchorX="left" anchorY="top" maxWidth={2.6} lineHeight={1.5}>
+          {order.items.map((item: any) => `${item.quantity}x ${item.name_en || item.name_ar}`).join('\n')}
+        </Text>
+
+        <Text position={[0, -3.8, 0]} fontSize={0.15} color="#666666" anchorY="top">
+          -------------------------
+        </Text>
+      </group>
+    </motion3d.group>
   );
 }
 
 // ==========================================
-// 🌟 المكون الفرعي: الفاتورة الساقطة المقطوعة
+// 🍂 الفاتورة المتساقطة 3D
 // ==========================================
-function FallenReceipt({ order }: { order: any }) {
-  // دوران عشوائي لمحاكاة سقوط الورقة
-  const randomRotation = Math.random() * 30 - 15;
+function FallenReceipt3D({ order }: { order: any }) {
+  const randomRotateX = (Math.random() - 0.5) * Math.PI * 2;
+  const randomRotateY = (Math.random() - 0.5) * Math.PI * 2;
+  const randomRotateZ = (Math.random() - 0.5) * Math.PI;
 
   return (
-    <motion.div
-      initial={{ opacity: 1, y: 0, rotateZ: 0 }}
-      animate={{ opacity: 0, y: "100vh", rotateZ: randomRotation }}
-      transition={{ duration: 1.5, ease: "easeIn" }}
-      className="w-full bg-[#fdfdfc] text-zinc-900 px-5 pt-6 pb-8 shadow-2xl border-t-[1px] border-zinc-300 absolute"
+    <motion3d.group
+      initial={{ y: 2.5, z: 1.5, rotateX: -Math.PI / 5 }}
+      animate={{ 
+        y: -12, 
+        z: 4, 
+        rotateX: randomRotateX, 
+        rotateY: randomRotateY, 
+        rotateZ: randomRotateZ 
+      }}
+      transition={{ duration: 2.5, ease: "easeIn" }}
     >
-      <div className="text-center border-b-2 border-zinc-300 border-dashed pb-3 mb-3 opacity-50">
-        <h2 className="text-xl font-black uppercase tracking-tighter">Kitchen Ticket</h2>
-        <p className="text-sm font-bold mt-1">Table: <span className="text-xl">{order.tables?.table_number?.replace('table_', '')}</span></p>
-      </div>
-      <div className="space-y-2 mb-4 opacity-50">
-        {order.items.map((item: any, i: number) => (
-          <div key={i} className="flex justify-between items-start text-sm">
-            <span className="font-bold">{item.name_en || item.name_ar}</span>
-            <span className="font-black">x{item.quantity}</span>
-          </div>
-        ))}
-      </div>
-    </motion.div>
+      <mesh castShadow receiveShadow>
+        <planeGeometry args={[3.2, 4.5]} />
+        <meshStandardMaterial color="#ececec" roughness={0.8} />
+      </mesh>
+
+      <group position={[0, 1.8, 0.01]}>
+        <Text position={[0, 0, 0]} fontSize={0.28} color="#000000" anchorY="top">
+          KITCHEN TICKET
+        </Text>
+        <Text position={[0, -0.5, 0]} fontSize={0.16} color="#333333" anchorY="top">
+          {`Table: ${order.tables?.table_number?.replace('table_', '')}`}
+        </Text>
+      </group>
+    </motion3d.group>
   );
 }
