@@ -18,10 +18,10 @@ export const KitchenReceipt = forwardRef<HTMLDivElement, KitchenReceiptProps>(
   ({ tableNumber, orderId, items, time }, ref) => {
     return (
       <div className="hidden">
-        {/* سيتم طباعة هذا الجزء فقط */}
+
         <div ref={ref} className="w-[80mm] p-4 text-black bg-white font-mono text-sm">
           <div className="text-center border-b-2 border-dashed border-black pb-4 mb-4">
-            <h1 className="text-2xl font-bold uppercase">Kitchen Ticket</h1>
+            <h1 className="text-2xl font-bold uppercase">Next Order</h1>
             <p className="text-lg mt-2">Table: <span className="font-bold text-2xl">{tableNumber}</span></p>
             <p>Order #{orderId}</p>
             <p>{time}</p>

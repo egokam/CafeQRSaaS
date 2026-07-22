@@ -6,6 +6,7 @@ import MenuCard from "../../../components/MenuCard";
 import { Receipt, X as XIcon, Clock, CheckCircle, Coffee, CakeSlice, CupSoda, Croissant, AlertTriangle, QrCode } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { checkCafeSubscription } from "../../../actions/saas";
+import { getCachedCafeMenu } from "../../../actions/menu";
 
 const TRANSLATIONS: Record<string, any> = {
   ar: {
@@ -53,7 +54,7 @@ const getSafeUUID = () => {
   if (typeof window !== "undefined" && window.crypto && window.crypto.randomUUID) {
     return window.crypto.randomUUID();
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
@@ -98,64 +99,63 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         setIsTableNotFound(false);
         setIsCafeNotFound(false);
         setIsSuspended(false);
-        // 👻 حقن المصادقة الشبحية الصامتة
+
+        // 1. المصادقة الشبحية
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           await supabase.auth.signInAnonymously();
         }
 
-        // 💀 1. الاستشعار الفوري لحالة اشتراك الـ SaaS
+        // 2. فحص الاشتراك (تم إبقاؤه لأنه مهم أمنياً)
         const subCheck = await checkCafeSubscription(cafeSlug);
-
         if (subCheck.status === 'not_found') {
           setIsCafeNotFound(true);
           setIsLoading(false);
           return;
         }
-
         if (!subCheck.isValid) {
-          setIsSuspended(true); // تفعيل درع الصيانة وقطع الخدمة
+          setIsSuspended(true);
           setIsLoading(false);
           return;
         }
 
-        // 2. التحقق من وجود المقهى
-        const { data: cData } = await supabase.from('cafes').select('id, name').eq('slug', cafeSlug).single();
-        if (!cData) {
+        // 🌟 3. جلب البيانات من الخادم (من الكاش مباشرة بسرعه البرق!)
+        const menuData = await getCachedCafeMenu(cafeSlug, tableNumber);
+
+        if (menuData.error === 'cafe_not_found') {
           setIsCafeNotFound(true);
           setIsLoading(false);
           return;
         }
-        setCafeData(cData);
 
-        // 3. التحقق الفاصل: هل هذه الطاولة موجودة فعلياً في قاعدة البيانات؟
-        const { data: tData } = await supabase.from('tables').select('id').eq('cafe_id', cData.id).eq('table_number', tableNumber).single();
-
-        if (!tData) {
+        if (menuData.error === 'table_not_found') {
+          setCafeData(menuData.cafe);
           setIsTableNotFound(true);
           setIsLoading(false);
           return;
         }
 
-        setTableId(tData.id);
+        if (menuData.success) {
+          setCafeData(menuData.cafe);
+          setTableId(menuData.table.id);
+          setProducts(menuData.products);
+        }
 
-        // 4. جلب المنتجات والطلبات فقط إذا نجحت جميع الاختبارات الأمنية
-        const { data: pData } = await supabase.from('products').select('*').eq('cafe_id', cData.id).eq('is_active', true);
-        if (pData) setProducts(pData);
-
+        // 4. إعداد جلسة الطلبات
         let sessionId = localStorage.getItem('cafe_lux_client_session');
         if (!sessionId) {
           sessionId = getSafeUUID();
           localStorage.setItem('cafe_lux_client_session', sessionId);
         }
-
         await fetchUserOrders(sessionId);
+
       } catch (error) {
         console.error("Error loading client data:", error);
       } finally {
         setIsLoading(false);
       }
     };
+
     fetchRealData();
   }, [cafeSlug, tableNumber]);
 
@@ -165,7 +165,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
     const channel = supabase.channel(`client-orders-${sessionId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` },
-      () => { fetchUserOrders(sessionId); }).subscribe();
+        () => { fetchUserOrders(sessionId); }).subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [isTableNotFound, isCafeNotFound, isSuspended]);
@@ -300,14 +300,14 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
                       <h3 className="font-extrabold text-xl mt-1 text-foreground">{formatMAD(order.total_amount)} <span className="text-sm font-bold text-muted-foreground">MAD</span></h3>
                     </div>
                     <div className="flex flex-col items-end gap-1">
-                      {order.status === 'pending' && <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Clock size={12}/> {t.reviewing}</span>}
+                      {order.status === 'pending' && <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Clock size={12} /> {t.reviewing}</span>}
                       {order.status === 'accepted' && <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">{t.preparing}</span>}
-                      {order.status === 'ready' && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><CheckCircle size={12}/> {t.ready}</span>}
+                      {order.status === 'ready' && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><CheckCircle size={12} /> {t.ready}</span>}
                     </div>
                   </div>
 
                   <div className="bg-muted/30 p-3 rounded-lg text-sm text-foreground font-bold">
-                    {order.items.map((item:any, i:number) => (
+                    {order.items.map((item: any, i: number) => (
                       <div key={i} className="flex justify-between">
                         <span>{item.quantity}x {activeLang === 'en' && item.name_en ? item.name_en : activeLang === 'fr' && item.name_fr ? item.name_fr : item.name_ar}</span>
                       </div>
