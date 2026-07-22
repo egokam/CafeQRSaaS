@@ -9,7 +9,18 @@ import {
   MessageCircle, KeyRound 
 } from "lucide-react";
 import QRCode from "react-qr-code";
-import { signInAdminWithEmail, updateCafeSettings, adminAddProduct, adminUpdateProduct, adminDeleteProduct, adminCheckOrAddTable } from "../../../actions/auth";
+import {
+  adminAddProduct,
+  adminCheckOrAddTable,
+  adminDeleteProduct,
+  adminUpdateProduct,
+  getAdminCafeBySlug,
+  getAdminMonthlySales,
+  getAdminProducts,
+  hasAdminCafeAccess,
+  signInAdminWithEmail,
+  updateCafeSettings,
+} from "../../../actions/auth";
 import BillingTab from "../../../components/BillingTab";
 
 // 🌟 Translation System
@@ -393,41 +404,36 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [qrReady, setQrReady] = useState(false);
 
   const fetchProducts = async (cId: string) => {
-    const { data } = await supabase.from('products').select('*').eq('cafe_id', cId);
-    if (data) setProducts(data.reverse());
+    const res = await getAdminProducts(cId);
+    if (res.success) setProducts([...res.products].reverse());
   };
 
   const fetchMonthlySales = async (cId: string) => {
     setIsLoadingSales(true);
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*, tables(table_number)')
-      .eq('cafe_id', cId)
-      .eq('status', 'completed')
-      .gte('created_at', startOfMonth)
-      .order('created_at', { ascending: false });
+    const res = await getAdminMonthlySales(cId);
 
-    if (!error && data) {
-      setMonthlyOrders(data);
-      const total = data.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0);
+    if (res.success) {
+      setMonthlyOrders(res.orders);
+      const total = res.orders.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0);
       setMonthlyIncome(total);
     }
+
     setIsLoadingSales(false);
   };
 
   useEffect(() => {
     const initAdmin = async () => {
       setIsLoading(true);
-      const { data: cafeData } = await supabase.from('cafes').select('*').eq('slug', cafeSlug).single();
+      const cafeRes = await getAdminCafeBySlug(cafeSlug);
       
-      if (!cafeData) {
+      if (!cafeRes.success || !cafeRes.cafe) {
         setIsNotFound(true);
         setIsLoading(false);
         return;
       }
+
+      const cafeData = cafeRes.cafe;
 
       setCafeId(cafeData.id);
       if (cafeData.name) setCafeName(cafeData.name);
@@ -439,9 +445,14 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         const sessionKey = `admin_auth_${cafeSlug}`;
         if (sessionStorage.getItem(sessionKey) === 'true') {
           const { data: { user } } = await supabase.auth.getUser();
+          const hasServerAccess = await hasAdminCafeAccess(cafeData.id);
           
-          if (user && user.email?.toLowerCase() === cafeData.owner_email.toLowerCase()) {
+          if (user && user.email?.toLowerCase() === cafeData.owner_email.toLowerCase() && hasServerAccess) {
             setIsAuthenticated(true);
+            await Promise.all([
+              fetchProducts(cafeData.id),
+              fetchMonthlySales(cafeData.id)
+            ]);
           } else {
             sessionStorage.removeItem(sessionKey);
             await supabase.auth.signOut();
@@ -449,11 +460,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           }
         }
       }
-      
-      await Promise.all([
-        fetchProducts(cafeData.id),
-        fetchMonthlySales(cafeData.id)
-      ]);
 
       setIsLoading(false);
     };
@@ -488,8 +494,19 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     setIsChecking(false);
 
     if (res.success) {
+      if (res.session?.access_token && res.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: res.session.access_token,
+          refresh_token: res.session.refresh_token,
+        });
+      }
+
       setIsAuthenticated(true);
       sessionStorage.setItem(`admin_auth_${cafeSlug}`, 'true');
+      await Promise.all([
+        fetchProducts(cafeId),
+        fetchMonthlySales(cafeId)
+      ]);
     } else {
       alert(res.error || t.invalidLogin);
     }
@@ -546,10 +563,30 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     if (error) {
       alert(t.passwordUpdateFail + error.message);
     } else {
+      const loginRes = await signInAdminWithEmail(ownerEmail, newPasswordInput);
+
+      if (!loginRes.success) {
+        alert(loginRes.error || t.invalidLogin);
+        return;
+      }
+
+      if (loginRes.session?.access_token && loginRes.session?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: loginRes.session.access_token,
+          refresh_token: loginRes.session.refresh_token,
+        });
+      }
+
       alert(t.passwordUpdateSuccess);
       setIsAuthenticated(true);
       sessionStorage.setItem(`admin_auth_${cafeSlug}`, 'true');
       setAuthMode("login");
+      if (cafeId) {
+        await Promise.all([
+          fetchProducts(cafeId),
+          fetchMonthlySales(cafeId)
+        ]);
+      }
     }
   };
 

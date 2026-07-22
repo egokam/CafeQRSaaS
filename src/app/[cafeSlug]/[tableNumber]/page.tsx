@@ -6,7 +6,12 @@ import MenuCard from "../../../components/MenuCard";
 import { Receipt, X as XIcon, Clock, CheckCircle, Coffee, CakeSlice, CupSoda, Croissant, AlertTriangle, QrCode } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { checkCafeSubscription } from "../../../actions/saas";
-import { getCachedCafeMenu } from "../../../actions/menu";
+import {
+  cancelClientOrder,
+  createClientOrder,
+  getCachedCafeMenu,
+  getClientActiveOrders,
+} from "../../../actions/menu";
 
 const TRANSLATIONS: Record<string, any> = {
   ar: {
@@ -85,11 +90,11 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   const displayTitle = cafeData?.name ? cafeData.name : (activeLang === 'ar' ? "مقهى النخبة" : activeLang === 'fr' ? "Café Élite" : "Elite Cafe");
 
-  const fetchUserOrders = async (sessionId: string) => {
-    const { data } = await supabase.from('orders').select('*').eq('session_id', sessionId)
-      .neq('status', 'completed').neq('status', 'rejected').neq('status', 'cancelled')
-      .order('created_at', { ascending: false });
-    if (data) setActiveOrders(data);
+  const fetchUserOrders = async (sessionId: string, targetCafeId = cafeData?.id) => {
+    if (!targetCafeId) return;
+
+    const res = await getClientActiveOrders(targetCafeId, sessionId);
+    if (res.success) setActiveOrders(res.orders);
   };
 
   useEffect(() => {
@@ -147,7 +152,9 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           sessionId = getSafeUUID();
           localStorage.setItem('cafe_lux_client_session', sessionId);
         }
-        await fetchUserOrders(sessionId);
+        if (menuData.success) {
+          await fetchUserOrders(sessionId, menuData.cafe.id);
+        }
 
       } catch (error) {
         console.error("Error loading client data:", error);
@@ -195,18 +202,18 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
     try {
       const sessionId = localStorage.getItem('cafe_lux_client_session');
-      const { data, error } = await supabase.from('orders').insert([{
-        cafe_id: cafeData.id,
-        table_id: tableId,
-        session_id: sessionId,
-        items: items,
-        total_amount: totalPrice(),
-        status: 'pending'
-      }]).select().single();
+      if (!sessionId) throw new Error("Missing session");
 
-      if (error) throw error;
+      const res = await createClientOrder({
+        cafeId: cafeData.id,
+        tableId,
+        sessionId,
+        items,
+      });
 
-      setActiveOrders(prev => [data, ...prev]);
+      if (!res.success || !res.order) throw new Error(res.error);
+
+      setActiveOrders(prev => [res.order, ...prev]);
       setShowOrdersModal(true);
       clearCart();
     } catch (error) {
@@ -219,7 +226,12 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const handleCancelOrder = async (orderId: string) => {
     if (!confirm(activeLang === 'ar' ? "هل أنت متأكد من الإلغاء؟" : "Are you sure?")) return;
     try {
-      await supabase.from('orders').update({ status: 'cancelled' }).eq('id', orderId);
+      const sessionId = localStorage.getItem('cafe_lux_client_session');
+      if (!sessionId || !cafeData?.id) throw new Error("Missing session");
+
+      const res = await cancelClientOrder(orderId, cafeData.id, sessionId);
+      if (!res.success) throw new Error(res.error);
+
       setActiveOrders(prev => prev.filter(o => o.id !== orderId));
       if (activeOrders.length <= 1) setShowOrdersModal(false);
     } catch (error) { alert("خطأ في الإلغاء."); }

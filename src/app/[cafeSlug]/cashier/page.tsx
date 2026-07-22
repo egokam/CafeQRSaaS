@@ -3,7 +3,15 @@
 import { useState, useEffect, use } from "react";
 import { supabase } from "../../../lib/supabase";
 import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag } from "lucide-react";
-import { verifyPin, cashierUpdateOrderStatus, cashierMarkOutOfStock } from "../../../actions/auth";
+import {
+  cashierMarkOutOfStock,
+  cashierUpdateOrderStatus,
+  createManualCashierOrder,
+  getCashierActiveOrders,
+  getCashierCafeBySlug,
+  getCashierWorkspace,
+  verifyPin,
+} from "../../../actions/auth";
 import { checkCafeSubscription } from "../../../actions/saas";
 
 // 🌟 Translation System
@@ -184,20 +192,14 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   };
 
   const fetchOrders = async (cId: string) => {
-    const { data } = await supabase
-      .from('orders')
-      .select('*, tables(table_number)')
-      .eq('cafe_id', cId)
-      .neq('status', 'completed')
-      .neq('status', 'rejected')
-      .neq('status', 'cancelled')
-      .order('created_at', { ascending: false });
-    if (data) setOrders(data);
+    const res = await getCashierActiveOrders(cId);
+    if (res.success) setOrders(res.orders);
   };
 
   useEffect(() => {
     const sessionKey = `cashier_auth_${cafeSlug}`;
-    if (sessionStorage.getItem(sessionKey) === 'true') setIsAuthenticated(true);
+    const hasStoredAuth = sessionStorage.getItem(sessionKey) === 'true';
+    if (hasStoredAuth) setIsAuthenticated(true);
 
     const initCafe = async () => {
       setIsLoading(true);
@@ -210,25 +212,26 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         return;
       }
 
-      const { data: cafeData } = await supabase.from('cafes').select('id, max_cashiers').eq('slug', cafeSlug).single();
-      if (!cafeData) { setIsNotFound(true); setIsLoading(false); return; }
+      const cafeRes = await getCashierCafeBySlug(cafeSlug);
+      if (!cafeRes.success || !cafeRes.cafe) { setIsNotFound(true); setIsLoading(false); return; }
+      const cafeData = cafeRes.cafe;
       
       setCafeId(cafeData.id);
       setCafeDataObj(cafeData);
 
       // جلب المنتجات والطاولات المتاحة للـ POS اليدوي
-      const [pRes, tRes] = await Promise.all([
-        supabase.from('products').select('*').eq('cafe_id', cafeData.id).eq('is_active', true),
-        supabase.from('tables').select('id, table_number').eq('cafe_id', cafeData.id)
-      ]);
-
-      if (pRes.data) setProducts(pRes.data);
-      if (tRes.data) {
-        setTables(tRes.data);
-        if (tRes.data.length > 0) setSelectedTableId(tRes.data[0].id);
+      if (hasStoredAuth) {
+        const workspace = await getCashierWorkspace(cafeData.id);
+        if (workspace.success) {
+          setProducts(workspace.products);
+          setTables(workspace.tables);
+          setOrders(workspace.orders);
+          if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
+        } else {
+          sessionStorage.removeItem(sessionKey);
+          setIsAuthenticated(false);
+        }
       }
-
-      await fetchOrders(cafeData.id);
       setIsLoading(false);
     };
     initCafe();
@@ -304,6 +307,16 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     setIsChecking(false);
 
     if (isValid) {
+      const workspace = await getCashierWorkspace(cafeId);
+      if (!workspace.success) {
+        alert(t.updateError);
+        return;
+      }
+
+      setProducts(workspace.products);
+      setTables(workspace.tables);
+      setOrders(workspace.orders);
+      if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
       setIsAuthenticated(true);
       sessionStorage.setItem(`cashier_auth_${cafeSlug}`, 'true');
       setAttempts(0);
@@ -374,26 +387,21 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     setIsSubmittingPos(true);
     try {
       const dummySession = "manual_pos_" + Date.now();
-      const totalAmount = cartItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0);
 
       // يرسل مقبولاً (accepted) ويجلب البيانات المُدخلة للطباعة (.select)
-      const { data, error } = await supabase.from('orders').insert([{
-        cafe_id: cafeId, table_id: selectedTableId, session_id: dummySession,
-        items: cartItems, total_amount: totalAmount, status: 'accepted'
-      }]).select();
+      const res = await createManualCashierOrder({
+        cafeId,
+        tableId: selectedTableId,
+        sessionId: dummySession,
+        items: cartItems,
+      });
 
-      if (error) throw error;
+      if (!res.success || !res.order) throw new Error(res.error);
 
       new Audio('/bell.mp3').play().catch(()=>{});
 
       // 🔥 طباعة الطلب المباشر فوراً للمطبخ
-      if (data && data[0]) {
-        const selectedTable = tables.find(t => t.id === selectedTableId);
-        handlePrintReceipt({
-          ...data[0],
-          tables: { table_number: selectedTable?.table_number || "" }
-        });
-      }
+      handlePrintReceipt(res.order);
 
       setPosCart({});
       setShowPOS(false);
