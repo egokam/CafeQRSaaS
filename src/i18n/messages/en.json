@@ -20,6 +20,7 @@
       "links": {
         "features": "Features",
         "demo": "Live Demo",
+        "tutorial": "Tutorial",
         "pricing": "Pricing"
       },
       "getStarted": "Get Started",
@@ -302,14 +303,38 @@
       "eyebrow": "Technology Stack",
       "title": "Modern web tooling tuned for realtime service",
       "rows": [
-        ["Framework", "Next.js App Router, React"],
-        ["Language", "TypeScript"],
-        ["Styling", "Tailwind CSS, shadcn/Radix primitives"],
-        ["Database and Auth", "Supabase PostgreSQL, Auth, Storage, Realtime"],
-        ["State and Demo", "Zustand and browser-local demo data"],
-        ["Motion and UX", "Framer Motion, realtime audio cues, lucide-react"],
-        ["QR and Printing", "react-qr-code and browser print flows"],
-        ["Deployment", "Standalone Next.js, PM2, Caddy-ready VPS profile"]
+        [
+          "Framework",
+          "Next.js App Router, React"
+        ],
+        [
+          "Language",
+          "TypeScript"
+        ],
+        [
+          "Styling",
+          "Tailwind CSS, shadcn/Radix primitives"
+        ],
+        [
+          "Database and Auth",
+          "Supabase PostgreSQL, Auth, Storage, Realtime"
+        ],
+        [
+          "State and Demo",
+          "Zustand and browser-local demo data"
+        ],
+        [
+          "Motion and UX",
+          "Framer Motion, realtime audio cues, lucide-react"
+        ],
+        [
+          "QR and Printing",
+          "react-qr-code and browser print flows"
+        ],
+        [
+          "Deployment",
+          "Standalone Next.js, PM2, Caddy-ready VPS profile"
+        ]
       ]
     },
     "structure": {
@@ -326,11 +351,26 @@
       "paragraph": "The guest journey is intentionally short. A QR scan opens the right cafe and table, the app validates that ordering is available, then the customer sends a pending order to the POS for staff approval.",
       "diagramTitle": "Guest order flow",
       "steps": [
-        ["Guest", "Scans a table QR code."],
-        ["QR Menu", "Loads the cafe menu and cart."],
-        ["POS", "Receives the pending order."],
-        ["Kitchen Receipt Printer", "Prints only after approval."],
-        ["Cook", "Prepares from a clear ticket."]
+        [
+          "Guest",
+          "Scans a table QR code."
+        ],
+        [
+          "QR Menu",
+          "Loads the cafe menu and cart."
+        ],
+        [
+          "POS",
+          "Receives the pending order."
+        ],
+        [
+          "Kitchen Receipt Printer",
+          "Prints only after approval."
+        ],
+        [
+          "Cook",
+          "Prepares from a clear ticket."
+        ]
       ]
     },
     "posFlow": {
@@ -340,12 +380,30 @@
       "codeTitle": "pos-workflow.ts",
       "codeLanguage": "pseudo",
       "lines": [
-        ["cashier", "unlocks terminal with PIN"],
-        ["system", "checks active tenant and device limits"],
-        ["pos", "receives pending guest orders in realtime"],
-        ["cashier", "accepts, rejects, or creates walk-in order"],
-        ["printer", "prints confirmed kitchen receipt"],
-        ["pos", "marks order ready, paid, and completed"]
+        [
+          "cashier",
+          "unlocks terminal with PIN"
+        ],
+        [
+          "system",
+          "checks active tenant and device limits"
+        ],
+        [
+          "pos",
+          "receives pending guest orders in realtime"
+        ],
+        [
+          "cashier",
+          "accepts, rejects, or creates walk-in order"
+        ],
+        [
+          "printer",
+          "prints confirmed kitchen receipt"
+        ],
+        [
+          "pos",
+          "marks order ready, paid, and completed"
+        ]
       ]
     },
     "saasFlow": {
@@ -354,12 +412,30 @@
       "paragraph": "The SaaS layer turns the product from a single-cafe app into a managed platform. Operators provision a cafe, connect an owner, configure plan limits, then allow each cafe team to operate inside its own tenant boundary.",
       "diagramTitle": "Tenant lifecycle flow",
       "steps": [
-        ["Super Admin", "Controls tenant setup."],
-        ["Provision Cafe", "Creates plan, slug, owner, and limits."],
-        ["Owner", "Manages menu, QR tables, and staff access."],
-        ["Admin", "Keeps products and settings current."],
-        ["Cashier", "Approves orders and handles payments."],
-        ["Guests", "Order from table-specific QR links."]
+        [
+          "Super Admin",
+          "Controls tenant setup."
+        ],
+        [
+          "Provision Cafe",
+          "Creates plan, slug, owner, and limits."
+        ],
+        [
+          "Owner",
+          "Manages menu, QR tables, and staff access."
+        ],
+        [
+          "Admin",
+          "Keeps products and settings current."
+        ],
+        [
+          "Cashier",
+          "Approves orders and handles payments."
+        ],
+        [
+          "Guests",
+          "Order from table-specific QR links."
+        ]
       ]
     },
     "liveDemo": {
@@ -491,5 +567,60 @@
       "ticketTitle": "KITCHEN TICKET",
       "table": "Table"
     }
+  },
+  "GetStarted": {
+    "backToHome": "Back to Home",
+    "titleBefore": "Upgrade your cafe's",
+    "titleHighlight": "operating system.",
+    "description": "Simple, transparent yearly pricing. Complete synchronization between your guests, your cashier, and your kitchen.",
+    "mostPopular": "Most Popular",
+    "billing": "MAD / year",
+    "choosePlan": "Choose {plan}",
+    "whatsappMessage": "Hi, I'm interested in the {plan} Yearly Plan for CafeQR. Could you provide more details?",
+    "contact": {
+      "title": "Need a custom solution?",
+      "description": "Contact our sales team directly. We deploy and configure your entire system in under 24 hours.",
+      "whatsapp": "Talk to Sales",
+      "email": "Email Us"
+    },
+    "plans": {
+    "silver": {
+      "name": "Silver",
+      "target": "Perfect for small & emerging cafes",
+      "price": "2,000",
+      "features": [
+        "Unlimited QR orders with 0% commission",
+        "1 POS Terminal to manage all tables centrally",
+        "Automatic Kitchen Printing upon POS order confirmation",
+        "Secure Staff PINs to track cashier shifts safely",
+        "Instant menu updates (No more reprinting costs)",
+        "Daily revenue tracking & simple dashboard"
+      ]
+    },
+    "gold": {
+      "name": "Gold",
+      "target": "For busy cafes needing kitchen sync",
+      "price": "2,990",
+      "features": [
+        "All Silver features, plus:",
+        "Up to 3 POS Terminals to speed up checkout lines",
+        "Insights to identify best-selling items & peak hours",
+        "Priority WhatsApp support for quick fixes"
+      ]
+    },
+    "diamond": {
+      "name": "Diamond",
+      "target": "For franchises & large operations",
+      "price": "4,990",
+      "features": [
+        "All Gold features, plus:",
+        "Unlimited POS terminals & kitchen printers",
+        "Custom domain branding (e.g., menu.yourcafe.ma)",
+        "Done-for-you full menu data entry & system setup",
+        "Multi-branch architecture ready",
+        "24/7 direct phone & WhatsApp emergency hotline"
+      ]
+    }
+  }
   }
 }

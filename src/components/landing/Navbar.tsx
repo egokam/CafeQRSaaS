@@ -33,6 +33,9 @@ export function Navbar() {
           <a href="#demo" className="transition-colors hover:text-zinc-50">
             {t("links.demo")}
           </a>
+          <a href="#tutorial" className="transition-colors hover:text-zinc-50">
+            {t("links.tutorial")}
+          </a>
           <a href="#pricing" className="transition-colors hover:text-zinc-50">
             {t("links.pricing")}
           </a>

@@ -20,6 +20,7 @@
       "links": {
         "features": "Fonctionnalités",
         "demo": "Démo live",
+        "tutorial": "Tutoriel",
         "pricing": "Tarifs"
       },
       "getStarted": "Commencer",
@@ -302,14 +303,38 @@
       "eyebrow": "Stack technique",
       "title": "Des outils web modernes pour le service temps réel",
       "rows": [
-        ["Framework", "Next.js App Router, React"],
-        ["Langage", "TypeScript"],
-        ["Style", "Tailwind CSS, primitives shadcn/Radix"],
-        ["Base de données et auth", "Supabase PostgreSQL, Auth, Storage, Realtime"],
-        ["État et démo", "Zustand et données démo locales navigateur"],
-        ["Motion et UX", "Framer Motion, alertes audio temps réel, lucide-react"],
-        ["QR et impression", "react-qr-code et workflows d’impression navigateur"],
-        ["Déploiement", "Build Next.js standalone, PM2, profil VPS prêt pour Caddy"]
+        [
+          "Framework",
+          "Next.js App Router, React"
+        ],
+        [
+          "Langage",
+          "TypeScript"
+        ],
+        [
+          "Style",
+          "Tailwind CSS, primitives shadcn/Radix"
+        ],
+        [
+          "Base de données et auth",
+          "Supabase PostgreSQL, Auth, Storage, Realtime"
+        ],
+        [
+          "État et démo",
+          "Zustand et données démo locales navigateur"
+        ],
+        [
+          "Motion et UX",
+          "Framer Motion, alertes audio temps réel, lucide-react"
+        ],
+        [
+          "QR et impression",
+          "react-qr-code et workflows d’impression navigateur"
+        ],
+        [
+          "Déploiement",
+          "Build Next.js standalone, PM2, profil VPS prêt pour Caddy"
+        ]
       ]
     },
     "structure": {
@@ -326,11 +351,26 @@
       "paragraph": "Le parcours client reste volontairement court. Un scan QR ouvre le bon café et la bonne table, l’application vérifie que la commande est disponible, puis le client envoie une commande en attente vers le POS.",
       "diagramTitle": "Flux commande client",
       "steps": [
-        ["Client", "Scanne le QR de table."],
-        ["Menu QR", "Charge le menu et le panier."],
-        ["POS", "Reçoit la commande en attente."],
-        ["Imprimante cuisine", "Imprime seulement après validation."],
-        ["Cuisine", "Prépare depuis un ticket clair."]
+        [
+          "Client",
+          "Scanne le QR de table."
+        ],
+        [
+          "Menu QR",
+          "Charge le menu et le panier."
+        ],
+        [
+          "POS",
+          "Reçoit la commande en attente."
+        ],
+        [
+          "Imprimante cuisine",
+          "Imprime seulement après validation."
+        ],
+        [
+          "Cuisine",
+          "Prépare depuis un ticket clair."
+        ]
       ]
     },
     "posFlow": {
@@ -340,12 +380,30 @@
       "codeTitle": "pos-workflow.ts",
       "codeLanguage": "pseudo",
       "lines": [
-        ["caissier", "déverrouille le terminal avec PIN"],
-        ["système", "vérifie tenant actif et limites appareils"],
-        ["pos", "reçoit les commandes client en temps réel"],
-        ["caissier", "accepte, refuse ou crée une commande directe"],
-        ["imprimante", "imprime le ticket cuisine confirmé"],
-        ["pos", "marque la commande prête, payée et terminée"]
+        [
+          "caissier",
+          "déverrouille le terminal avec PIN"
+        ],
+        [
+          "système",
+          "vérifie tenant actif et limites appareils"
+        ],
+        [
+          "pos",
+          "reçoit les commandes client en temps réel"
+        ],
+        [
+          "caissier",
+          "accepte, refuse ou crée une commande directe"
+        ],
+        [
+          "imprimante",
+          "imprime le ticket cuisine confirmé"
+        ],
+        [
+          "pos",
+          "marque la commande prête, payée et terminée"
+        ]
       ]
     },
     "saasFlow": {
@@ -354,12 +412,30 @@
       "paragraph": "La couche SaaS transforme le produit d’une app mono-café en plateforme gérée. Les opérateurs provisionnent un café, connectent un propriétaire, configurent les limites de plan, puis chaque équipe travaille dans son propre périmètre tenant.",
       "diagramTitle": "Cycle de vie tenant",
       "steps": [
-        ["Super Admin", "Contrôle la création tenant."],
-        ["Provisionner café", "Crée plan, slug, owner et limites."],
-        ["Propriétaire", "Gère menu, tables QR et accès staff."],
-        ["Admin", "Maintient produits et paramètres."],
-        ["Caissier", "Valide commandes et paiements."],
-        ["Clients", "Commandent depuis les QR de table."]
+        [
+          "Super Admin",
+          "Contrôle la création tenant."
+        ],
+        [
+          "Provisionner café",
+          "Crée plan, slug, owner et limites."
+        ],
+        [
+          "Propriétaire",
+          "Gère menu, tables QR et accès staff."
+        ],
+        [
+          "Admin",
+          "Maintient produits et paramètres."
+        ],
+        [
+          "Caissier",
+          "Valide commandes et paiements."
+        ],
+        [
+          "Clients",
+          "Commandent depuis les QR de table."
+        ]
       ]
     },
     "liveDemo": {
@@ -491,5 +567,60 @@
       "ticketTitle": "TICKET CUISINE",
       "table": "Table"
     }
+  },
+  "GetStarted": {
+    "backToHome": "Retour à l'accueil",
+    "titleBefore": "Mettez à niveau le système",
+    "titleHighlight": "d'exploitation de votre café.",
+    "description": "Une tarification annuelle simple et transparente. Synchronisation complète entre vos clients, votre caissier et votre cuisine.",
+    "mostPopular": "Le plus populaire",
+    "billing": "MAD / an",
+    "choosePlan": "Choisir {plan}",
+    "whatsappMessage": "Bonjour, je suis intéressé(e) par le forfait annuel ({plan}) pour CafeQR. Pourriez-vous me fournir plus de détails ?",
+    "contact": {
+      "title": "Besoin d'une solution sur mesure ?",
+      "description": "Contactez directement notre équipe commerciale. Nous déployons et configurons l'ensemble de votre système en moins de 24 heures.",
+      "whatsapp": "Parler aux ventes",
+      "email": "Nous envoyer un e-mail"
+    },
+    "plans": {
+    "silver": {
+      "name": "Argent (Silver)",
+      "target": "Parfait pour les petits cafés émergents",
+      "price": "2 000",
+      "features": [
+        "Commandes QR illimitées avec 0% de commission",
+        "1 terminal de point de vente (POS) pour gérer toutes les tables",
+        "Impression automatique en cuisine dès confirmation sur le POS",
+        "Codes PIN pour le personnel afin de suivre les accès en toute sécurité",
+        "Mises à jour instantanées du menu (plus de frais de réimpression)",
+        "Suivi des revenus quotidiens et tableau de bord simple"
+      ]
+    },
+    "gold": {
+      "name": "Or (Gold)",
+      "target": "Pour les cafés animés nécessitant une synchronisation en cuisine",
+      "price": "2 990",
+      "features": [
+        "Toutes les fonctionnalités Argent, plus :",
+        "Jusqu'à 3 terminaux POS pour accélérer les files d'attente",
+        "Analyses pour identifier les articles les plus vendus et les heures de pointe",
+        "Support prioritaire sur WhatsApp pour des solutions rapides"
+      ]
+    },
+    "diamond": {
+      "name": "Diamant (Diamond)",
+      "target": "Pour les franchises et les grandes opérations",
+      "price": "4 990",
+      "features": [
+        "Toutes les fonctionnalités Or, plus :",
+        "Terminaux POS et imprimantes de cuisine illimités",
+        "Nom de domaine personnalisé (ex: menu.votrecafe.ma)",
+        "Saisie complète de votre menu et configuration du système par notre équipe",
+        "Architecture prête pour de multiples succursales (Multi-branch)",
+        "Ligne d'urgence directe par téléphone et WhatsApp 24/7"
+      ]
+    }
+  }
   }
 }

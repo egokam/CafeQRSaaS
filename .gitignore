@@ -41,7 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 # Ego Owner Super-Admin Panel
-src/app/ego-owner-9539/
+#src/app/ego-owner-9539/
 
 # ignore executables
 *.exe

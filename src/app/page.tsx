@@ -44,7 +44,7 @@ export default async function Home() {
           <Features />
         </section>
 
-        <section id="guide" className="scroll-mt-28">
+        <section id="tutorial" className="scroll-mt-28">
           <ProjectGuide />
         </section>
 
