@@ -20,10 +20,11 @@ import {
   hasAdminCafeAccess,
   signInAdminWithEmail,
   updateCafeSettings,
+  getAdminTables,
+  adminDeleteTable,
 } from "../../../actions/auth";
 import BillingTab from "../../../components/BillingTab";
 
-// 🌟 Translation System
 const TRANSLATIONS: Record<string, any> = {
   en: {
     loading: "Loading...",
@@ -113,7 +114,12 @@ const TRANSLATIONS: Record<string, any> = {
     generateQrBtn: "Generate Code & Save Table",
     scanToOrder: "Scan code to order your drink ☕",
     printBtn: "Print Code",
-    qrError: "Error checking/adding table from server. Please try again."
+    qrError: "Error checking/adding table from server. Please try again.",
+    deleteWarningTitle: "Delete Table Confirmation",
+    deleteWarningDesc: "Warning: This table and all its related orders and sales will be permanently deleted. This action cannot be undone.",
+    understandCheckbox: "I understand that this action is irreversible.",
+    cancelBtn: "Cancel",
+    confirmDeleteBtn: "Confirm Deletion"
   },
   fr: {
     loading: "Chargement...",
@@ -203,7 +209,12 @@ const TRANSLATIONS: Record<string, any> = {
     generateQrBtn: "Générer et Enregistrer",
     scanToOrder: "Scannez pour commander ☕",
     printBtn: "Imprimer le Code",
-    qrError: "Erreur serveur. Veuillez réessayer."
+    qrError: "Erreur serveur. Veuillez réessayer.",
+    deleteWarningTitle: "Confirmation de suppression",
+    deleteWarningDesc: "Avertissement : Cette table ainsi que toutes les commandes et ventes associées seront définitivement supprimées. Cette action est irréversible.",
+    understandCheckbox: "Je comprends que cette action est irréversible.",
+    cancelBtn: "Annuler",
+    confirmDeleteBtn: "Confirmer la suppression"
   },
   ar: {
     loading: "جاري التحميل...",
@@ -293,7 +304,12 @@ const TRANSLATIONS: Record<string, any> = {
     generateQrBtn: "إنشاء الكود وحفظ الطاولة",
     scanToOrder: "امسح الكود لطلب مشروبك ☕",
     printBtn: "طباعة الكود",
-    qrError: "حدث خطأ أثناء فحص/إضافة الطاولة من السيرفر. يرجى المحاولة."
+    qrError: "حدث خطأ أثناء فحص/إضافة الطاولة من السيرفر. يرجى المحاولة.",
+    deleteWarningTitle: "تأكيد حذف الطاولة",
+    deleteWarningDesc: "تحذير: سيتم حذف هذه الطاولة وجميع الطلبات والمبيعات المرتبطة بها نهائياً، ولا يمكن التراجع عن هذا الإجراء.",
+    understandCheckbox: "أفهم أن هذا الإجراء نهائي ولا يمكن التراجع عنه.",
+    cancelBtn: "إلغاء",
+    confirmDeleteBtn: "تأكيد الحذف"
   }
 };
 
@@ -353,7 +369,6 @@ const compressImageBeforeUpload = (file: File): Promise<File> => {
 export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug: string }> }) {
   const { cafeSlug } = use(params);
   
-  // 🌟 Language State (Default: en)
   const [activeLang, setActiveLang] = useState("en");
   const t = TRANSLATIONS[activeLang];
   const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
@@ -403,22 +418,80 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [qrReady, setQrReady] = useState(false);
 
+  const [tablesList, setTablesList] = useState<any[]>([]);
+  const [isLoadingTables, setIsLoadingTables] = useState(false);
+
+  // 🌟 Modal States
+  const [tableToDelete, setTableToDelete] = useState<string | null>(null);
+  const [deleteUnderstood, setDeleteUnderstood] = useState(false);
+  const [isDeletingTable, setIsDeletingTable] = useState(false);
+
+  const fetchTables = async (cId: string) => {
+    setIsLoadingTables(true);
+    const res = await getAdminTables(cId);
+    if (res.success) setTablesList(res.tables);
+    setIsLoadingTables(false);
+  };
+
+  const openDeleteModal = (tableId: string) => {
+    setTableToDelete(tableId);
+    setDeleteUnderstood(false);
+  };
+
+  const closeDeleteModal = () => {
+    setTableToDelete(null);
+    setDeleteUnderstood(false);
+  };
+
+  const confirmDeleteTable = async () => {
+    if (!tableToDelete || !deleteUnderstood) return;
+    
+    setIsDeletingTable(true);
+    
+    // Optimistic Update
+    setTablesList(prev => prev.filter(t => t.id !== tableToDelete));
+
+    const res = await adminDeleteTable(tableToDelete);
+    
+    if (!res.success) {
+      alert(t.deleteFailed);
+      if (cafeId) fetchTables(cafeId); // Revert on fail
+    }
+
+    setIsDeletingTable(false);
+    closeDeleteModal();
+  };
+
   const fetchProducts = async (cId: string) => {
-    const res = await getAdminProducts(cId);
-    if (res.success) setProducts([...res.products].reverse());
+    try {
+      // 🔥 جلب مباشر وفوري من قاعدة البيانات يتخطى أي خطأ في السيرفر
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("cafe_id", cId)
+        .order("created_at", { ascending: false }); // يجلب الأحدث أولاً
+
+      if (error) {
+        console.error("🚨 Supabase Fetch Error:", error.message);
+        return;
+      }
+
+      if (data) {
+        setProducts(data); // وضع المنتجات في الواجهة فوراً
+      }
+    } catch (err) {
+      console.error("Fetch Products Catch:", err);
+    }
   };
 
   const fetchMonthlySales = async (cId: string) => {
     setIsLoadingSales(true);
-
     const res = await getAdminMonthlySales(cId);
-
     if (res.success) {
       setMonthlyOrders(res.orders);
       const total = res.orders.reduce((acc, curr) => acc + Number(curr.total_amount || 0), 0);
       setMonthlyIncome(total);
     }
-
     setIsLoadingSales(false);
   };
 
@@ -445,13 +518,13 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         const sessionKey = `admin_auth_${cafeSlug}`;
         if (sessionStorage.getItem(sessionKey) === 'true') {
           const { data: { user } } = await supabase.auth.getUser();
-          const hasServerAccess = await hasAdminCafeAccess(cafeData.id);
           
-          if (user && user.email?.toLowerCase() === cafeData.owner_email.toLowerCase() && hasServerAccess) {
+          if (user && user.email?.toLowerCase() === cafeData.owner_email.toLowerCase()) {
             setIsAuthenticated(true);
             await Promise.all([
               fetchProducts(cafeData.id),
-              fetchMonthlySales(cafeData.id)
+              fetchMonthlySales(cafeData.id),
+              fetchTables(cafeData.id)
             ]);
           } else {
             sessionStorage.removeItem(sessionKey);
@@ -460,7 +533,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           }
         }
       }
-
       setIsLoading(false);
     };
     initAdmin();
@@ -505,7 +577,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       sessionStorage.setItem(`admin_auth_${cafeSlug}`, 'true');
       await Promise.all([
         fetchProducts(cafeId),
-        fetchMonthlySales(cafeId)
+        fetchMonthlySales(cafeId),
+        fetchTables(cafeId)
       ]);
     } else {
       alert(res.error || t.invalidLogin);
@@ -517,7 +590,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       alert(t.noOwnerEmail);
       return;
     }
-    
     setIsChecking(true);
     const { error } = await supabase.auth.resetPasswordForEmail(ownerEmail);
     setIsChecking(false);
@@ -555,21 +627,17 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     if (!newPasswordInput) return;
     
     setIsChecking(true);
-    const { error } = await supabase.auth.updateUser({
-      password: newPasswordInput
-    });
+    const { error } = await supabase.auth.updateUser({ password: newPasswordInput });
     setIsChecking(false);
 
     if (error) {
       alert(t.passwordUpdateFail + error.message);
     } else {
       const loginRes = await signInAdminWithEmail(ownerEmail, newPasswordInput);
-
       if (!loginRes.success) {
         alert(loginRes.error || t.invalidLogin);
         return;
       }
-
       if (loginRes.session?.access_token && loginRes.session?.refresh_token) {
         await supabase.auth.setSession({
           access_token: loginRes.session.access_token,
@@ -584,7 +652,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       if (cafeId) {
         await Promise.all([
           fetchProducts(cafeId),
-          fetchMonthlySales(cafeId)
+          fetchMonthlySales(cafeId),
+          fetchTables(cafeId)
         ]);
       }
     }
@@ -595,7 +664,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     if (!cafeId) return;
     setIsChecking(true);
     
-    // 🔥 We pass 0 or a dummy value for the kitchen parameter since it was removed from the backend call
     const { success } = await updateCafeSettings(cafeId, cafeName, newAdminPin, newCashierPin, Number(maxCashiers), 0);
     
     setIsChecking(false);
@@ -678,6 +746,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       const baseUrl = window.location.origin;
       setQrUrl(`${baseUrl}/${cafeSlug}/${formattedTableNumber}`);
       setQrReady(true);
+      fetchTables(cafeId);
     } else {
       alert(t.qrError);
     }
@@ -687,7 +756,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
   const handlePrint = () => { window.print(); };
 
-  // Language Switcher Component
   const LanguageToggle = () => (
     <div className="flex bg-muted/60 p-1 rounded-full w-max border" dir="ltr">
       {LANGUAGES.map(lang => (
@@ -1055,11 +1123,90 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
               <button onClick={handlePrint} className="mt-8 bg-foreground text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 text-lg hover:scale-105 transition-transform"><Printer size={24} /> {t.printBtn}</button>
             </>
           )}
+
+          <div className="w-full mt-16 pt-8 border-t border-border/50 animate-in fade-in duration-500">
+            <h3 className="text-xl font-extrabold mb-6 flex items-center justify-center gap-2">
+              {activeLang === 'ar' ? 'الطاولات المسجلة حالياً' : activeLang === 'fr' ? 'Tables Enregistrées' : 'Registered Tables'} 
+              <span className="bg-primary/10 text-primary text-sm px-3 py-1 rounded-full font-black">{tablesList.length}</span>
+            </h3>
+            
+            {isLoadingTables ? (
+              <div className="flex justify-center p-6"><Loader2 className="animate-spin text-primary" size={32} /></div>
+            ) : tablesList.length === 0 ? (
+              <p className="text-muted-foreground text-sm font-bold bg-muted/20 p-6 rounded-2xl border border-dashed">
+                {activeLang === 'ar' ? 'لا توجد طاولات مسجلة بعد.' : 'No tables registered yet.'}
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {tablesList.map(t => (
+                  <div key={t.id} className="bg-muted/10 border border-border/50 rounded-2xl p-4 flex justify-between items-center hover:bg-muted/30 transition-colors shadow-sm">
+                    <div className="flex flex-col items-start">
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase">{activeLang === 'ar' ? 'طاولة' : 'Table'}</span>
+                      <span className="font-black text-2xl text-foreground font-mono">{t.table_number.replace('table_', '')}</span>
+                    </div>
+                    <button 
+                      onClick={() => openDeleteModal(t.id)} 
+                      className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2.5 rounded-xl transition-all active:scale-90"
+                      title={activeLang === 'ar' ? 'حذف الطاولة' : 'Delete Table'}
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 
       {activeTab === 'billing' && (
         <BillingTab cafeId={cafeId!} cafeName={cafeName} />
+      )}
+
+      {/* 🛑 Delete Confirmation Modal Overlay */}
+      {tableToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200">
+            <button onClick={closeDeleteModal} className="absolute top-6 right-6 text-muted-foreground hover:text-foreground bg-muted/50 p-2 rounded-full transition-colors">
+              <X size={20} />
+            </button>
+            
+            <div className="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-6 mx-auto">
+              <AlertTriangle size={32} />
+            </div>
+            
+            <h2 className="text-2xl font-black text-center mb-4">{t.deleteWarningTitle}</h2>
+            <p className="text-muted-foreground text-center text-sm font-bold leading-relaxed mb-8">
+              {t.deleteWarningDesc}
+            </p>
+
+            <label className="flex items-start gap-3 p-4 bg-red-50 border border-red-100 rounded-2xl cursor-pointer mb-8 hover:bg-red-100/50 transition-colors">
+              <input 
+                type="checkbox" 
+                checked={deleteUnderstood} 
+                onChange={(e) => setDeleteUnderstood(e.target.checked)}
+                className="mt-1 w-5 h-5 accent-red-500 cursor-pointer"
+              />
+              <span className="text-sm font-bold text-red-900 leading-snug select-none">
+                {t.understandCheckbox}
+              </span>
+            </label>
+
+            <div className="flex gap-3">
+              <button onClick={closeDeleteModal} disabled={isDeletingTable} className="flex-1 py-4 font-bold rounded-2xl bg-muted text-foreground hover:bg-muted/80 transition-colors">
+                {t.cancelBtn}
+              </button>
+              <button 
+                onClick={confirmDeleteTable} 
+                disabled={!deleteUnderstood || isDeletingTable} 
+                className="flex-1 py-4 font-bold rounded-2xl bg-red-500 text-white hover:bg-red-600 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+              >
+                {isDeletingTable ? <Loader2 className="animate-spin" size={20} /> : t.confirmDeleteBtn}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

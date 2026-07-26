@@ -45,3 +45,7 @@ src/app/ego-owner-9539/
 
 # ignore executables
 *.exe
+
+
+#my keys gen hhhh
+keygenJWT.js
