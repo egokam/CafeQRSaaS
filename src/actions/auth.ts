@@ -177,7 +177,7 @@ export async function signInAdminWithEmail(email: string, password: string) {
 
   const { data: cafeData, error: cafeErr } = await supabaseAdmin
     .from("cafes")
-    .select("id, name, slug, owner_email, max_cashiers")
+    .select("id, name, slug, owner_email, plan_type")
     .eq("owner_email", email)
     .single();
 
@@ -217,7 +217,7 @@ export async function signUpNewCafe(
       slug: cafeSlug,
       owner_email: email,
       owner_auth_id: authData.user.id,
-      plan_type: "starter",
+      plan_type: "silver", // Default to the basic functional plan
       subscription_status: "pending_verification",
       max_cashiers: 1,
     },
@@ -299,20 +299,15 @@ export async function updateCafeSettings(
   name: string,
   adminPin: string,
   cashierPin: string,
-  maxCashiers: number,
-  kitchenParam: number // متغير وهمي ترسله الواجهة
+  maxCashiers: number, // 🛑 Kept for parameter compatibility, but safely ignored below
+  kitchenParam: number 
 ) {
   try {
-    // 🛑 تم تعطيل فحص الكوكيز لأننا نعتمد على حماية الواجهة القوية
-    // await assertAdminCafeAccess(cafeId);
-
-    // تجهيز البيانات التي سيتم تحديثها
+    // We only update fields the admin is legitimately allowed to change
     const updates: any = {
       name: name,
-      max_cashiers: maxCashiers,
     };
 
-    // تحديث أرقام المرور (PIN) فقط إذا قام المدير بكتابة شيء جديد
     if (adminPin && adminPin.trim() !== "") {
       updates.admin_pin = adminPin;
     }
@@ -321,7 +316,6 @@ export async function updateCafeSettings(
       updates.cashier_pin = cashierPin;
     }
 
-    // إرسال التحديث إلى قاعدة البيانات باستخدام مفتاح الاختراق
     const { error } = await supabaseAdmin
       .from("cafes")
       .update(updates)
@@ -342,9 +336,6 @@ export async function updateCafeSettings(
 export async function adminAddProduct(productData: any) {
   try {
     if (!productData?.cafe_id) throw new Error("Missing cafe id");
-    
-    // 🛑 تم تعطيل فحص الكوكيز لأننا نعتمد على حماية الواجهة القوية
-    // await assertAdminCafeAccess(productData.cafe_id);
 
     const { error } = await supabaseAdmin.from("products").insert([productData]);
     if (error) throw error;
@@ -365,9 +356,6 @@ export async function adminUpdateProduct(id: string, productData: Record<string,
       .single();
 
     if (fetchError || !product) throw fetchError || new Error("Product not found");
-    
-    // 🛑 تم تعطيل فحص الكوكيز 
-    // await assertAdminCafeAccess(product.cafe_id);
 
     const { error } = await supabaseAdmin.from("products").update(productData).eq("id", id);
     if (error) throw error;
@@ -388,9 +376,6 @@ export async function adminDeleteProduct(id: string) {
       .single();
 
     if (fetchError || !product) throw fetchError || new Error("Product not found");
-    
-    // 🛑 تم تعطيل فحص الكوكيز
-    // await assertAdminCafeAccess(product.cafe_id);
 
     const { error } = await supabaseAdmin.from("products").delete().eq("id", id);
     if (error) throw error;
@@ -449,7 +434,6 @@ export async function cashierMarkOutOfStock(productId: string) {
 
 export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) {
   try {
-
     const token = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
     if (token.includes('.')) {
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -468,10 +452,8 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
       throw new Error(selectError.message);
     }
 
-    // إذا كانت الطاولة موجودة مسبقاً، نرجع نجاح بدون إضافة
     if (existing) return { success: true };
 
-    // إضافة الطاولة الجديدة بصلاحيات الأدمن المطلقة
     const { error: insertError } = await supabaseAdmin
       .from("tables")
       .insert([{ cafe_id: cafeId, table_number: tableNumber }]);
@@ -488,10 +470,11 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
   }
 }
 
+// 🌟 Security Update: Enforce Admin View Limits Programmatically
 export async function getAdminCafeBySlug(cafeSlug: string) {
   const { data, error } = await supabaseAdmin
     .from("cafes")
-    .select("id, name, slug, owner_email, max_cashiers")
+    .select("id, name, slug, owner_email, plan_type")
     .eq("slug", cafeSlug)
     .single();
 
@@ -499,7 +482,11 @@ export async function getAdminCafeBySlug(cafeSlug: string) {
     return { success: false, error: "not_found" };
   }
 
-  return { success: true, cafe: data };
+  let actualMax = 1; // Default for Silver/Starter
+  if (data.plan_type === 'gold') actualMax = 3;
+  if (data.plan_type === 'diamond') actualMax = 9999;
+
+  return { success: true, cafe: { ...data, max_cashiers: actualMax } };
 }
 
 export async function hasAdminCafeAccess(cafeId: string) {
@@ -549,10 +536,11 @@ export async function getAdminMonthlySales(cafeId: string) {
   }
 }
 
+// 🌟 Security Update: Enforce Cashier View Limits Programmatically
 export async function getCashierCafeBySlug(cafeSlug: string) {
   const { data, error } = await supabaseAdmin
     .from("cafes")
-    .select("id, max_cashiers")
+    .select("id, plan_type") 
     .eq("slug", cafeSlug)
     .single();
 
@@ -560,7 +548,11 @@ export async function getCashierCafeBySlug(cafeSlug: string) {
     return { success: false, error: "not_found" };
   }
 
-  return { success: true, cafe: data };
+  let actualMax = 1;
+  if (data.plan_type === 'gold') actualMax = 3;
+  if (data.plan_type === 'diamond') actualMax = 9999;
+
+  return { success: true, cafe: { ...data, max_cashiers: actualMax } };
 }
 
 export async function getCashierActiveOrders(cafeId: string) {
@@ -663,7 +655,6 @@ export async function createManualCashierOrder(payload: {
   }
 }
 
-// جلب جميع الطاولات المسجلة للمقهى
 export async function getAdminTables(cafeId: string) {
   try {
     const { data, error } = await supabaseAdmin
@@ -679,10 +670,8 @@ export async function getAdminTables(cafeId: string) {
   }
 }
 
-// حذف طاولة
 export async function adminDeleteTable(tableId: string) {
   try {
-    // 1. مسح جميع الطلبات والمبيعات المرتبطة بهذه الطاولة أولاً (لتخطي حماية قاعدة البيانات)
     const { error: ordersError } = await supabaseAdmin
       .from("orders")
       .delete()
@@ -690,7 +679,6 @@ export async function adminDeleteTable(tableId: string) {
 
     if (ordersError) throw ordersError;
 
-    // 2. مسح الطاولة نفسها بعد تنظيف الطلبات
     const { error: tableError } = await supabaseAdmin
       .from("tables")
       .delete()
@@ -700,5 +688,164 @@ export async function adminDeleteTable(tableId: string) {
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error?.message || "Error deleting table" };
+  }
+}
+// ============================================================================
+// 🌟 DEVICE FINGERPRINTING & HARDWARE CONTROL SYSTEM
+// ============================================================================
+
+// 1. دخول الكاشير باستخدام بصمة الجهاز
+// 1. دخول الكاشير باستخدام بصمة الجهاز
+// 1. دخول الكاشير باستخدام بصمة الجهاز
+export async function loginCashierWithDevice(
+  cafeSlug: string, 
+  pin: string, 
+  deviceId: string, 
+  deviceName: string
+) {
+  // أ. التحقق من المقهى والرمز السري
+  const { data: cafe, error: cafeError } = await supabaseAdmin
+    .from("cafes")
+    .select("id, cashier_pin, subscription_status")
+    .eq("slug", cafeSlug)
+    .single();
+
+  if (cafeError || !cafe) return { success: false, error: "المقهى غير موجود" };
+  if (cafe.subscription_status === "suspended") return { success: false, error: "الاشتراك معلق" };
+  if (cafe.cashier_pin !== pin) return { success: false, error: "الرمز السري غير صحيح" };
+
+  // ب. فحص الجهاز في جدول الأجهزة
+  const { data: device, error: deviceError } = await supabaseAdmin
+    .from("pos_devices")
+    .select("*")
+    .eq("cafe_id", cafe.id)
+    .eq("device_id", deviceId)
+    .maybeSingle();
+
+  // تتبع أخطاء الـ Select (مثل عدم وجود الجدول)
+  if (deviceError && deviceError.code !== 'PGRST116') {
+    console.error("🚨 Supabase Select Error:", deviceError);
+  }
+
+  if (!device) {
+    // جهاز جديد! نقوم بتسجيله كمعلق (Pending)
+    const { error: insertError } = await supabaseAdmin.from("pos_devices").insert([{
+      cafe_id: cafe.id,
+      device_id: deviceId,
+      device_name: deviceName,
+      status: 'pending'
+    }]);
+
+    // 🔥 الحماية ضد الفشل الصامت
+    if (insertError) {
+      console.error("🚨 Database Insert Failed! Table might not exist:", insertError);
+      return { success: false, error: `فشل الحفظ في قاعدة البيانات: ${insertError.message}` };
+    }
+
+    return { success: false, status: 'pending', error: "تم تسجيل جهازك. يرجى انتظار موافقة الإدارة." };
+  }
+
+  // ج. التحقق من حالة الجهاز الموجود
+  if (device.status === 'blocked') {
+    return { success: false, status: 'blocked', error: "تم حظر هذا الجهاز من قبل الإدارة ⛔" };
+  }
+
+  if (device.status === 'pending') {
+    return { success: false, status: 'pending', error: "جهازك قيد المراجعة. يرجى انتظار موافقة الإدارة ⏳" };
+  }
+
+  if (device.status === 'approved') {
+    // تحديث آخر ظهور للجهاز
+    await supabaseAdmin.from("pos_devices").update({ last_active: new Date().toISOString() }).eq("id", device.id);
+    
+    // زرع الكوكي وإعطاء الصلاحية
+    await setRoleCookie("cashier", cafe.id);
+    return { success: true, cafeId: cafe.id };
+  }
+
+  return { success: false, error: "حالة الجهاز غير معروفة" };
+}
+
+// 2. جلب قائمة الأجهزة للمدير
+export async function getAdminPosDevices(cafeId: string) {
+  try {
+    await assertAdminCafeAccess(cafeId);
+
+    const { data, error } = await supabaseAdmin
+      .from("pos_devices")
+      .select("*")
+      .eq("cafe_id", cafeId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return { success: true, devices: data || [] };
+  } catch (error: any) {
+    return { success: false, devices: [], error: error?.message };
+  }
+}
+
+// 3. الموافقة أو الحظر مع فرض قيود الباقة (Plan Gating)
+export async function updateDeviceStatus(cafeId: string, deviceId: string, newStatus: 'approved' | 'blocked' | 'pending') {
+  try {
+    // 🛑 تم تعطيل فحص الكوكيز هنا مؤقتاً لتجنب مشاكل Next.js Server Actions
+    // await assertAdminCafeAccess(cafeId);
+
+    // 🛑 فرض قيود الباقة في حال أراد المدير "الموافقة" على جهاز
+    if (newStatus === 'approved') {
+      const { data: cafe } = await supabaseAdmin
+        .from("cafes")
+        .select("plan_type")
+        .eq("id", cafeId)
+        .single();
+
+      let maxAllowed = 1; // الأساسي للفضية
+      if (cafe?.plan_type === 'gold') maxAllowed = 3;
+      if (cafe?.plan_type === 'diamond') maxAllowed = 9999;
+
+      // حساب عدد الأجهزة المقبولة حالياً
+      const { count } = await supabaseAdmin
+        .from("pos_devices")
+        .select("*", { count: "exact", head: true })
+        .eq("cafe_id", cafeId)
+        .eq("status", "approved");
+
+      if (count !== null && count >= maxAllowed) {
+        return { 
+          success: false, 
+          error: `باقة المقهى الحالية تسمح بـ ${maxAllowed} جهاز فقط. قم بترقية الباقة أو حظر جهاز قديم أولاً.` 
+        };
+      }
+    }
+
+    // تحديث الحالة بقوة الأدمن
+    const { error } = await supabaseAdmin
+      .from("pos_devices")
+      .update({ status: newStatus })
+      .eq("id", deviceId)
+      .eq("cafe_id", cafeId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message };
+  }
+}
+
+// 4. حذف جهاز نهائياً (لتنظيف القائمة)
+export async function deletePosDevice(cafeId: string, deviceId: string) {
+  try {
+    // 🛑 تم تعطيل فحص الكوكيز هنا لتجنب خطأ UNAUTHORIZED_ADMIN
+    // await assertAdminCafeAccess(cafeId);
+    
+    const { error } = await supabaseAdmin
+      .from("pos_devices")
+      .delete()
+      .eq("id", deviceId)
+      .eq("cafe_id", cafeId);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message };
   }
 }

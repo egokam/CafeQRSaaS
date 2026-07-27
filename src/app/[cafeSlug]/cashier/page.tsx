@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag } from "lucide-react";
+import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag, Ban, Hourglass, Loader2 } from "lucide-react";
 import {
   cashierMarkOutOfStock,
   cashierUpdateOrderStatus,
@@ -10,7 +10,7 @@ import {
   getCashierActiveOrders,
   getCashierCafeBySlug,
   getCashierWorkspace,
-  verifyPin,
+  loginCashierWithDevice, 
 } from "../../../actions/auth";
 import { checkCafeSubscription } from "../../../actions/saas";
 
@@ -23,6 +23,10 @@ const TRANSLATIONS: Record<string, any> = {
     suspendedSub: "The cafe's subscription has expired. Please renew to resume operations.",
     sessionFullTitle: "Session Full",
     sessionFullSub: "This cafe has reached its maximum allowed cashier screens.",
+    pendingTitle: "Device Pending Approval ⏳",
+    pendingSub: "Your device has been registered. Please wait for the admin to approve it.",
+    blockedTitle: "Device Blocked ⛔",
+    blockedSub: "This device is no longer authorized to access the cashier system.",
     retryBtn: "Retry 🔄",
     cashierZone: "Cashier Zone",
     enterPin: "Enter PIN to receive orders",
@@ -65,6 +69,10 @@ const TRANSLATIONS: Record<string, any> = {
     suspendedSub: "L'abonnement du café a expiré. Veuillez renouveler pour reprendre les opérations.",
     sessionFullTitle: "Session Pleine",
     sessionFullSub: "Ce café a atteint son nombre maximum d'écrans de caisse.",
+    pendingTitle: "En Attente d'Approbation ⏳",
+    pendingSub: "Votre appareil est enregistré. Veuillez attendre l'approbation de l'administrateur.",
+    blockedTitle: "Appareil Bloqué ⛔",
+    blockedSub: "Cet appareil n'est plus autorisé à accéder au système de caisse.",
     retryBtn: "Réessayer 🔄",
     cashierZone: "Espace Caisse",
     enterPin: "Entrez le code PIN pour recevoir les commandes",
@@ -107,6 +115,10 @@ const TRANSLATIONS: Record<string, any> = {
     suspendedSub: "انتهت صلاحية اشتراك المقهى. يرجى التجديد لاستئناف العمل.",
     sessionFullTitle: "الجلسة ممتلئة",
     sessionFullSub: "وصل هذا المقهى للحد الأقصى من شاشات الكاشير المسموحة.",
+    pendingTitle: "الجهاز قيد المراجعة ⏳",
+    pendingSub: "تم إرسال طلب تسجيل هذا الجهاز إلى الإدارة. يرجى انتظار الموافقة.",
+    blockedTitle: "تم حظر هذا الجهاز ⛔",
+    blockedSub: "لا يمكنك استخدام نظام الكاشير من هذا الجهاز بعد الآن.",
     retryBtn: "إعادة المحاولة 🔄",
     cashierZone: "منطقة الكاشير",
     enterPin: "أدخل الرمز السري لاستقبال الطلبات",
@@ -153,7 +165,7 @@ const LANGUAGES = ["en", "fr", "ar"];
 export default function CashierDashboard({ params }: { params: Promise<{ cafeSlug: string }> }) {
   const { cafeSlug } = use(params);
   
-  // 🌟 Language State (Default: en)
+  // 🌟 Language State
   const [activeLang, setActiveLang] = useState("en");
   const t = TRANSLATIONS[activeLang];
   const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
@@ -164,7 +176,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [isLocked, setIsLocked] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
-  // 🌟 حالات المنع والحماية
+  // 🌟 حالات الجهاز والمنع
+  const [deviceId, setDeviceId] = useState("");
+  const [deviceStatus, setDeviceStatus] = useState<'none' | 'pending' | 'blocked' | 'approved'>('none');
   const [isSessionFull, setIsSessionFull] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
 
@@ -176,7 +190,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
 
-  // 🌟 أدوات نظام الكاشير اليدوي مباشر (POS Drawer)
+  // 🌟 أدوات نظام الكاشير المباشر
   const [products, setProducts] = useState<any[]>([]);
   const [tables, setTables] = useState<any[]>([]);
   const [showPOS, setShowPOS] = useState(false);
@@ -196,15 +210,18 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     if (res.success) setOrders(res.orders);
   };
 
+  // 🌟 توليد بصمة الجهاز واسترجاع الجلسة عند التحديث (Refresh Restore)
   useEffect(() => {
-    const sessionKey = `cashier_auth_${cafeSlug}`;
-    const hasStoredAuth = sessionStorage.getItem(sessionKey) === 'true';
-    if (hasStoredAuth) setIsAuthenticated(true);
+    let storedId = localStorage.getItem(`cafeqr_device_${cafeSlug}`);
+    if (!storedId) {
+      storedId = 'dev_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem(`cafeqr_device_${cafeSlug}`, storedId);
+    }
+    setDeviceId(storedId);
 
     const initCafe = async () => {
       setIsLoading(true);
 
-      // 💀 1. فحص اشتراك الـ SaaS
       const subCheck = await checkCafeSubscription(cafeSlug);
       if (!subCheck.isValid) {
         setIsSuspended(true);
@@ -214,40 +231,52 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
       const cafeRes = await getCashierCafeBySlug(cafeSlug);
       if (!cafeRes.success || !cafeRes.cafe) { setIsNotFound(true); setIsLoading(false); return; }
-      const cafeData = cafeRes.cafe;
       
-      setCafeId(cafeData.id);
-      setCafeDataObj(cafeData);
+      const cId = cafeRes.cafe.id;
+      setCafeId(cId);
+      setCafeDataObj(cafeRes.cafe);
 
-      // جلب المنتجات والطاولات المتاحة للـ POS اليدوي
-      if (hasStoredAuth) {
-        const workspace = await getCashierWorkspace(cafeData.id);
-        if (workspace.success) {
-          setProducts(workspace.products);
-          setTables(workspace.tables);
-          setOrders(workspace.orders);
-          if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
-        } else {
-          sessionStorage.removeItem(sessionKey);
-          setIsAuthenticated(false);
+      // 🔥 فحص حالة الجهاز من قاعدة البيانات وتخطي الدخول إذا كان مصرحاً
+      try {
+        const { data: deviceData } = await supabase
+          .from("pos_devices")
+          .select("status")
+          .eq("cafe_id", cId)
+          .eq("device_id", storedId)
+          .maybeSingle();
+
+        if (deviceData) {
+          setDeviceStatus(deviceData.status as any);
+          
+          if (deviceData.status === 'approved' && sessionStorage.getItem(`cashier_auth_${cafeSlug}`) === 'true') {
+            const workspace = await getCashierWorkspace(cId);
+            if (workspace.success) {
+              setProducts(workspace.products);
+              setTables(workspace.tables);
+              setOrders(workspace.orders);
+              if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
+              setIsAuthenticated(true);
+            } else {
+              sessionStorage.removeItem(`cashier_auth_${cafeSlug}`);
+            }
+          }
         }
+      } catch (err) {
+        console.error("Error verifying device session:", err);
       }
+
       setIsLoading(false);
     };
     initCafe();
   }, [cafeSlug]);
 
-  // 📡 المراقبة الحية + النبض الصامت (Heartbeat)
+  // 📡 المراقبة الحية للطلبات، حالة الجهاز، والحد الأقصى للجلسات (Realtime Logic)
   useEffect(() => {
-    if (!isAuthenticated || !cafeDataObj) return;
+    if (!isAuthenticated || !cafeDataObj || !deviceId) return;
 
     fetchOrders(cafeDataObj.id);
 
-    const heartbeat = setInterval(async () => {
-      const liveCheck = await checkCafeSubscription(cafeSlug);
-      if (!liveCheck.isValid) setIsSuspended(true);
-    }, 60000);
-
+    // 1. مراقبة الطلبات الجديدة للمطبخ
     const ordersChannel = supabase.channel(`live-orders-${cafeDataObj.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `cafe_id=eq.${cafeDataObj.id}` }, (payload: any) => {
         fetchOrders(cafeDataObj.id);
@@ -256,34 +285,43 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         }
       }).subscribe();
 
-    let myTabId = sessionStorage.getItem('cashier_tab_id');
-    if (!myTabId) {
-      myTabId = Math.random().toString(36).substring(2, 12);
-      sessionStorage.setItem('cashier_tab_id', myTabId);
-    }
+    // 2. 🌟 الطرد المباشر من الإدارة (إذا تم حظر الجهاز من لوحة التحكم)
+    const deviceChannel = supabase.channel(`device_${deviceId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pos_devices', filter: `device_id=eq.${deviceId}` }, (payload: any) => {
+        if (payload.new.status === 'blocked') {
+          setIsAuthenticated(false);
+          setDeviceStatus('blocked');
+        } else if (payload.new.status === 'pending') {
+          setIsAuthenticated(false);
+          setDeviceStatus('pending');
+        }
+      }).subscribe();
 
+    // 3. 🌟 الحفاظ على نظامك القديم: طرد الكاشير الزائد عن الحد المسموح (Session Full)
     const slotChannel = supabase.channel(`cashier_slots_${cafeDataObj.id}`, {
-      config: { presence: { key: myTabId } }
+      config: { presence: { key: deviceId } } // نربط التواجد ببصمة الجهاز الثابتة
     });
 
     slotChannel.on('presence', { event: 'sync' }, () => {
       const presenceState = slotChannel.presenceState();
       const maxAllowed = cafeDataObj.max_cashiers || 1;
-      if (!presenceState[myTabId]) return;
+      
+      if (!presenceState[deviceId]) return;
 
       const activeSessions: { key: string, onlineAt: number }[] = [];
       Object.entries(presenceState).forEach(([key, presences]: [string, any]) => {
         if (presences.length > 0) activeSessions.push({ key, onlineAt: new Date(presences[0].online_at || Date.now()).getTime() });
       });
 
+      // ترتيب الأجهزة حسب وقت الدخول (الأقدم له الأولوية)
       activeSessions.sort((a, b) => a.onlineAt - b.onlineAt);
       const allowedKeys = activeSessions.slice(0, maxAllowed).map(s => s.key);
 
-      if (!allowedKeys.includes(myTabId)) {
+      // إذا لم يكن هذا الجهاز ضمن القائمة المسموحة، يتم طرده فوراً
+      if (!allowedKeys.includes(deviceId)) {
         setIsSessionFull(true);
         slotChannel.untrack();
-        sessionStorage.removeItem(`cashier_auth_${cafeSlug}`);
-        setIsAuthenticated(false);
+        setIsAuthenticated(false); // نخرجه من النظام
       }
     });
 
@@ -292,35 +330,47 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     });
 
     return () => { 
-      clearInterval(heartbeat);
       supabase.removeChannel(ordersChannel); 
+      supabase.removeChannel(deviceChannel);
       supabase.removeChannel(slotChannel);
     };
-  }, [isAuthenticated, cafeDataObj, cafeSlug]);
+  }, [isAuthenticated, cafeDataObj, deviceId]);
 
+  // 🌟 نظام تسجيل الدخول الجديد (بصمة الجهاز)
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLocked || !cafeId) return;
+    if (isLocked || !cafeId || !deviceId) return;
 
     setIsChecking(true);
-    const isValid = await verifyPin(cafeId, "cashier", pinInput);
+    
+    // جلب اسم المتصفح لتسهيل التعرف عليه في لوحة الإدارة
+    const deviceName = `${navigator.platform || 'Unknown'} - ${navigator.userAgent.split(' ')[0] || 'Browser'}`;
+    
+    // إرسال طلب الدخول مع البصمة للسيرفر
+    const res = await loginCashierWithDevice(cafeSlug, pinInput, deviceId, deviceName);
     setIsChecking(false);
 
-    if (isValid) {
+    if (res.success) {
       const workspace = await getCashierWorkspace(cafeId);
       if (!workspace.success) {
         alert(t.updateError);
         return;
       }
-
       setProducts(workspace.products);
       setTables(workspace.tables);
       setOrders(workspace.orders);
       if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
+      
       setIsAuthenticated(true);
-      sessionStorage.setItem(`cashier_auth_${cafeSlug}`, 'true');
+      sessionStorage.setItem(`cashier_auth_${cafeSlug}`, 'true'); // حفظ الجلسة محلياً
+      setDeviceStatus('approved');
       setAttempts(0);
+      setPinInput("");
       new Audio('/bell.mp3').play().catch(()=> {});
+    } else if (res.status === 'pending') {
+      setDeviceStatus('pending');
+    } else if (res.status === 'blocked') {
+      setDeviceStatus('blocked');
     } else {
       const newAttempts = attempts + 1;
       setAttempts(newAttempts);
@@ -329,7 +379,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         setIsLocked(true);
         alert(t.tempBan);
         setTimeout(() => { setIsLocked(false); setAttempts(0); }, 60000);
-      } else alert(t.wrongPin);
+      } else alert(res.error || t.wrongPin);
     }
   };
 
@@ -338,15 +388,12 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     setTimeout(() => { window.print(); }, 150);
   };
 
-  // 🌟 تحديث حالة الطلب والطباعة التلقائية للمطبخ
   const updateOrderStatus = async (order: any, newStatus: string) => {
     const { success } = await cashierUpdateOrderStatus(order.id, newStatus);
     if (!success) {
       alert(t.updateError);
       return;
     }
-    
-    // 🔥 الطباعة التلقائية بمجرد القبول
     if (newStatus === 'accepted') {
       handlePrintReceipt(order);
     }
@@ -358,7 +405,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     if (success) alert(`"${productName}" ${t.disabledSuccess}`);
   };
 
-  // 🌟 دوال إدارة سلة الـ POS اليدوية
   const addToPos = (prod: any) => {
     setPosCart(prev => {
       const curr = prev[prod.id];
@@ -387,8 +433,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     setIsSubmittingPos(true);
     try {
       const dummySession = "manual_pos_" + Date.now();
-
-      // يرسل مقبولاً (accepted) ويجلب البيانات المُدخلة للطباعة (.select)
       const res = await createManualCashierOrder({
         cafeId,
         tableId: selectedTableId,
@@ -399,8 +443,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       if (!res.success || !res.order) throw new Error(res.error);
 
       new Audio('/bell.mp3').play().catch(()=>{});
-
-      // 🔥 طباعة الطلب المباشر فوراً للمطبخ
       handlePrintReceipt(res.order);
 
       setPosCart({});
@@ -410,7 +452,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     finally { setIsSubmittingPos(false); }
   };
 
-  // Language Switcher Component
   const LanguageToggle = () => (
     <div className="flex bg-muted/60 p-1 rounded-full w-max border" dir="ltr">
       {LANGUAGES.map(lang => (
@@ -439,13 +480,24 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     );
   }
 
-  if (isSessionFull) {
+  // 🌟 شاشات المنع الجديدة (Pending & Blocked)
+  if (deviceStatus === 'pending') {
     return (
-      <div className="min-h-screen bg-stone-950 text-white flex flex-col items-center justify-center p-6 text-center" dir={dir}>
-        <Lock size={64} className="text-red-500 mb-4" />
-        <h1 className="text-3xl font-black mb-2">{t.sessionFullTitle}</h1>
-        <p className="text-stone-400 max-w-md mb-6">{t.sessionFullSub}</p>
-        <button onClick={() => window.location.reload()} className="bg-white text-black px-6 py-3 rounded-xl font-bold">{t.retryBtn}</button>
+      <div className="min-h-screen bg-amber-50 flex flex-col items-center justify-center p-6 text-center" dir={dir}>
+        <div className="bg-amber-100 p-6 rounded-full text-amber-600 mb-6 animate-pulse"><Hourglass size={48} /></div>
+        <h1 className="text-3xl font-black mb-2 text-amber-900">{t.pendingTitle}</h1>
+        <p className="text-amber-700/80 font-bold max-w-md mb-8">{t.pendingSub}</p>
+        <button onClick={() => window.location.reload()} className="bg-amber-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-2">{t.retryBtn}</button>
+      </div>
+    );
+  }
+
+  if (deviceStatus === 'blocked') {
+    return (
+      <div className="min-h-screen bg-red-950 flex flex-col items-center justify-center p-6 text-center" dir={dir}>
+        <div className="bg-red-500/20 p-6 rounded-full text-red-500 mb-6"><Ban size={48} /></div>
+        <h1 className="text-3xl font-black mb-2 text-white">{t.blockedTitle}</h1>
+        <p className="text-red-200/80 font-bold max-w-md mb-8">{t.blockedSub}</p>
       </div>
     );
   }
@@ -459,8 +511,10 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           <h2 className="text-2xl font-extrabold mb-2">{t.cashierZone}</h2>
           <p className="text-muted-foreground mb-8 text-sm font-bold">{t.enterPin}</p>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <input type="password" inputMode="numeric" value={pinInput} onChange={(e) => setPinInput(e.target.value)} className="border-2 rounded-2xl p-4 text-center text-3xl tracking-[0.5em] font-mono outline-none" placeholder="••••" autoFocus dir="ltr" />
-            <button type="submit" className="py-4 rounded-2xl font-bold text-lg text-white bg-foreground hover:opacity-90">{t.loginBtn}</button>
+            <input type="password" inputMode="numeric" value={pinInput} onChange={(e) => setPinInput(e.target.value)} className="border-2 rounded-2xl p-4 text-center text-3xl tracking-[0.5em] font-mono outline-none" placeholder="••••" autoFocus dir="ltr" disabled={isChecking} />
+            <button disabled={isChecking} type="submit" className="py-4 rounded-2xl font-bold text-lg text-white bg-foreground hover:opacity-90 disabled:opacity-50">
+              {isChecking ? <Loader2 className="animate-spin mx-auto" size={24} /> : t.loginBtn}
+            </button>
           </form>
         </div>
       </div>
@@ -476,7 +530,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       
       <div className="min-h-screen bg-muted/20 p-6 md:p-12 no-print font-sans" dir={dir}>
         
-        {/* هيدر الكاشير الفخم */}
         <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-border gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -498,12 +551,11 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </div>
         </header>
 
-        {/* نافذة تسجيل الطلبات المباشرة (POS Modal Drawer) */}
+        {/* POS Modal Drawer */}
         {showPOS && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-5xl h-[88vh] rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-border">
               
-              {/* قائمة الأصناف السريعة */}
               <div className={`flex-1 flex flex-col bg-slate-50/60 p-6 overflow-hidden order-2 ${activeLang === 'ar' ? 'md:order-1' : 'md:order-2'}`}>
                 <div className="flex items-center justify-between pb-4 mb-4 border-b">
                   <h3 className="font-black text-xl flex items-center gap-2"><UtensilsCrossed className="text-primary" size={22}/> {t.quickMenu}</h3>
@@ -531,7 +583,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 </div>
               </div>
 
-              {/* تذكرة الطلب */}
               <div className={`w-full md:w-88 bg-white p-6 flex flex-col justify-between order-1 shadow-lg z-10 ${activeLang === 'ar' ? 'md:order-2 border-r' : 'md:order-1 border-l'}`}>
                 <div>
                   <div className="flex justify-between items-center mb-6">
@@ -588,7 +639,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </div>
         )}
 
-        {/* شبكة الطلبات الحية */}
+        {/* Active Orders Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {orders.length === 0 ? (
             <div className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed p-10">

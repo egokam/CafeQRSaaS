@@ -6,7 +6,7 @@ import {
   Plus, Trash2, Image as ImageIcon, Loader2, QrCode, PackageSearch, 
   Printer, Lock, Settings, Edit, X, AlertTriangle, CheckCircle2, 
   CreditCard, TrendingUp, DollarSign, History, Calendar, MonitorSmartphone,
-  MessageCircle, KeyRound 
+  MessageCircle, KeyRound, Laptop, Check, Ban, Clock
 } from "lucide-react";
 import QRCode from "react-qr-code";
 import {
@@ -16,12 +16,12 @@ import {
   adminUpdateProduct,
   getAdminCafeBySlug,
   getAdminMonthlySales,
-  getAdminProducts,
-  hasAdminCafeAccess,
   signInAdminWithEmail,
   updateCafeSettings,
   getAdminTables,
   adminDeleteTable,
+  updateDeviceStatus,
+  deletePosDevice
 } from "../../../actions/auth";
 import BillingTab from "../../../components/BillingTab";
 
@@ -67,6 +67,7 @@ const TRANSLATIONS: Record<string, any> = {
     tabSales: "Monthly Sales 📈",
     tabSettings: "Settings",
     tabBilling: "Billing & Sub 💳",
+    tabDevices: "Hardware & POS 💻",
     currentMonthIncome: "Current Month Income",
     completedOrders: "Completed Orders",
     avgCustomerSpend: "Average Customer Spend",
@@ -119,7 +120,16 @@ const TRANSLATIONS: Record<string, any> = {
     deleteWarningDesc: "Warning: This table and all its related orders and sales will be permanently deleted. This action cannot be undone.",
     understandCheckbox: "I understand that this action is irreversible.",
     cancelBtn: "Cancel",
-    confirmDeleteBtn: "Confirm Deletion"
+    confirmDeleteBtn: "Confirm Deletion",
+    upgradeToGold: "Upgrade to Gold",
+    analyticsLocked: "Advanced analytics are locked on your current plan. Please upgrade to the Gold plan to access these features.",
+    pendingDevices: "Pending Approval",
+    approvedDevices: "Approved Devices",
+    blockedDevices: "Blocked Devices",
+    approveBtn: "Approve",
+    blockBtn: "Block",
+    deleteBtn: "Delete",
+    noDevices: "No devices found in this category."
   },
   fr: {
     loading: "Chargement...",
@@ -162,6 +172,7 @@ const TRANSLATIONS: Record<string, any> = {
     tabSales: "Ventes mensuelles 📈",
     tabSettings: "Paramètres",
     tabBilling: "Facturation 💳",
+    tabDevices: "Appareils Caisse 💻",
     currentMonthIncome: "Revenus du mois",
     completedOrders: "Commandes terminées",
     avgCustomerSpend: "Dépense moyenne",
@@ -214,7 +225,16 @@ const TRANSLATIONS: Record<string, any> = {
     deleteWarningDesc: "Avertissement : Cette table ainsi que toutes les commandes et ventes associées seront définitivement supprimées. Cette action est irréversible.",
     understandCheckbox: "Je comprends que cette action est irréversible.",
     cancelBtn: "Annuler",
-    confirmDeleteBtn: "Confirmer la suppression"
+    confirmDeleteBtn: "Confirmer la suppression",
+    upgradeToGold: "Passer à l'offre Or",
+    analyticsLocked: "Les analyses avancées sont verrouillées sur votre forfait actuel. Veuillez passer au forfait Or pour accéder à ces fonctionnalités.",
+    pendingDevices: "En attente d'approbation",
+    approvedDevices: "Appareils Approuvés",
+    blockedDevices: "Appareils Bloqués",
+    approveBtn: "Approuver",
+    blockBtn: "Bloquer",
+    deleteBtn: "Supprimer",
+    noDevices: "Aucun appareil trouvé dans cette catégorie."
   },
   ar: {
     loading: "جاري التحميل...",
@@ -257,6 +277,7 @@ const TRANSLATIONS: Record<string, any> = {
     tabSales: "المبيعات الشهرية 📈",
     tabSettings: "الإعدادات",
     tabBilling: "الاشتراك والأداء 💳",
+    tabDevices: "الأجهزة والكاشير 💻",
     currentMonthIncome: "مدخول الشهر الحالي",
     completedOrders: "الطلبات المنجزة بنجاح",
     avgCustomerSpend: "متوسط صرف الزبون",
@@ -309,7 +330,16 @@ const TRANSLATIONS: Record<string, any> = {
     deleteWarningDesc: "تحذير: سيتم حذف هذه الطاولة وجميع الطلبات والمبيعات المرتبطة بها نهائياً، ولا يمكن التراجع عن هذا الإجراء.",
     understandCheckbox: "أفهم أن هذا الإجراء نهائي ولا يمكن التراجع عنه.",
     cancelBtn: "إلغاء",
-    confirmDeleteBtn: "تأكيد الحذف"
+    confirmDeleteBtn: "تأكيد الحذف",
+    upgradeToGold: "قم بالترقية للباقة الذهبية",
+    analyticsLocked: "التحليلات المتقدمة غير متاحة في باقتك الحالية. قم بالترقية للباقة الذهبية لفتح هذه الميزات.",
+    pendingDevices: "أجهزة قيد المراجعة",
+    approvedDevices: "الأجهزة المعتمدة",
+    blockedDevices: "الأجهزة المحظورة",
+    approveBtn: "موافقة",
+    blockBtn: "حظر",
+    deleteBtn: "حذف",
+    noDevices: "لا توجد أجهزة في هذه القائمة."
   }
 };
 
@@ -389,12 +419,12 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [newCashierPin, setNewCashierPin] = useState("");
   
   const [maxCashiers, setMaxCashiers] = useState("2"); 
-  
   const [activeCashiers, setActiveCashiers] = useState(0);
 
   const [activeTab, setActiveTab] = useState("products"); 
   const [products, setProducts] = useState<any[]>([]);
   const [cafeId, setCafeId] = useState<string | null>(null);
+  const [planType, setPlanType] = useState<string | null>(null);
   
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -421,6 +451,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [tablesList, setTablesList] = useState<any[]>([]);
   const [isLoadingTables, setIsLoadingTables] = useState(false);
 
+  const [devicesList, setDevicesList] = useState<any[]>([]);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+
   // 🌟 Modal States
   const [tableToDelete, setTableToDelete] = useState<string | null>(null);
   const [deleteUnderstood, setDeleteUnderstood] = useState(false);
@@ -431,6 +464,25 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     const res = await getAdminTables(cId);
     if (res.success) setTablesList(res.tables);
     setIsLoadingTables(false);
+  };
+
+  // 🔥 تحديث جوهري: التخطي المباشر لكاش السيرفر باستخدام العميل (Client Fetching)
+  const fetchDevices = async (cId: string) => {
+    setIsLoadingDevices(true);
+    try {
+      const { data, error } = await supabase
+        .from("pos_devices")
+        .select("*")
+        .eq("cafe_id", cId)
+        .order("created_at", { ascending: false });
+
+      if (error) console.error("🚨 Error fetching devices:", error);
+      if (data) setDevicesList(data);
+    } catch (err) {
+      console.error("Fetch Devices Catch:", err);
+    } finally {
+      setIsLoadingDevices(false);
+    }
   };
 
   const openDeleteModal = (tableId: string) => {
@@ -455,7 +507,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     
     if (!res.success) {
       alert(t.deleteFailed);
-      if (cafeId) fetchTables(cafeId); // Revert on fail
+      if (cafeId) fetchTables(cafeId); 
     }
 
     setIsDeletingTable(false);
@@ -464,12 +516,11 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
   const fetchProducts = async (cId: string) => {
     try {
-      // 🔥 جلب مباشر وفوري من قاعدة البيانات يتخطى أي خطأ في السيرفر
       const { data, error } = await supabase
         .from("products")
         .select("*")
         .eq("cafe_id", cId)
-        .order("created_at", { ascending: false }); // يجلب الأحدث أولاً
+        .order("created_at", { ascending: false }); 
 
       if (error) {
         console.error("🚨 Supabase Fetch Error:", error.message);
@@ -477,7 +528,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       }
 
       if (data) {
-        setProducts(data); // وضع المنتجات في الواجهة فوراً
+        setProducts(data); 
       }
     } catch (err) {
       console.error("Fetch Products Catch:", err);
@@ -485,6 +536,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   };
 
   const fetchMonthlySales = async (cId: string) => {
+    if (planType === 'silver' || planType === 'starter') return;
     setIsLoadingSales(true);
     const res = await getAdminMonthlySales(cId);
     if (res.success) {
@@ -509,6 +561,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       const cafeData = cafeRes.cafe;
 
       setCafeId(cafeData.id);
+      setPlanType(cafeData.plan_type);
       if (cafeData.name) setCafeName(cafeData.name);
       if (cafeData.max_cashiers) setMaxCashiers(cafeData.max_cashiers.toString());
       
@@ -523,8 +576,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
             setIsAuthenticated(true);
             await Promise.all([
               fetchProducts(cafeData.id),
-              fetchMonthlySales(cafeData.id),
-              fetchTables(cafeData.id)
+              cafeData.plan_type !== 'silver' && cafeData.plan_type !== 'starter' ? fetchMonthlySales(cafeData.id) : Promise.resolve(),
+              fetchTables(cafeData.id),
+              fetchDevices(cafeData.id)
             ]);
           } else {
             sessionStorage.removeItem(sessionKey);
@@ -541,14 +595,23 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   useEffect(() => {
     if (!cafeId || !isAuthenticated) return;
 
+    // مراقبة حضور الكاشير (Slot Logic)
     const cashierChannel = supabase.channel(`cashier_slots_${cafeId}`);
     cashierChannel.on('presence', { event: 'sync' }, () => {
       const state = cashierChannel.presenceState();
       setActiveCashiers(Object.keys(state).length);
     }).subscribe();
 
+    // 🔥 تحديث جوهري: التحديث الحي (Real-time) للأجهزة المضافة من الكاشير
+    const devicesChannel = supabase.channel(`admin_devices_live_${cafeId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pos_devices', filter: `cafe_id=eq.${cafeId}` }, () => {
+        // إذا قام كاشير بتسجيل الدخول، ستتحدث قائمة الأجهزة فوراً هنا
+        fetchDevices(cafeId);
+      }).subscribe();
+
     return () => {
       supabase.removeChannel(cashierChannel);
+      supabase.removeChannel(devicesChannel);
     };
   }, [cafeId, isAuthenticated]);
 
@@ -577,8 +640,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       sessionStorage.setItem(`admin_auth_${cafeSlug}`, 'true');
       await Promise.all([
         fetchProducts(cafeId),
-        fetchMonthlySales(cafeId),
-        fetchTables(cafeId)
+        planType !== 'silver' && planType !== 'starter' ? fetchMonthlySales(cafeId) : Promise.resolve(),
+        fetchTables(cafeId),
+        fetchDevices(cafeId)
       ]);
     } else {
       alert(res.error || t.invalidLogin);
@@ -652,8 +716,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       if (cafeId) {
         await Promise.all([
           fetchProducts(cafeId),
-          fetchMonthlySales(cafeId),
-          fetchTables(cafeId)
+          planType !== 'silver' && planType !== 'starter' ? fetchMonthlySales(cafeId) : Promise.resolve(),
+          fetchTables(cafeId),
+          fetchDevices(cafeId)
         ]);
       }
     }
@@ -755,6 +820,26 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   };
 
   const handlePrint = () => { window.print(); };
+
+  // 🌟 Handlers for Devices
+  const handleUpdateDeviceStatus = async (deviceId: string, status: 'approved' | 'blocked' | 'pending') => {
+    const res = await updateDeviceStatus(cafeId!, deviceId, status);
+    if (res.success) {
+      fetchDevices(cafeId!);
+    } else {
+      alert(res.error);
+    }
+  };
+
+  const handleRemoveDevice = async (deviceId: string) => {
+    if (!confirm(t.confirmDelete)) return;
+    const res = await deletePosDevice(cafeId!, deviceId);
+    if (res.success) {
+      fetchDevices(cafeId!);
+    } else {
+      alert(t.deleteFailed);
+    }
+  };
 
   const LanguageToggle = () => (
     <div className="flex bg-muted/60 p-1 rounded-full w-max border" dir="ltr">
@@ -909,6 +994,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
               <TrendingUp size={18} /> {t.tabSales}
             </button>
 
+            <button onClick={() => { setActiveTab('devices'); cafeId && fetchDevices(cafeId); }} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'devices' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Laptop size={18} /> {t.tabDevices}</button>
             <button onClick={() => setActiveTab('settings')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'settings' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Settings size={18} /> {t.tabSettings}</button>
             <button onClick={() => setActiveTab('billing')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'billing' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><CreditCard size={18} /> {t.tabBilling}</button>
           </div>
@@ -917,77 +1003,201 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
       {activeTab === 'sales' && (
         <div className="space-y-8 max-w-5xl mx-auto animate-in fade-in duration-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-muted-foreground block">{t.currentMonthIncome}</span>
-                <h3 className="text-3xl font-black text-emerald-600 mt-1">{monthlyIncome.toFixed(2)} <span className="text-sm font-bold text-muted-foreground">MAD</span></h3>
+          {(planType === 'silver' || planType === 'starter') ? (
+            <div className="bg-white p-12 rounded-3xl border shadow-sm flex flex-col items-center justify-center text-center">
+              <div className="bg-amber-100 p-6 rounded-full text-amber-500 mb-6">
+                <Lock size={48} />
               </div>
-              <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0"><DollarSign size={28}/></div>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-muted-foreground block">{t.completedOrders}</span>
-                <h3 className="text-3xl font-black text-foreground mt-1">{monthlyOrders.length} <span className="text-sm font-bold text-muted-foreground">{t.tabMenu === 'Menu' ? 'Orders' : 'طلب'}</span></h3>
-              </div>
-              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shrink-0"><CheckCircle2 size={28}/></div>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
-              <div>
-                <span className="text-xs font-bold text-muted-foreground block">{t.avgCustomerSpend}</span>
-                <h3 className="text-3xl font-black text-primary mt-1">
-                  {monthlyOrders.length > 0 ? (monthlyIncome / monthlyOrders.length).toFixed(2) : "0.00"} <span className="text-sm font-bold text-muted-foreground">MAD</span>
-                </h3>
-              </div>
-              <div className="p-4 bg-primary/10 text-primary rounded-2xl shrink-0"><TrendingUp size={28}/></div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 lg:p-8 rounded-3xl border shadow-sm">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b">
-              <div>
-                <h3 className="font-extrabold text-xl">{t.salesLogTitle} {new Date().toLocaleString(activeLang === 'ar' ? 'ar-MA' : activeLang === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' })}</h3>
-                <p className="text-xs text-muted-foreground mt-1">{t.salesLogSub}</p>
-              </div>
-              <button onClick={() => cafeId && fetchMonthlySales(cafeId)} className="p-2.5 bg-muted rounded-xl hover:bg-gray-200 text-xs font-bold flex items-center gap-1.5 transition-colors">
-                <History size={16}/> {t.refreshLog}
+              <h3 className="text-2xl font-black mb-4 text-foreground">{t.tabSales}</h3>
+              <p className="text-muted-foreground max-w-md font-bold mb-8 leading-relaxed">
+                {t.analyticsLocked}
+              </p>
+              <button onClick={() => setActiveTab('billing')} className="bg-amber-400 hover:bg-amber-500 text-zinc-950 font-black px-8 py-4 rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center gap-2">
+                <TrendingUp size={20} />
+                {t.upgradeToGold}
               </button>
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-muted-foreground block">{t.currentMonthIncome}</span>
+                    <h3 className="text-3xl font-black text-emerald-600 mt-1">{monthlyIncome.toFixed(2)} <span className="text-sm font-bold text-muted-foreground">MAD</span></h3>
+                  </div>
+                  <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl shrink-0"><DollarSign size={28}/></div>
+                </div>
 
-            {isLoadingSales ? (
-              <div className="py-12 text-center font-bold text-muted-foreground">{t.calculatingIncome}</div>
-            ) : monthlyOrders.length === 0 ? (
-              <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-2xl font-bold">
-                {t.noSalesMonth}
+                <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-muted-foreground block">{t.completedOrders}</span>
+                    <h3 className="text-3xl font-black text-foreground mt-1">{monthlyOrders.length} <span className="text-sm font-bold text-muted-foreground">{t.tabMenu === 'Menu' ? 'Orders' : 'طلب'}</span></h3>
+                  </div>
+                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shrink-0"><CheckCircle2 size={28}/></div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border shadow-sm flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-muted-foreground block">{t.avgCustomerSpend}</span>
+                    <h3 className="text-3xl font-black text-primary mt-1">
+                      {monthlyOrders.length > 0 ? (monthlyIncome / monthlyOrders.length).toFixed(2) : "0.00"} <span className="text-sm font-bold text-muted-foreground">MAD</span>
+                    </h3>
+                  </div>
+                  <div className="p-4 bg-primary/10 text-primary rounded-2xl shrink-0"><TrendingUp size={28}/></div>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
-                {monthlyOrders.map((ord) => (
-                  <div key={ord.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/15 border rounded-2xl gap-3 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-start gap-3.5">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black shrink-0 text-lg">✓</div>
-                      <div>
-                        <div className="font-extrabold text-sm flex items-center gap-2">
-                          <span>{t.table} {ord.tables?.table_number?.replace('table_', '') || t.directPos}</span>
-                          <span className="text-[10px] font-mono text-muted-foreground">#{ord.id.split('-')[0]}</span>
+
+              <div className="bg-white p-6 lg:p-8 rounded-3xl border shadow-sm">
+                <div className="flex justify-between items-center mb-6 pb-4 border-b">
+                  <div>
+                    <h3 className="font-extrabold text-xl">{t.salesLogTitle} {new Date().toLocaleString(activeLang === 'ar' ? 'ar-MA' : activeLang === 'fr' ? 'fr-FR' : 'en-US', { month: 'long' })}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">{t.salesLogSub}</p>
+                  </div>
+                  <button onClick={() => cafeId && fetchMonthlySales(cafeId)} className="p-2.5 bg-muted rounded-xl hover:bg-gray-200 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                    <History size={16}/> {t.refreshLog}
+                  </button>
+                </div>
+
+                {isLoadingSales ? (
+                  <div className="py-12 text-center font-bold text-muted-foreground">{t.calculatingIncome}</div>
+                ) : monthlyOrders.length === 0 ? (
+                  <div className="py-16 text-center text-muted-foreground border-2 border-dashed rounded-2xl font-bold">
+                    {t.noSalesMonth}
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                    {monthlyOrders.map((ord) => (
+                      <div key={ord.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/15 border rounded-2xl gap-3 hover:bg-muted/30 transition-colors">
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black shrink-0 text-lg">✓</div>
+                          <div>
+                            <div className="font-extrabold text-sm flex items-center gap-2">
+                              <span>{t.table} {ord.tables?.table_number?.replace('table_', '') || t.directPos}</span>
+                              <span className="text-[10px] font-mono text-muted-foreground">#{ord.id.split('-')[0]}</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground font-bold mt-1 leading-relaxed">
+                              {ord.items.map((it:any) => `${it.quantity}x ${activeLang === 'en' && it.name_en ? it.name_en : activeLang === 'fr' && it.name_fr ? it.name_fr : it.name_ar}`).join(' + ')}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-xs text-muted-foreground font-bold mt-1 leading-relaxed">
-                          {ord.items.map((it:any) => `${it.quantity}x ${activeLang === 'en' && it.name_en ? it.name_en : activeLang === 'fr' && it.name_fr ? it.name_fr : it.name_ar}`).join(' + ')}
+
+                        <div className="flex sm:flex-col items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
+                          <span className="text-base font-black text-emerald-600 font-mono">{Number(ord.total_amount).toFixed(2)} MAD</span>
+                          <span className="text-[10px] font-mono text-muted-foreground">{new Date(ord.created_at).toLocaleString(activeLang === 'ar' ? 'ar-MA' : activeLang === 'fr' ? 'fr-FR' : 'en-US')}</span>
                         </div>
                       </div>
-                    </div>
-
-                    <div className="flex sm:flex-col items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0">
-                      <span className="text-base font-black text-emerald-600 font-mono">{Number(ord.total_amount).toFixed(2)} MAD</span>
-                      <span className="text-[10px] font-mono text-muted-foreground">{new Date(ord.created_at).toLocaleString(activeLang === 'ar' ? 'ar-MA' : activeLang === 'fr' ? 'fr-FR' : 'en-US')}</span>
-                    </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 🌟 New Tab: Devices & POS Hardware */}
+      {activeTab === 'devices' && (
+        <div className="space-y-8 max-w-6xl mx-auto animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">{t.tabDevices}</h2>
+            <button onClick={() => cafeId && fetchDevices(cafeId)} className="p-2.5 bg-muted rounded-xl hover:bg-gray-200 text-xs font-bold flex items-center gap-1.5 transition-colors">
+              <History size={16}/> {t.refreshLog}
+            </button>
           </div>
+
+          {isLoadingDevices ? (
+            <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" size={40} /></div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+              
+              {/* Pending */}
+              <div className="bg-white p-6 rounded-3xl border border-amber-200 shadow-sm flex flex-col">
+                <h3 className="font-bold flex items-center gap-2 text-amber-500 mb-6 border-b pb-4">
+                  <Clock size={20}/> {t.pendingDevices}
+                </h3>
+                <div className="flex-1 space-y-3">
+                  {devicesList.filter(d => d.status === 'pending').length === 0 ? (
+                    <p className="text-xs text-muted-foreground font-bold text-center py-8">{t.noDevices}</p>
+                  ) : (
+                    devicesList.filter(d => d.status === 'pending').map(d => (
+                      <div key={d.id} className="p-4 bg-muted/20 border rounded-2xl">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-bold text-sm">{d.device_name}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">{new Date(d.created_at).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleUpdateDeviceStatus(d.id, 'approved')} className="flex-1 bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white py-2 rounded-xl text-xs font-bold transition-colors">
+                            {t.approveBtn}
+                          </button>
+                          <button onClick={() => handleUpdateDeviceStatus(d.id, 'blocked')} className="flex-1 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white py-2 rounded-xl text-xs font-bold transition-colors">
+                            {t.blockBtn}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Approved */}
+              <div className="bg-white p-6 rounded-3xl border border-emerald-200 shadow-sm flex flex-col">
+                <h3 className="font-bold flex items-center gap-2 text-emerald-500 mb-6 border-b pb-4">
+                  <Check size={20}/> {t.approvedDevices} ({devicesList.filter(d => d.status === 'approved').length} / {maxCashiers})
+                </h3>
+                <div className="flex-1 space-y-3">
+                  {devicesList.filter(d => d.status === 'approved').length === 0 ? (
+                    <p className="text-xs text-muted-foreground font-bold text-center py-8">{t.noDevices}</p>
+                  ) : (
+                    devicesList.filter(d => d.status === 'approved').map(d => (
+                      <div key={d.id} className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-bold text-sm">{d.device_name}</p>
+                            <p className="text-[10px] text-emerald-600/70 mt-1">{new Date(d.last_active).toLocaleString()}</p>
+                          </div>
+                        </div>
+                        <button onClick={() => handleUpdateDeviceStatus(d.id, 'blocked')} className="w-full bg-white border border-border hover:bg-red-50 hover:border-red-200 hover:text-red-500 py-2 rounded-xl text-xs font-bold transition-colors">
+                          {t.blockBtn}
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Blocked */}
+              <div className="bg-white p-6 rounded-3xl border shadow-sm flex flex-col">
+                <h3 className="font-bold flex items-center gap-2 text-red-500 mb-6 border-b pb-4">
+                  <Ban size={20}/> {t.blockedDevices}
+                </h3>
+                <div className="flex-1 space-y-3">
+                  {devicesList.filter(d => d.status === 'blocked').length === 0 ? (
+                    <p className="text-xs text-muted-foreground font-bold text-center py-8">{t.noDevices}</p>
+                  ) : (
+                    devicesList.filter(d => d.status === 'blocked').map(d => (
+                      <div key={d.id} className="p-4 bg-muted/30 border rounded-2xl opacity-75">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-bold text-sm line-through">{d.device_name}</p>
+                            <p className="text-[10px] text-muted-foreground mt-1">{new Date(d.updated_at || d.created_at).toLocaleString()}</p>
+                          </div>
+                          <button onClick={() => handleRemoveDevice(d.id)} className="text-red-400 hover:text-red-600" title={t.deleteBtn}>
+                            <Trash2 size={16}/>
+                          </button>
+                        </div>
+                        <button onClick={() => handleUpdateDeviceStatus(d.id, 'pending')} className="w-full bg-white border border-border hover:bg-muted py-2 rounded-xl text-xs font-bold transition-colors">
+                          Unblock / Pending
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+            </div>
+          )}
         </div>
       )}
 
@@ -1024,7 +1234,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
               
               <div>
                 <label className="block text-xs font-bold mb-1 text-primary">{t.maxCashierLabel}</label>
-                <input type="number" min="1" max="10" required value={maxCashiers} onChange={(e) => setMaxCashiers(e.target.value)} className="w-full border-2 border-primary/30 rounded-xl p-3 bg-primary/5 font-bold text-xl text-center focus:border-primary outline-none" dir="ltr" />
+                <input type="number" min="1" max="10" readOnly required value={maxCashiers} onChange={(e) => setMaxCashiers(e.target.value)} className="w-full border-2 border-primary/30 rounded-xl p-3 bg-primary/5 font-bold text-xl text-center focus:border-primary outline-none disabled:opacity-75 cursor-not-allowed" dir="ltr" title="Linked to your current plan" />
               </div>
 
               <div className="pt-4 border-t border-border/50">

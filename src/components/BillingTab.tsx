@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { 
+  CreditCard, 
+  CheckCircle2, 
+  Zap, 
+  Shield, 
+  ArrowRight, 
+  Loader2, 
+  History,
+  AlertCircle,
+  Gem
+} from "lucide-react";
 import { supabase } from "../lib/supabase";
-import { submitBankTransferReceipt, getPlatformBankDetails } from "../actions/saas";
-import { CreditCard, Upload, CheckCircle2, Copy, Clock, AlertCircle, ShieldCheck, Sparkles, Loader2, Landmark } from "lucide-react";
 
 interface BillingTabProps {
   cafeId: string;
@@ -11,177 +20,224 @@ interface BillingTabProps {
 }
 
 const PLANS = [
-  { id: 'starter', name: 'باقة Starter', price: 150, desc: 'للمقاهي الصغيرة الناشئة', features: ['حد أقصى 25 منتج في المنيو', '1 شاشة كاشير فقط', 'كود QR عادي للطاولات'] },
-  { id: 'pro', name: 'باقة Pro ⭐', price: 299, desc: 'الأكثر طلباً للمقاهي النشطة', features: ['منتجات غير محدودة في المنيو', '3 شاشات كاشير في نفس الوقت', 'إشعارات نفاد الباقة عبر واتساب', 'إحصائيات المبيعات'] },
-  { id: 'enterprise', name: 'باقة Enterprise', price: 499, desc: 'للسلاسل والمقاهي الكبرى', features: ['كل ميزات باقة Pro', 'شاشات كاشير غير محدودة', 'دومين مخصص (YourCafe.ma)', 'أولوية قصوى في الدعم الفني'] }
+  {
+    id: "silver",
+    name: "Silver",
+    target: "Perfect for small & emerging cafes",
+    price: "2,000",
+    icon: <Shield className="text-slate-500" size={28} />,
+    color: "bg-slate-50 text-slate-700 border-slate-200",
+    features: [
+      "Unlimited QR orders with 0% commission",
+      "1 POS Terminal to manage all tables centrally",
+      "Automatic Kitchen Printing upon POS order confirmation",
+      "Secure Staff PINs to track cashier shifts safely",
+      "Instant menu updates (No more reprinting costs)",
+      "Daily revenue tracking & simple dashboard"
+    ]
+  },
+  {
+    id: "gold",
+    name: "Gold",
+    target: "For busy cafes needing kitchen sync",
+    price: "2,990",
+    icon: <Zap className="text-amber-500" size={28} />,
+    color: "bg-amber-50 text-amber-700 border-amber-300 shadow-amber-100",
+    features: [
+      "All Silver features, plus:",
+      "Up to 3 POS Terminals to speed up checkout lines",
+      "Insights to identify best-selling items & peak hours",
+      "Priority WhatsApp support for quick fixes"
+    ]
+  },
+  {
+    id: "diamond",
+    name: "Diamond",
+    target: "For franchises & large operations",
+    price: "4,990",
+    icon: <Gem className="text-purple-500" size={28} />,
+    color: "bg-purple-50 text-purple-700 border-purple-300 shadow-purple-100",
+    features: [
+      "All Gold features, plus:",
+      "Unlimited POS terminals & kitchen printers",
+      "Custom domain branding (e.g., menu.yourcafe.ma)",
+      "Done-for-you full menu data entry & system setup",
+      "Multi-branch architecture ready",
+      "24/7 direct phone & WhatsApp emergency hotline"
+    ]
+  }
 ];
 
 export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
-  const [loading, setLoading] = useState(true);
-  const [subData, setSubData] = useState<any>(null);
-  
-  // 🌟 حالة جديدة لتخزين بيانات البنك القادمة من الداتا بيز
-  const [bankInfo, setBankInfo] = useState({ bank_name: 'CIH BANK', rib: '...', holder_name: '...' });
-  
-  const [selectedPlanPrice, setSelectedPlanPrice] = useState(299);
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
-  const fetchAllData = async () => {
-    setLoading(true);
-    
-    // 1. جلب بيانات البنك العالمية + بيانات اشتراك هذا المقهى في نفس الوقت
-    const [bankRes, cafeRes] = await Promise.all([
-      getPlatformBankDetails(),
-      supabase.from('cafes').select('subscription_status, subscription_ends_at, plan_type').eq('id', cafeId).single()
-    ]);
-
-    if (bankRes) setBankInfo(bankRes);
-
-    if (cafeRes.data) {
-      setSubData(cafeRes.data);
-      const plan = PLANS.find(p => p.id === cafeRes.data.plan_type);
-      if (plan) setSelectedPlanPrice(plan.price);
-    }
-    
-    setLoading(false);
-  };
-
+  // جلب الباقة الحالية من قاعدة البيانات
   useEffect(() => {
-    fetchAllData();
+    const fetchBillingDetails = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("cafes")
+          .select("plan_type")
+          .eq("id", cafeId)
+          .single();
+
+        if (!error && data) {
+          setCurrentPlan(data.plan_type || "silver");
+        }
+      } catch (err) {
+        console.error("Error fetching plan:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (cafeId) fetchBillingDetails();
   }, [cafeId]);
 
-  const handleCopyRIB = () => {
-    navigator.clipboard.writeText(bankInfo.rib.replace(/\s/g, ''));
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  // دالة الترقية الوهمية (تُحدث قاعدة البيانات مباشرة لأغراض الاختبار)
+  const handleFakeUpgrade = async (planId: string) => {
+    if (planId === currentPlan) return;
+    
+    setIsProcessing(planId);
+    
+    // محاكاة تأخير الدفع (ثانية ونصف)
+    setTimeout(async () => {
+      const { error } = await supabase
+        .from("cafes")
+        .update({ plan_type: planId })
+        .eq("id", cafeId);
 
-  const handleUploadAndSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!receiptFile || !cafeId) return alert("يرجى اختيار صورة التوصيل البنكي!");
-
-    setIsSubmitting(true);
-    try {
-      const fileExt = receiptFile.name.split('.').pop();
-      const fileName = `${cafeId}-${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage.from('receipts').upload(fileName, receiptFile);
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from('receipts').getPublicUrl(fileName);
-      const publicReceiptUrl = urlData.publicUrl;
-
-      const res = await submitBankTransferReceipt(cafeId, publicReceiptUrl, selectedPlanPrice);
-      
-      if (res.success) {
-        alert("تم إرسال إيصال الأداء بنجاح! 🚀\nالمنيو الخاص بكم مفعل الآن، وسيتم مراجعة الإيصال من طرف الإدارة.");
-        setReceiptFile(null);
-        fetchAllData();
+      if (!error) {
+        setCurrentPlan(planId);
+        alert(`تمت الترقية إلى باقة ${planId.toUpperCase()} بنجاح! 🎉\n(هذه ترقية تجريبية لتخطي الدفع)`);
+        // إعادة تحميل الصفحة لتحديث القيود في الواجهة
+        window.location.reload();
       } else {
-        throw new Error(res.error);
+        alert("حدث خطأ أثناء ترقية الباقة. حاول مجدداً.");
       }
-    } catch (err: any) {
-      alert("حدث خطأ أثناء إرسال الإيصال: " + (err.message || "تأكد من جودة الإنترنت"));
-    } finally {
-      setIsSubmitting(false);
-    }
+      setIsProcessing(null);
+    }, 1500);
   };
 
-  if (loading) return <div className="p-12 text-center font-bold text-muted-foreground animate-pulse">جاري تحميل بيانات التجديد...</div>;
-
-  const isPending = subData?.subscription_status === 'pending_verification';
-  const isActive = subData?.subscription_status === 'active';
-  const daysLeft = subData?.subscription_ends_at ? Math.max(0, Math.ceil((new Date(subData.subscription_ends_at).getTime() - Date.now()) / (1000 * 3600 * 24))) : 0;
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-24">
+        <Loader2 className="animate-spin text-primary" size={40} />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300 text-foreground" dir="rtl">
+    <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300" dir="ltr">
       
-      <div className={`p-6 rounded-3xl border flex flex-col md:flex-row items-center justify-between gap-4 ${isPending ? 'bg-amber-500/10 border-amber-500/30 text-amber-700' : isActive ? 'bg-green-500/10 border-green-500/30 text-green-700' : 'bg-red-500/10 border-red-500/30 text-red-700'}`}>
+      {/* Overview Header */}
+      <div className="bg-white p-8 rounded-3xl border border-border shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4">
-          <div className={`p-3 rounded-2xl bg-white shadow-sm ${isPending ? 'text-amber-500' : isActive ? 'text-green-500' : 'text-red-500'}`}>
-            {isPending ? <Clock size={28} className="animate-spin" /> : isActive ? <ShieldCheck size={28} /> : <AlertCircle size={28} />}
+          <div className="p-4 bg-primary/10 text-primary rounded-2xl">
+            <CreditCard size={32} />
           </div>
           <div>
-            <h3 className="text-xl font-black">
-              {isPending ? "الاشتراك قيد المراجعة البنكية ⏳" : isActive ? "الاشتراك نشط ومحمي 🛡️" : "الاشتراك منتهي الصلاحية ⚠️"}
-            </h3>
-            <p className="text-sm font-medium mt-1 opacity-90">
-              {isPending ? "وصلنا إيصال الدفع. المنيو شغال بأمان في انتظار تأكيد البنك." : isActive ? `متبقي على التجديد القادم: ${daysLeft} يوماً` : "الخدمة متوقفة حالياً. يرجى التجديد لإعادة تفعيل المنيو للزبائن."}
-            </p>
+            <h2 className="text-2xl font-black">{cafeName} Billing & Subscription</h2>
+            <p className="text-muted-foreground font-medium text-sm">Manage your cafe's plan and POS hardware limits.</p>
           </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <div className="lg:col-span-2 space-y-4">
-          <h2 className="text-xl font-bold flex items-center gap-2"><Sparkles className="text-primary"/> اختر باقة التجديد</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {PLANS.map(plan => {
-              const isSelected = selectedPlanPrice === plan.price;
-              return (
-                <div key={plan.id} onClick={() => setSelectedPlanPrice(plan.price)} className={`p-5 rounded-3xl border-2 cursor-pointer transition-all flex flex-col justify-between ${isSelected ? 'border-primary bg-primary/5 shadow-md scale-[1.02]' : 'border-border bg-white hover:border-border/80'}`}>
-                  <div>
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-black text-sm">{plan.name}</h4>
-                      {isSelected && <CheckCircle2 size={18} className="text-primary"/>}
-                    </div>
-                    <p className="text-[11px] text-muted-foreground font-medium mb-4">{plan.desc}</p>
-                    <div className="text-2xl font-black text-foreground mb-4">{plan.price} <span className="text-xs font-bold text-muted-foreground">MAD/شهر</span></div>
-                    <ul className="space-y-2 border-t pt-3">
-                      {plan.features.map((feat, i) => (
-                        <li key={i} className="text-[11px] font-bold text-muted-foreground flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0"/> {feat}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              );
-            })}
+        <div className="bg-muted/30 px-8 py-4 rounded-2xl border text-center min-w-[200px]">
+          <span className="block text-xs font-bold text-muted-foreground mb-1">Current Active Plan</span>
+          <div className="text-2xl font-black uppercase text-primary tracking-wider">
+            {currentPlan || "Silver"}
           </div>
         </div>
-
-        {/* 🌟 معلومات الحساب الديناميكية القادمة من قاعدة البيانات */}
-        <div className="bg-white p-6 rounded-3xl border border-border shadow-sm flex flex-col justify-between space-y-6">
-          <div>
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-primary"><Landmark size={20}/> التحويل البنكي</h3>
-            <div className="bg-muted/40 p-4 rounded-2xl border space-y-3 font-mono">
-              <div>
-                <span className="text-[10px] text-muted-foreground block font-sans font-bold">البنك المستلم</span>
-                <span className="font-black text-sm text-foreground">{bankInfo.bank_name}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-muted-foreground block font-sans font-bold">اسم المستفيد</span>
-                <span className="font-bold text-xs uppercase text-foreground">{bankInfo.holder_name}</span>
-              </div>
-              <div>
-                <span className="text-[10px] text-muted-foreground block font-sans font-bold">رقم الحساب (RIB)</span>
-                <div className="flex items-center justify-between mt-1 bg-white p-2 rounded-xl border">
-                  <span className="text-xs font-extrabold tracking-wider text-primary truncate mr-2">{bankInfo.rib}</span>
-                  <button type="button" onClick={handleCopyRIB} className="p-1.5 bg-muted rounded-lg hover:bg-gray-200 text-foreground transition-colors shrink-0">
-                    {copied ? <CheckCircle2 size={16} className="text-green-600"/> : <Copy size={16}/>}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <form onSubmit={handleUploadAndSubmit} className="space-y-4 pt-4 border-t">
-            <div className="border-2 border-dashed border-primary/40 hover:border-primary rounded-2xl p-4 text-center cursor-pointer relative transition-colors bg-primary/5">
-              <input required type="file" accept="image/*" onChange={(e) => setReceiptFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-              <Upload className="mx-auto text-primary mb-1" size={24} />
-              <span className="text-xs font-bold text-primary block">{receiptFile ? receiptFile.name : "اضغط لرفع صورة التوصيل الروسي"}</span>
-              <span className="text-[10px] text-muted-foreground">PNG, JPG أو PDF</span>
-            </div>
-
-            <button disabled={isSubmitting || !receiptFile} type="submit" className="w-full bg-foreground text-white py-4 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 hover:bg-foreground/90 disabled:opacity-50 transition-all">
-              {isSubmitting ? <><Loader2 size={18} className="animate-spin"/> جاري إرسال الإيصال...</> : `تأكيد أداء ${selectedPlanPrice} درهم`}
-            </button>
-          </form>
-        </div>
-
       </div>
+
+      {/* Pricing Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {PLANS.map((plan) => {
+          const isActive = currentPlan === plan.id;
+          const isUpgradingThis = isProcessing === plan.id;
+
+          return (
+            <div 
+              key={plan.id} 
+              className={`relative flex flex-col p-8 rounded-3xl border-2 transition-all duration-200 ${
+                isActive 
+                  ? `${plan.color} shadow-lg scale-[1.02] border-opacity-100` 
+                  : "bg-white border-border hover:border-primary/30"
+              }`}
+            >
+              {isActive && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-foreground text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
+                  Active Plan
+                </div>
+              )}
+
+              <div className="mb-4 flex justify-between items-start">
+                <div>
+                  <h3 className="font-extrabold text-3xl mb-1">{plan.name}</h3>
+                  <p className="text-xs font-bold opacity-70 mt-2 max-w-[200px]">
+                    {plan.target}
+                  </p>
+                </div>
+                <div className={`p-3 rounded-2xl shadow-sm border border-black/5 ${isActive ? 'bg-white/50' : 'bg-muted/50'}`}>
+                  {plan.icon}
+                </div>
+              </div>
+
+              <div className="mb-8 pb-6 border-b border-black/10">
+                <p className="text-sm font-bold opacity-70">
+                  <span className="text-4xl font-black">{plan.price}</span> MAD / mo
+                </p>
+              </div>
+
+              <div className="flex-1 space-y-4 mb-8">
+                {plan.features.map((feat, idx) => (
+                  <div key={idx} className="flex items-start gap-3">
+                    <CheckCircle2 size={18} className={`shrink-0 mt-0.5 ${isActive ? "opacity-100 text-current" : "text-primary opacity-70"}`} />
+                    <span className="text-sm font-bold opacity-90 leading-snug">{feat}</span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                disabled={isActive || isProcessing !== null}
+                onClick={() => handleFakeUpgrade(plan.id)}
+                className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${
+                  isActive 
+                    ? "bg-black/5 text-black/40 cursor-not-allowed border border-black/5" 
+                    : "bg-foreground text-white hover:opacity-90 active:scale-95 shadow-xl"
+                }`}
+              >
+                {isUpgradingThis ? (
+                  <Loader2 className="animate-spin" size={20} />
+                ) : isActive ? (
+                  "Current Plan"
+                ) : (
+                  <>Test Upgrade to {plan.name} <ArrowRight size={18} /></>
+                )}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Invoice History Mockup (Hidden during testing) */}
+      <div className="bg-white p-8 rounded-3xl border border-border shadow-sm opacity-50 grayscale select-none pointer-events-none">
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/50">
+          <h3 className="text-xl font-extrabold flex items-center gap-2">
+            <History className="text-muted-foreground" size={24} /> Payment History (Coming Soon)
+          </h3>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground bg-muted/10 rounded-2xl border border-dashed">
+          <AlertCircle size={32} className="mb-3 opacity-20" />
+          <p className="font-bold">Real payment integration is under development.</p>
+          <p className="text-xs mt-1">For now, use the buttons above to test different plan limits.</p>
+        </div>
+      </div>
+
     </div>
   );
 }
