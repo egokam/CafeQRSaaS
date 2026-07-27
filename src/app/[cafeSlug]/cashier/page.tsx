@@ -10,11 +10,10 @@ import {
   getCashierActiveOrders,
   getCashierCafeBySlug,
   getCashierWorkspace,
-  loginCashierWithDevice, 
+  loginCashierWithDevice,
 } from "../../../actions/auth";
 import { checkCafeSubscription } from "../../../actions/saas";
 
-// 🌟 Translation System
 const TRANSLATIONS: Record<string, any> = {
   en: {
     loading: "Loading...",
@@ -164,8 +163,7 @@ const LANGUAGES = ["en", "fr", "ar"];
 
 export default function CashierDashboard({ params }: { params: Promise<{ cafeSlug: string }> }) {
   const { cafeSlug } = use(params);
-  
-  // 🌟 Language State
+
   const [activeLang, setActiveLang] = useState("en");
   const t = TRANSLATIONS[activeLang];
   const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
@@ -176,7 +174,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [isLocked, setIsLocked] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
 
-  // 🌟 حالات الجهاز والمنع
   const [deviceId, setDeviceId] = useState("");
   const [deviceStatus, setDeviceStatus] = useState<'none' | 'pending' | 'blocked' | 'approved'>('none');
   const [isSessionFull, setIsSessionFull] = useState(false);
@@ -184,13 +181,12 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
   const [orders, setOrders] = useState<any[]>([]);
   const [cafeId, setCafeId] = useState<string | null>(null);
-  const [cafeDataObj, setCafeDataObj] = useState<any>(null); 
-  
+  const [cafeDataObj, setCafeDataObj] = useState<any>(null);
+
   const [printOrder, setPrintOrder] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
 
-  // 🌟 أدوات نظام الكاشير المباشر
   const [products, setProducts] = useState<any[]>([]);
   const [tables, setTables] = useState<any[]>([]);
   const [showPOS, setShowPOS] = useState(false);
@@ -210,13 +206,15 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     if (res.success) setOrders(res.orders);
   };
 
-  // 🌟 توليد بصمة الجهاز واسترجاع الجلسة عند التحديث (Refresh Restore)
+  // 🌟 1. Device fingerprinting & Session Restore
   useEffect(() => {
     let storedId = localStorage.getItem(`cafeqr_device_${cafeSlug}`);
-    if (!storedId) {
-      storedId = 'dev_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+
+    if (!storedId || !storedId.startsWith('dev_')) {
+      storedId = 'dev_' + Math.random().toString(36).substring(2, 15);
       localStorage.setItem(`cafeqr_device_${cafeSlug}`, storedId);
     }
+
     setDeviceId(storedId);
 
     const initCafe = async () => {
@@ -231,12 +229,11 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
       const cafeRes = await getCashierCafeBySlug(cafeSlug);
       if (!cafeRes.success || !cafeRes.cafe) { setIsNotFound(true); setIsLoading(false); return; }
-      
+
       const cId = cafeRes.cafe.id;
       setCafeId(cId);
       setCafeDataObj(cafeRes.cafe);
 
-      // 🔥 فحص حالة الجهاز من قاعدة البيانات وتخطي الدخول إذا كان مصرحاً
       try {
         const { data: deviceData } = await supabase
           .from("pos_devices")
@@ -247,7 +244,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
         if (deviceData) {
           setDeviceStatus(deviceData.status as any);
-          
+
           if (deviceData.status === 'approved' && sessionStorage.getItem(`cashier_auth_${cafeSlug}`) === 'true') {
             const workspace = await getCashierWorkspace(cId);
             if (workspace.success) {
@@ -270,22 +267,21 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     initCafe();
   }, [cafeSlug]);
 
-  // 📡 المراقبة الحية للطلبات، حالة الجهاز، والحد الأقصى للجلسات (Realtime Logic)
+  // 📡 2. Realtime Monitoring (Deduplicated and strictly cleaned up)
   useEffect(() => {
-    if (!isAuthenticated || !cafeDataObj || !deviceId) return;
+    if (!isAuthenticated || !cafeId || !deviceId) return;
 
-    fetchOrders(cafeDataObj.id);
+    fetchOrders(cafeId);
 
-    // 1. مراقبة الطلبات الجديدة للمطبخ
-    const ordersChannel = supabase.channel(`live-orders-${cafeDataObj.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `cafe_id=eq.${cafeDataObj.id}` }, (payload: any) => {
-        fetchOrders(cafeDataObj.id);
+    const ordersChannel = supabase.channel(`live-orders-${cafeId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `cafe_id=eq.${cafeId}` }, (payload: any) => {
+        fetchOrders(cafeId);
         if (payload.eventType === 'INSERT' || (payload.new && payload.new.status === 'ready')) {
-          new Audio('/bell.mp3').play().catch(() => {});
+          new Audio('/bell.mp3').play().catch(() => { });
         }
-      }).subscribe();
+      })
+      .subscribe();
 
-    // 2. 🌟 الطرد المباشر من الإدارة (إذا تم حظر الجهاز من لوحة التحكم)
     const deviceChannel = supabase.channel(`device_${deviceId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pos_devices', filter: `device_id=eq.${deviceId}` }, (payload: any) => {
         if (payload.new.status === 'blocked') {
@@ -295,58 +291,54 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           setIsAuthenticated(false);
           setDeviceStatus('pending');
         }
-      }).subscribe();
+      })
+      .subscribe();
 
-    // 3. 🌟 الحفاظ على نظامك القديم: طرد الكاشير الزائد عن الحد المسموح (Session Full)
-    const slotChannel = supabase.channel(`cashier_slots_${cafeDataObj.id}`, {
-      config: { presence: { key: deviceId } } // نربط التواجد ببصمة الجهاز الثابتة
+    const slotChannel = supabase.channel(`cashier_slots_${cafeId}`, {
+      config: { presence: { key: deviceId } }
     });
 
     slotChannel.on('presence', { event: 'sync' }, () => {
       const presenceState = slotChannel.presenceState();
-      const maxAllowed = cafeDataObj.max_cashiers || 1;
-      
-      if (!presenceState[deviceId]) return;
+      const maxAllowed = Number(cafeDataObj?.max_cashiers) || 1;
 
       const activeSessions: { key: string, onlineAt: number }[] = [];
       Object.entries(presenceState).forEach(([key, presences]: [string, any]) => {
-        if (presences.length > 0) activeSessions.push({ key, onlineAt: new Date(presences[0].online_at || Date.now()).getTime() });
+        if (key.startsWith('dev_') && presences.length > 0 && presences[0].online_at) {
+          activeSessions.push({ key, onlineAt: new Date(presences[0].online_at).getTime() });
+        }
       });
 
-      // ترتيب الأجهزة حسب وقت الدخول (الأقدم له الأولوية)
       activeSessions.sort((a, b) => a.onlineAt - b.onlineAt);
       const allowedKeys = activeSessions.slice(0, maxAllowed).map(s => s.key);
 
-      // إذا لم يكن هذا الجهاز ضمن القائمة المسموحة، يتم طرده فوراً
       if (!allowedKeys.includes(deviceId)) {
         setIsSessionFull(true);
-        slotChannel.untrack();
-        setIsAuthenticated(false); // نخرجه من النظام
+        setIsAuthenticated(false);
       }
     });
 
     slotChannel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') await slotChannel.track({ online_at: new Date().toISOString() });
+      if (status === 'SUBSCRIBED') {
+        await slotChannel.track({ online_at: new Date().toISOString() });
+      }
     });
 
-    return () => { 
-      supabase.removeChannel(ordersChannel); 
+    // Cleanup: Safely destroy the connections to prevent ghosts
+    return () => {
+      supabase.removeChannel(ordersChannel);
       supabase.removeChannel(deviceChannel);
       supabase.removeChannel(slotChannel);
     };
-  }, [isAuthenticated, cafeDataObj, deviceId]);
+  }, [isAuthenticated, cafeId, deviceId, cafeDataObj?.max_cashiers]);
 
-  // 🌟 نظام تسجيل الدخول الجديد (بصمة الجهاز)
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLocked || !cafeId || !deviceId) return;
 
     setIsChecking(true);
-    
-    // جلب اسم المتصفح لتسهيل التعرف عليه في لوحة الإدارة
     const deviceName = `${navigator.platform || 'Unknown'} - ${navigator.userAgent.split(' ')[0] || 'Browser'}`;
-    
-    // إرسال طلب الدخول مع البصمة للسيرفر
     const res = await loginCashierWithDevice(cafeSlug, pinInput, deviceId, deviceName);
     setIsChecking(false);
 
@@ -360,13 +352,13 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       setTables(workspace.tables);
       setOrders(workspace.orders);
       if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
-      
+
       setIsAuthenticated(true);
-      sessionStorage.setItem(`cashier_auth_${cafeSlug}`, 'true'); // حفظ الجلسة محلياً
+      sessionStorage.setItem(`cashier_auth_${cafeSlug}`, 'true');
       setDeviceStatus('approved');
       setAttempts(0);
       setPinInput("");
-      new Audio('/bell.mp3').play().catch(()=> {});
+      new Audio('/bell.mp3').play().catch(() => { });
     } else if (res.status === 'pending') {
       setDeviceStatus('pending');
     } else if (res.status === 'blocked') {
@@ -400,7 +392,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   };
 
   const markOutOfStock = async (productId: string, productName: string) => {
-    if(!confirm(`${t.confirmDisable} "${productName}"?`)) return;
+    if (!confirm(`${t.confirmDisable} "${productName}"?`)) return;
     const { success } = await cashierMarkOutOfStock(productId);
     if (success) alert(`"${productName}" ${t.disabledSuccess}`);
   };
@@ -442,13 +434,13 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
       if (!res.success || !res.order) throw new Error(res.error);
 
-      new Audio('/bell.mp3').play().catch(()=>{});
+      new Audio('/bell.mp3').play().catch(() => { });
       handlePrintReceipt(res.order);
 
       setPosCart({});
       setShowPOS(false);
       fetchOrders(cafeId);
-    } catch (err) { alert(t.manualPosFail); } 
+    } catch (err) { alert(t.manualPosFail); }
     finally { setIsSubmittingPos(false); }
   };
 
@@ -466,9 +458,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     </div>
   );
 
-  if (isLoading) return <div className="min-h-screen bg-muted/20 flex items-center justify-center"><div className="w-12 h-12 border-4 border-foreground border-t-transparent rounded-full animate-spin"/></div>;
+  if (isLoading) return <div className="min-h-screen bg-muted/20 flex items-center justify-center"><div className="w-12 h-12 border-4 border-foreground border-t-transparent rounded-full animate-spin" /></div>;
 
-  if (isNotFound) return <div className="min-h-screen bg-muted/20 flex flex-col items-center justify-center p-6 text-center" dir={dir}><AlertTriangle className="w-16 h-16 text-red-500 mb-4"/><h1 className="text-3xl font-bold">{t.notFoundTitle}</h1></div>;
+  if (isNotFound) return <div className="min-h-screen bg-muted/20 flex flex-col items-center justify-center p-6 text-center" dir={dir}><AlertTriangle className="w-16 h-16 text-red-500 mb-4" /><h1 className="text-3xl font-bold">{t.notFoundTitle}</h1></div>;
 
   if (isSuspended) {
     return (
@@ -480,7 +472,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     );
   }
 
-  // 🌟 شاشات المنع الجديدة (Pending & Blocked)
   if (deviceStatus === 'pending') {
     return (
       <div className="min-h-screen bg-amber-50 flex flex-col items-center justify-center p-6 text-center" dir={dir}>
@@ -507,7 +498,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       <div className="min-h-screen bg-muted/20 flex flex-col items-center justify-center p-6" dir={dir}>
         <div className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'}`}><LanguageToggle /></div>
         <div className="bg-white p-8 rounded-[2rem] shadow-sm border w-full max-w-sm text-center">
-          <div className="bg-foreground w-20 h-20 rounded-full flex items-center justify-center text-white mx-auto mb-6"><Lock size={36}/></div>
+          <div className="bg-foreground w-20 h-20 rounded-full flex items-center justify-center text-white mx-auto mb-6"><Lock size={36} /></div>
           <h2 className="text-2xl font-extrabold mb-2">{t.cashierZone}</h2>
           <p className="text-muted-foreground mb-8 text-sm font-bold">{t.enterPin}</p>
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -526,22 +517,22 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{__html: `@media print { .no-print { display: none !important; } .print-only { display: block !important; } @page { margin: 0; size: 80mm auto; } body { background-color: white; margin: 0; } }`}} />
-      
+      <style dangerouslySetInnerHTML={{ __html: `@media print { .no-print { display: none !important; } .print-only { display: block !important; } @page { margin: 0; size: 80mm auto; } body { background-color: white; margin: 0; } }` }} />
+
       <div className="min-h-screen bg-muted/20 p-6 md:p-12 no-print font-sans" dir={dir}>
-        
+
         <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-border gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"/>
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
               <span className="text-[11px] font-bold font-mono tracking-wider text-emerald-600 uppercase">{t.posTerminal}</span>
             </div>
             <h1 className="text-3xl font-black tracking-tight">{t.mainTitle}</h1>
           </div>
-          
+
           <div className="flex items-center gap-4 flex-wrap shrink-0">
             <LanguageToggle />
-            <button 
+            <button
               onClick={() => setShowPOS(true)}
               className="bg-foreground hover:bg-foreground/90 text-white px-6 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 shadow-xl transition-transform active:scale-95 shrink-0"
             >
@@ -551,14 +542,13 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </div>
         </header>
 
-        {/* POS Modal Drawer */}
         {showPOS && (
           <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-5xl h-[88vh] rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-border">
-              
+
               <div className={`flex-1 flex flex-col bg-slate-50/60 p-6 overflow-hidden order-2 ${activeLang === 'ar' ? 'md:order-1' : 'md:order-2'}`}>
                 <div className="flex items-center justify-between pb-4 mb-4 border-b">
-                  <h3 className="font-black text-xl flex items-center gap-2"><UtensilsCrossed className="text-primary" size={22}/> {t.quickMenu}</h3>
+                  <h3 className="font-black text-xl flex items-center gap-2"><UtensilsCrossed className="text-primary" size={22} /> {t.quickMenu}</h3>
                   <div className="flex gap-1.5 overflow-x-auto pb-1">
                     {posCategoriesList.map(cat => (
                       <button key={cat} onClick={() => setPosCategory(cat)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${posCategory === cat ? 'bg-foreground text-white shadow-md' : 'bg-white text-muted-foreground border hover:bg-slate-100'}`}>
@@ -587,7 +577,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 <div>
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="font-black text-lg">{t.directTicket}</h3>
-                    <button onClick={() => setShowPOS(false)} className="p-1.5 bg-muted rounded-full hover:bg-gray-200"><X size={18}/></button>
+                    <button onClick={() => setShowPOS(false)} className="p-1.5 bg-muted rounded-full hover:bg-gray-200"><X size={18} /></button>
                   </div>
 
                   <div className="mb-6">
@@ -625,7 +615,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                     <span className="text-2xl font-black text-primary" dir="ltr">{formatMAD(cartItemsArray.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0))}</span>
                   </div>
 
-                  <button 
+                  <button
                     onClick={handleCreateManualOrder}
                     disabled={isSubmittingPos || cartItemsArray.length === 0 || !selectedTableId}
                     className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-2xl font-black text-base shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 transition-all active:scale-95"
@@ -639,11 +629,10 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </div>
         )}
 
-        {/* Active Orders Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {orders.length === 0 ? (
             <div className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed p-10">
-              <ShoppingBag className="mx-auto text-muted-foreground/30 mb-3" size={48}/>
+              <ShoppingBag className="mx-auto text-muted-foreground/30 mb-3" size={48} />
               <p className="text-muted-foreground text-lg font-bold">{t.noOrdersTitle}</p>
               <p className="text-xs text-muted-foreground/70 mt-1">{t.noOrdersSub}</p>
             </div>
@@ -682,14 +671,14 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
                 {order.status === 'accepted' && (
                   <div className="col-span-2 bg-blue-50 text-blue-700 py-4 rounded-xl font-bold flex justify-center items-center gap-2 border border-blue-200 select-none">
-                    <Clock className="animate-spin text-blue-500" size={18} /> 
+                    <Clock className="animate-spin text-blue-500" size={18} />
                     <span>{t.preparingStatus}</span>
                   </div>
                 )}
 
                 {order.status === 'ready' && (
                   <button onClick={() => updateOrderStatus(order, 'completed')} className="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-base flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
-                    <Check size={22} /> {t.completeBtn} 
+                    <Check size={22} /> {t.completeBtn}
                   </button>
                 )}
               </div>
@@ -698,8 +687,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         </div>
 
       </div>
-      
-      {/* Print View */}
+
       {printOrder && (
         <div className="print-only hidden font-mono text-black bg-white w-full max-w-[300px] mx-auto p-4 text-sm" dir={dir}>
           <div className="text-center pb-4 border-b-2 border-dashed border-gray-400 mb-4">

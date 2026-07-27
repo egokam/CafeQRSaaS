@@ -12,7 +12,7 @@ import {
   AlertCircle,
   Gem
 } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 interface BillingTabProps {
   cafeId: string;
