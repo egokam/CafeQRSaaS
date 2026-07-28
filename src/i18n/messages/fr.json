@@ -697,7 +697,7 @@
       "registeredCafe": "Enregistrés",
       "activeSubs": "ABONNEMENTS ACTIFS",
       "currentlyActive": "Actifs",
-      "suspended": "SUSPENDUS",
+      "paused": "SUSPENDUS",
       "stopped": "Arrêtés",
       "monthlyMrr": "MRR MENSUEL",
       "returns": "MAD Revenus"
@@ -728,8 +728,7 @@
       "expiryDateLabel": "Date d'expiration",
       "forceStatusLabel": "Statut Forcé",
       "statusActive": "ACTIF",
-      "statusPending": "EN ATTENTE",
-      "statusSuspended": "SUSPENDU",
+      "statusPaused": "EN ATTENTE",
       "saveOverrideBtn": "Sauvegarder la Dérogation 💾",
       "deepWipeBtn": "Détruire Définitivement (Deep Wipe)"
     },

@@ -22,14 +22,16 @@ export async function checkCafeSubscription(cafeSlug: string) {
   const now = new Date();
   const endsAt = new Date(cafe.subscription_ends_at);
 
-  if (cafe.subscription_status === 'suspended') {
-    return { isValid: false, status: 'suspended', cafeName: cafe.name };
+  // إذا كان موقوفاً
+  if (cafe.subscription_status === 'paused') {
+    return { isValid: false, status: 'paused', cafeName: cafe.name };
   }
 
-  if (now > endsAt && cafe.subscription_status !== 'pending_verification') {
+  // إذا انتهى الوقت، يتم تحويله فوراً إلى paused
+  if (now > endsAt) {
     await supabaseAdmin
       .from('cafes')
-      .update({ subscription_status: 'suspended' })
+      .update({ subscription_status: 'paused' })
       .eq('id', cafe.id);
 
     return { isValid: false, status: 'expired', cafeName: cafe.name };
@@ -64,7 +66,7 @@ export async function submitBankTransferReceipt(cafeId: string, receiptUrl: stri
       const { error: cafeError } = await supabaseAdmin
         .from('cafes')
         .update({ 
-          subscription_status: 'pending_verification',
+          subscription_status: 'paused', // 🌟 تم التغيير إلى paused بدلاً من pending_verification
           can_use_grace: false 
         })
         .eq('id', cafeId);
@@ -98,14 +100,10 @@ export async function getPlatformBankDetails() {
 
 // 4. جلب خريطة المنصة الشاملة للمدير الأكبر
 export async function getUltimateDashboardData(accessToken?: string) {
-  if (!accessToken) {
-    throw new Error("SECURITY ALERT: ACCESS TOKEN MISSING!");
-  }
+  if (!accessToken) throw new Error("SECURITY ALERT: ACCESS TOKEN MISSING!");
 
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
-  
-  // 🌟 الحل 1: تثبيت الإيميل يدوياً لمنع خطأ الـ Security Alert بسبب الـ ENV
-  const adminEmail = "elotmanikamal607@gmail.com";
+  const adminEmail = "elotmanikamal607@gmail.com"; 
 
   if (error || !user || user.email?.toLowerCase() !== adminEmail.toLowerCase()) {
     throw new Error("SECURITY ALERT: UNAUTHORIZED ACCESS BLOCKED!");
@@ -122,13 +120,12 @@ export async function getUltimateDashboardData(accessToken?: string) {
     .order('uploaded_at', { ascending: false });
 
   if (cafesErr || receiptsErr) {
-    console.error("Dashboard Fetch Error:", cafesErr || receiptsErr);
-    return { cafes: [], receipts: [], stats: { total: 0, active: 0, suspended: 0, mrr: 0 } };
+    return { cafes: [], receipts: [], stats: { total: 0, active: 0, paused: 0, mrr: 0 } };
   }
 
   const cafeList = cafes || [];
   const activeCafes = cafeList.filter(c => c.subscription_status === 'active').length;
-  const suspendedCafes = cafeList.filter(c => c.subscription_status === 'suspended').length;
+  const pausedCafes = cafeList.filter(c => c.subscription_status === 'paused').length; // 🌟 تم التحديث إلى paused
   
   const totalMRR = cafeList.reduce((acc, c) => {
     if (c.subscription_status !== 'active') return acc;
@@ -141,14 +138,13 @@ export async function getUltimateDashboardData(accessToken?: string) {
   return {
     cafes: cafeList,
     receipts: receipts || [],
-    stats: { total: cafeList.length, active: activeCafes, suspended: suspendedCafes, mrr: totalMRR }
+    stats: { total: cafeList.length, active: activeCafes, paused: pausedCafes, mrr: totalMRR } 
   };
 }
 
 // 5. تعديل تاريخ الاشتراك يدوياً
 export async function forceUpdateCafeSub(cafeId: string, status: string, endsAt: string, planType: string) {
   try {
-    // 🌟 الحل 2: تحويل التاريخ لصيغة ISO لكي تقبله قاعدة البيانات دون أخطاء
     const isoDate = new Date(endsAt).toISOString();
 
     const { error } = await supabaseAdmin
@@ -165,7 +161,6 @@ export async function forceUpdateCafeSub(cafeId: string, status: string, endsAt:
       return false;
     }
 
-    // 🌟 الحل 3: مسح الـ Cache لإجبار Next.js على جلب الباقة الجديدة (ينهي مشكلة التحديث الوهمي)
     revalidatePath('/ego-owner-9539');
     
     return true;

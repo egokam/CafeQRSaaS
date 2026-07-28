@@ -10,7 +10,9 @@ import {
   Loader2, 
   History,
   AlertCircle,
-  Gem
+  Gem,
+  AlertTriangle,
+  Timer
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -70,22 +72,32 @@ const PLANS = [
 
 export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [subStatus, setSubStatus] = useState<string>("active");
+  const [daysRemaining, setDaysRemaining] = useState<number>(0); // 🌟 تتبع الأيام المتبقية
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
 
-  // جلب الباقة الحالية من قاعدة البيانات
   useEffect(() => {
     const fetchBillingDetails = async () => {
       setIsLoading(true);
       try {
         const { data, error } = await supabase
           .from("cafes")
-          .select("plan_type")
+          // 🌟 تم إضافة subscription_ends_at للاستعلام
+          .select("plan_type, subscription_status, subscription_ends_at") 
           .eq("id", cafeId)
           .single();
 
         if (!error && data) {
           setCurrentPlan(data.plan_type || "silver");
+          setSubStatus(data.subscription_status || "active");
+          
+          // 🌟 حساب الأيام المتبقية
+          if (data.subscription_ends_at) {
+            const ends = new Date(data.subscription_ends_at);
+            const diffDays = Math.ceil((ends.getTime() - Date.now()) / (1000 * 3600 * 24));
+            setDaysRemaining(diffDays);
+          }
         }
       } catch (err) {
         console.error("Error fetching plan:", err);
@@ -97,13 +109,20 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
     if (cafeId) fetchBillingDetails();
   }, [cafeId]);
 
-  // دالة الترقية الوهمية (تُحدث قاعدة البيانات مباشرة لأغراض الاختبار)
+  // 🌟 التحقق مما إذا كان الحساب موقوفاً أو منتهياً
+  const isInvalidSub = subStatus === "paused" || daysRemaining < 0;
+
   const handleFakeUpgrade = async (planId: string) => {
+    // 🌟 نظام الحماية: منع أي إجراء وإظهار تنبيه إذا كان الاشتراك غير صالح
+    if (isInvalidSub) {
+      alert("⚠️ Renew your subscription first!");
+      return;
+    }
+
     if (planId === currentPlan) return;
     
     setIsProcessing(planId);
     
-    // محاكاة تأخير الدفع (ثانية ونصف)
     setTimeout(async () => {
       const { error } = await supabase
         .from("cafes")
@@ -113,7 +132,6 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
       if (!error) {
         setCurrentPlan(planId);
         alert(`تمت الترقية إلى باقة ${planId.toUpperCase()} بنجاح! 🎉\n(هذه ترقية تجريبية لتخطي الدفع)`);
-        // إعادة تحميل الصفحة لتحديث القيود في الواجهة
         window.location.reload();
       } else {
         alert("حدث خطأ أثناء ترقية الباقة. حاول مجدداً.");
@@ -133,28 +151,63 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300" dir="ltr">
       
+      {/* 🌟 لافتة التحذير الكبيرة تظهر إذا انتهى الاشتراك أو تم إيقافه */}
+      {isInvalidSub && (
+        <div className="bg-rose-50 border-2 border-rose-500/20 p-6 rounded-3xl flex items-start gap-4 animate-in slide-in-from-top-4">
+          <div className="p-3 bg-rose-100 text-rose-600 rounded-2xl shrink-0">
+            <AlertTriangle size={28} />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-rose-700">Action Required: Subscription Inactive</h3>
+            <p className="text-rose-600/80 font-medium mt-1">
+              Your subscription is currently <strong className="uppercase">{daysRemaining < 0 ? 'expired' : 'paused'}</strong>. 
+              System features, plan changes, and POS devices are temporarily restricted. 
+              <strong> Renew your subscription first</strong> to restore full access.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Overview Header */}
-      <div className="bg-white p-8 rounded-3xl border border-border shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-border shadow-sm flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
         <div className="flex items-center gap-4">
-          <div className="p-4 bg-primary/10 text-primary rounded-2xl">
+          <div className="p-4 bg-primary/10 text-primary rounded-2xl shrink-0">
             <CreditCard size={32} />
           </div>
           <div>
-            <h2 className="text-2xl font-black">{cafeName} Billing & Subscription</h2>
+            <h2 className="text-xl sm:text-2xl font-black">{cafeName} Billing & Subscription</h2>
             <p className="text-muted-foreground font-medium text-sm">Manage your cafe's plan and POS hardware limits.</p>
           </div>
         </div>
         
-        <div className="bg-muted/30 px-8 py-4 rounded-2xl border text-center min-w-[200px]">
-          <span className="block text-xs font-bold text-muted-foreground mb-1">Current Active Plan</span>
-          <div className="text-2xl font-black uppercase text-primary tracking-wider">
-            {currentPlan || "Silver"}
+        {/* 🌟 مؤشرات الحالة والأيام المتبقية */}
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
+          <div className="bg-muted/30 px-5 py-3 rounded-2xl border text-center flex-1 min-w-[120px]">
+            <span className="block text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">Current Plan</span>
+            <div className="text-lg font-black uppercase text-primary tracking-wider">
+              {currentPlan || "Silver"}
+            </div>
+          </div>
+          
+          <div className={`px-5 py-3 rounded-2xl border text-center flex-1 min-w-[120px] ${isInvalidSub ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}>
+            <span className={`block text-[10px] font-bold mb-1 uppercase tracking-wider ${isInvalidSub ? 'text-rose-500/70' : 'text-emerald-600/70'}`}>Status</span>
+            <div className={`text-lg font-black uppercase tracking-wider ${isInvalidSub ? 'text-rose-600' : 'text-emerald-600'}`}>
+              {daysRemaining < 0 ? 'EXPIRED' : subStatus}
+            </div>
+          </div>
+
+          <div className={`px-5 py-3 rounded-2xl border text-center flex-1 min-w-[120px] ${daysRemaining < 0 ? 'bg-rose-50 border-rose-200' : daysRemaining <= 5 ? 'bg-amber-50 border-amber-200' : 'bg-muted/30'}`}>
+            <span className={`block text-[10px] font-bold mb-1 uppercase tracking-wider ${daysRemaining < 0 ? 'text-rose-500/70' : daysRemaining <= 5 ? 'text-amber-600/70' : 'text-muted-foreground'}`}>Time Remaining</span>
+            <div className={`text-lg font-black uppercase tracking-wider flex items-center justify-center gap-1.5 ${daysRemaining < 0 ? 'text-rose-600' : daysRemaining <= 5 ? 'text-amber-600' : 'text-primary'}`}>
+              <Timer size={16} className="shrink-0" />
+              {daysRemaining < 0 ? "0 Days" : `${daysRemaining} Days`}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {PLANS.map((plan) => {
           const isActive = currentPlan === plan.id;
           const isUpgradingThis = isProcessing === plan.id;
@@ -166,11 +219,11 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
                 isActive 
                   ? `${plan.color} shadow-lg scale-[1.02] border-opacity-100` 
                   : "bg-white border-border hover:border-primary/30"
-              }`}
+              } ${isInvalidSub ? 'opacity-80 grayscale-[30%]' : ''}`} // 🌟 تأثير بصري باهت إذا كان الحساب غير صالح
             >
               {isActive && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-foreground text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm">
-                  Active Plan
+                <div className={`absolute -top-4 left-1/2 -translate-x-1/2 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm ${isInvalidSub ? 'bg-rose-500' : 'bg-foreground'}`}>
+                  {isInvalidSub ? "INACTIVE PLAN" : "ACTIVE PLAN"}
                 </div>
               )}
 
@@ -202,18 +255,23 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
               </div>
 
               <button
+                // 🌟 لاحظ: أزلنا disabled={isInvalidSub} لكي يظل الزر قابلاً للنقر، وتظهر نافذة الـ Alert
                 disabled={isActive || isProcessing !== null}
                 onClick={() => handleFakeUpgrade(plan.id)}
                 className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${
-                  isActive 
+                  isActive
                     ? "bg-black/5 text-black/40 cursor-not-allowed border border-black/5" 
+                    : isInvalidSub
+                    ? "bg-rose-500 text-white hover:bg-rose-600 shadow-xl" // لون أحمر لتوضيح المشكلة
                     : "bg-foreground text-white hover:opacity-90 active:scale-95 shadow-xl"
                 }`}
               >
                 {isUpgradingThis ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : isActive ? (
-                  "Current Plan"
+                  isInvalidSub ? "PLAN LOCKED" : "Current Plan"
+                ) : isInvalidSub ? (
+                  "Action Locked 🔒" // نص الزر في حالة الإيقاف
                 ) : (
                   <>Test Upgrade to {plan.name} <ArrowRight size={18} /></>
                 )}

@@ -72,8 +72,7 @@ export default function CafeDossierModal({
 
   const statusOptions = [
     { label: t("dossier.statusActive") || "ACTIVE", value: "active" },
-    { label: t("dossier.statusPending") || "PENDING VERIFICATION", value: "pending_verification" },
-    { label: t("dossier.statusSuspended") || "SUSPENDED", value: "suspended" }
+    { label: t("dossier.statusPaused") || "PAUSED", value: "paused" }
   ];
 
   // 🌟 MOCK PAYMENT HISTORY DATA

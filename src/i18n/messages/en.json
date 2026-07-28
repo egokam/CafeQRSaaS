@@ -697,8 +697,8 @@
       "registeredCafe": "Registered",
       "activeSubs": "ACTIVE SUBS",
       "currentlyActive": "Currently Active",
-      "suspended": "SUSPENDED",
-      "stopped": "Stopped",
+      "paused": "PAUSED",
+      "stopped": "Temporarily Stopped",
       "monthlyMrr": "MONTHLY MRR",
       "returns": "MAD Returns"
     },
@@ -728,8 +728,7 @@
       "expiryDateLabel": "Expiration Date",
       "forceStatusLabel": "Forced Subscription Status",
       "statusActive": "ACTIVE",
-      "statusPending": "PENDING VERIFICATION",
-      "statusSuspended": "SUSPENDED",
+      "statusPaused": "PAUSED",
       "saveOverrideBtn": "Save God Override 💾",
       "deepWipeBtn": "Permanently Destroy Cafe (Deep Wipe)"
     },

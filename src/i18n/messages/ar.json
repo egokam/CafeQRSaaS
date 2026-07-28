@@ -697,8 +697,8 @@
       "registeredCafe": "مقهى مسجل",
       "activeSubs": "ACTIVE SUBS",
       "currentlyActive": "نشط حالياً",
-      "suspended": "SUSPENDED",
-      "stopped": "موقوف",
+      "paused": "PAUSED",
+      "stopped": "موقوف مؤقتاً",
       "monthlyMrr": "MONTHLY MRR",
       "returns": "MAD عوائد"
     },
@@ -728,8 +728,7 @@
       "expiryDateLabel": "تاريخ انتهاء الصلاحية",
       "forceStatusLabel": "حالة الاشتراك الإجبارية",
       "statusActive": "ACTIVE (نشط وموثق)",
-      "statusPending": "PENDING (مهلة دفع)",
-      "statusSuspended": "SUSPENDED (إيقاف إجباري)",
+      "statusPaused": "PAUSED (موقوف مؤقتاً)",
       "saveOverrideBtn": "حفظ التجاوز الملكي 💾",
       "deepWipeBtn": "تدمير المقهى نهائياً (Deep Wipe)"
     },
