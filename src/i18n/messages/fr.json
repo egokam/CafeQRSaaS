@@ -584,43 +584,176 @@
       "email": "Nous envoyer un e-mail"
     },
     "plans": {
-    "silver": {
-      "name": "Argent (Silver)",
-      "target": "Parfait pour les petits cafés émergents",
-      "price": "2 000",
-      "features": [
-        "Commandes QR illimitées avec 0% de commission",
-        "1 terminal de point de vente (POS) pour gérer toutes les tables",
-        "Impression automatique en cuisine dès confirmation sur le POS",
-        "Codes PIN pour le personnel afin de suivre les accès en toute sécurité",
-        "Mises à jour instantanées du menu (plus de frais de réimpression)",
-        "Suivi des revenus quotidiens et tableau de bord simple"
-      ]
-    },
-    "gold": {
-      "name": "Or (Gold)",
-      "target": "Pour les cafés animés nécessitant une synchronisation en cuisine",
-      "price": "2 990",
-      "features": [
-        "Toutes les fonctionnalités Argent, plus :",
-        "Jusqu'à 3 terminaux POS pour accélérer les files d'attente",
-        "Analyses pour identifier les articles les plus vendus et les heures de pointe",
-        "Support prioritaire sur WhatsApp pour des solutions rapides"
-      ]
-    },
-    "diamond": {
-      "name": "Diamant (Diamond)",
-      "target": "Pour les franchises et les grandes opérations",
-      "price": "4 990",
-      "features": [
-        "Toutes les fonctionnalités Or, plus :",
-        "Terminaux POS et imprimantes de cuisine illimités",
-        "Nom de domaine personnalisé (ex: menu.votrecafe.ma)",
-        "Saisie complète de votre menu et configuration du système par notre équipe",
-        "Architecture prête pour de multiples succursales (Multi-branch)",
-        "Ligne d'urgence directe par téléphone et WhatsApp 24/7"
-      ]
+      "silver": {
+        "name": "Argent (Silver)",
+        "target": "Parfait pour les petits cafés émergents",
+        "price": "2 000",
+        "features": [
+          "Commandes QR illimitées avec 0% de commission",
+          "1 terminal de point de vente (POS) pour gérer toutes les tables",
+          "Impression automatique en cuisine dès confirmation sur le POS",
+          "Codes PIN pour le personnel afin de suivre les accès en toute sécurité",
+          "Mises à jour instantanées du menu (plus de frais de réimpression)",
+          "Suivi des revenus quotidiens et tableau de bord simple"
+        ]
+      },
+      "gold": {
+        "name": "Or (Gold)",
+        "target": "Pour les cafés animés nécessitant une synchronisation en cuisine",
+        "price": "2 990",
+        "features": [
+          "Toutes les fonctionnalités Argent, plus :",
+          "Jusqu'à 3 terminaux POS pour accélérer les files d'attente",
+          "Analyses pour identifier les articles les plus vendus et les heures de pointe",
+          "Support prioritaire sur WhatsApp pour des solutions rapides"
+        ]
+      },
+      "diamond": {
+        "name": "Diamant (Diamond)",
+        "target": "Pour les franchises et les grandes opérations",
+        "price": "4 990",
+        "features": [
+          "Toutes les fonctionnalités Or, plus :",
+          "Terminaux POS et imprimantes de cuisine illimités",
+          "Nom de domaine personnalisé (ex: menu.votrecafe.ma)",
+          "Saisie complète de votre menu et configuration du système par notre équipe",
+          "Architecture prête pour de multiples succursales (Multi-branch)",
+          "Ligne d'urgence directe par téléphone et WhatsApp 24/7"
+        ]
+      }
     }
-  }
+  },
+  "SuperAdminLogin": {
+    "errors": {
+      "unauthorized": "⛔ Accès refusé : Compte non autorisé.",
+      "invalidLogin": "Identifiants de connexion invalides.",
+      "sendOtpFailed": "Échec de l'envoi. Assurez-vous que l'email est enregistré.",
+      "invalidOtp": "Code invalide ou expiré."
+    },
+    "ui": {
+      "portalTitle": "Portail EgoDev",
+      "restrictedAccess": "ACCÈS RESTREINT",
+      "masterControl": "Master Control<br />Protocol.",
+      "gatewayDesc": "Passerelle sécurisée vers le système central. Personnel autorisé uniquement. Toutes les tentatives sont enregistrées et surveillées.",
+      "sysVer": "SYS_VER: 3.0.0-PROD",
+      "operational": "SYSTÈME OPÉRATIONNEL",
+      "emailLabel": "Email Administrateur",
+      "passwordLabel": "Clé Maîtresse (Master Key)",
+      "otpAuthLabel": "Vérification d'identité (Email Admin)",
+      "otpSentMsg": "Un code à 6 chiffres a été envoyé à votre email approuvé.",
+      "emailPlaceholder": "admin@egodev.com",
+      "passwordPlaceholder": "••••••••••••",
+      "otpPlaceholder": "------",
+      "loginBtn": "Connexion Sécurisée",
+      "forgotBtn": "Mot de passe oublié ? (Remplacement OTP)",
+      "backBtn": "Retour à la Connexion Sécurisée",
+      "sendOtpBtn": "Envoyer le Code de Remplacement ✉️",
+      "verifyOtpBtn": "Confirmer l'Accès 🔓",
+      "footer": "© {year} PROTOCOLE EGODEV. TOUS DROITS RÉSERVÉS."
+    }
+  },
+  "SuperAdminDashboard": {
+    "errors": {
+      "loadDelay": "Retard de récupération des données. Veuillez rafraîchir.",
+      "unauthorized": "⛔ Alerte de sécurité: Tentative d'accès non autorisée.",
+      "forceUpdateFail": "Échec de la mise à jour forcée.",
+      "missingAuthId": "Ce café n'a pas de compte Auth lié !",
+      "emailRequired": "L'email est requis !",
+      "updateFailPrefix": "Échec de mise à jour : ",
+      "deleteFailPrefix": "Échec de suppression : ",
+      "missingFields": "Veuillez remplir les champs requis !",
+      "provisionFail": "Erreur lors du déploiement"
+    },
+    "success": {
+      "forceUpdate": "Mise à jour forcée réussie ! 🚀",
+      "credentialsUpdated": "Identifiants modifiés avec succès ! 🔐",
+      "cafeDeleted": "Café et données cloud supprimés avec succès 🗑️"
+    },
+    "warnings": {
+      "deepDeleteConfirm1": "⚠️ DANGER: Êtes-vous sûr de vouloir détruire complètement la plateforme \"{cafeName}\" ?",
+      "deepDeleteConfirm2": "Cette action est irréversible ! Elle effacera le café, les produits, les commandes et le compte propriétaire.\nTapez \"DELETE\" en majuscules pour confirmer :"
+    },
+    "whatsapp": {
+      "welcome": "Bienvenue sur la plateforme SaaS EgoCafe ☕🚀",
+      "provisioned": "Votre système \"{cafeName}\" a été déployé avec succès ! L'essai gratuit est actif pendant {trialDays} jours.",
+      "linksHeader": "🔗 Vos liens d'accès :",
+      "adminLink": "1️⃣ Tableau de bord Admin:\n{url}/{slug}/admin\n▪️ Email : {email}\n▪️ Mot de passe : {password}",
+      "cashierLink": "2️⃣ Écran Caisse & POS:\n{url}/{slug}/cashier\n▪️ Code PIN : {pin}",
+      "footer": "*(Veuillez vous connecter à l'admin et modifier votre mot de passe et vos PINs immédiatement)*"
+    },
+    "ui": {
+      "copiedSuccess": "Copié avec succès !",
+      "copyWhatsappBtn": "Copier pour WhatsApp 📲",
+      "verifyingProtocol": "VÉRIFICATION DU PROTOCOLE...",
+      "superAdmin": "Super Admin V3.0",
+      "centralTitle": "EgoDev Central",
+      "createNewPlatform": "Créer une Plateforme",
+      "refreshData": "Rafraîchir",
+      "lockPlatform": "Verrouiller",
+      "searchPlaceholder": "Rechercher par Nom ou Slug..."
+    },
+    "stats": {
+      "totalCafes": "TOTAL CAFÉS",
+      "registeredCafe": "Enregistrés",
+      "activeSubs": "ABONNEMENTS ACTIFS",
+      "currentlyActive": "Actifs",
+      "suspended": "SUSPENDUS",
+      "stopped": "Arrêtés",
+      "monthlyMrr": "MRR MENSUEL",
+      "returns": "MAD Revenus"
+    },
+    "table": {
+      "project": "Projet",
+      "plan": "Forfait",
+      "status": "Statut",
+      "expiry": "Expiration",
+      "usage": "Utilisation",
+      "action": "Action",
+      "noData": "Aucune donnée correspondante.",
+      "adminPanelTooltip": "Panneau Admin",
+      "expiredSince": "Expiré depuis {days} j",
+      "remainingDays": "Il reste {days} j",
+      "inspectBtn": "Inspecter 📂"
+    },
+    "dossier": {
+      "overrideSubtitle": "Deep Dossier Override",
+      "editAuthTitle": "Modifier Auth Propriétaire",
+      "newEmailLabel": "Nouvel Email",
+      "newPasswordLabel": "Nouveau Mot de Passe",
+      "passwordPlaceholder": "Laisser vide pour ignorer...",
+      "forceUpdateAuthBtn": "Forcer la mise à jour 🔐",
+      "updatingAuthBtn": "Mise à jour...",
+      "godModeTitle": "Dérogations Système (God Mode)",
+      "changePlanLabel": "Changer de Forfait",
+      "expiryDateLabel": "Date d'expiration",
+      "forceStatusLabel": "Statut Forcé",
+      "statusActive": "ACTIF",
+      "statusPending": "EN ATTENTE",
+      "statusSuspended": "SUSPENDU",
+      "saveOverrideBtn": "Sauvegarder la Dérogation 💾",
+      "deepWipeBtn": "Détruire Définitivement (Deep Wipe)"
+    },
+    "factory": {
+      "title": "SaaS Platform Factory",
+      "subtitle": "Provisionner un environnement complet et déployer sur le cloud.",
+      "cafeNameLabel": "Nom Commercial",
+      "slugLabel": "URL Slug",
+      "ownerEmailLabel": "Email Propriétaire",
+      "tempPasswordLabel": "Mot de passe provisoire",
+      "planTypeLabel": "Forfait",
+      "trialDaysLabel": "Essai (Jours)",
+      "cashierPinLabel": "PIN Caisse Défaut",
+      "launchBtn": "Lancer le Protocole",
+      "launchingBtn": "Déploiement...",
+      "disclaimer": "Make sure to manually link Auth ID later if required by strict schema.",
+      "successTitle": "Serveurs pour \"{cafeName}\" déployés ! 🚀",
+      "closeBtn": "Fermer et Retourner",
+      "planSilver": "Silver (2,000 MAD)",
+      "planGold": "Gold (2,990 MAD)",
+      "planDiamond": "Diamond (4,990 MAD)",
+      "planSilverShort": "Silver",
+      "planGoldShort": "Gold",
+      "planDiamondShort": "Diamond"
+    }
   }
 }

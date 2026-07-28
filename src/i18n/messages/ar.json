@@ -622,5 +622,138 @@
         ]
       }
     }
+  },
+  "SuperAdminLogin": {
+    "errors": {
+      "unauthorized": "⛔ وصول مرفوض: هذا الحساب غير مصرح له بالدخول.",
+      "invalidLogin": "بيانات الدخول غير صحيحة.",
+      "sendOtpFailed": "مشكلة في الإرسال: تأكد أن الإيميل مسجل في النظام.",
+      "invalidOtp": "الكود خاطئ أو منتهي الصلاحية."
+    },
+    "ui": {
+      "portalTitle": "EgoDev Portal",
+      "restrictedAccess": "RESTRICTED ACCESS",
+      "masterControl": "Master Control<br />Protocol.",
+      "gatewayDesc": "Secure gateway to the central nervous system. Authorized personnel only. All access attempts are strictly logged and monitored.",
+      "sysVer": "SYS_VER: 3.0.0-PROD",
+      "operational": "SYSTEM OPERATIONAL",
+      "emailLabel": "البريد الإلكتروني الإداري",
+      "passwordLabel": "مفتاح الدخول (Master Key)",
+      "otpAuthLabel": "تحقق الهوية (الإيميل الإداري)",
+      "otpSentMsg": "تم إرسال رمز مؤقت من 6 أرقام إلى بريدك المعتمد.",
+      "emailPlaceholder": "admin@egodev.com",
+      "passwordPlaceholder": "••••••••••••",
+      "otpPlaceholder": "------",
+      "loginBtn": "ولوج آمن",
+      "forgotBtn": "نسيت كلمة المرور؟ (الدخول الاستثنائي OTP)",
+      "backBtn": "العودة للدخول الآمن",
+      "sendOtpBtn": "إرسال رمز التجاوز ✉️",
+      "verifyOtpBtn": "تأكيد الولوج 🔓",
+      "footer": "© {year} EGODEV PROTOCOL. ALL RIGHTS RESERVED."
+    }
+  },
+  "SuperAdminDashboard": {
+    "errors": {
+      "loadDelay": "حدث تأخير في جلب البيانات. يرجى تحديث الصفحة.",
+      "unauthorized": "⛔ تحذير أمني: رصد محاولة دخول غير مصرح بها لمنصة التحكم المركزية.",
+      "forceUpdateFail": "فشل التحديث السري.",
+      "missingAuthId": "هذا المقهى لا يملك حساب مصادقة مربوط به (Auth ID مفقود)!",
+      "emailRequired": "البريد الإلكتروني مطلوب!",
+      "updateFailPrefix": "فشل التحديث: ",
+      "deleteFailPrefix": "فشل المسح: ",
+      "missingFields": "يرجى إدخال الحقول الأساسية!",
+      "provisionFail": "حدث خطأ أثناء التفريخ"
+    },
+    "success": {
+      "forceUpdate": "تم فرض التحديث بنجاح! 🚀",
+      "credentialsUpdated": "تم تغيير بيانات دخول المالك بنجاح! 🔐",
+      "cafeDeleted": "تم إعدام المقهى ومسح بياناته من السحابة بنجاح 🗑️"
+    },
+    "warnings": {
+      "deepDeleteConfirm1": "⚠️ تحذير خطير: هل أنت متأكد أنك تريد تدمير منصة \"{cafeName}\" بالكامل؟",
+      "deepDeleteConfirm2": "هذا الإجراء لا رجعة فيه! سيمسح المقهى، المنتجات، الطلبات، وحساب المالك نهائياً.\nاكتب \"DELETE\" بالأحرف الكبيرة للتأكيد:"
+    },
+    "whatsapp": {
+      "welcome": "مرحباً بك في منصة EgoCafe SaaS ☕🚀",
+      "provisioned": "لقد تم تجهيز نظام مقهاكم \"{cafeName}\" بنجاح! باقة التجربة المجانية مفعّلة لمدة {trialDays} يوماً.",
+      "linksHeader": "🔗 روابط واجهاتكم الخاصة:",
+      "adminLink": "1️⃣ لوحة التحكم الإدارية (لأصحاب المشروع):\n{url}/{slug}/admin\n▪️ البريد الإلكتروني: {email}\n▪️ كلمة المرور: {password}",
+      "cashierLink": "2️⃣ شاشة الكاشير والطلبات:\n{url}/{slug}/cashier\n▪️ الرمز السري (PIN): {pin}",
+      "footer": "*(يرجى تسجيل الدخول للإدارة وتغيير كلمة المرور والرموز فوراً)*"
+    },
+    "ui": {
+      "copiedSuccess": "تم النسخ بنجاح!",
+      "copyWhatsappBtn": "نسخ رسالة الترحيب للواتساب 📲",
+      "verifyingProtocol": "VERIFYING MASTER PROTOCOL...",
+      "superAdmin": "Super Admin V3.0",
+      "centralTitle": "EgoDev Central",
+      "createNewPlatform": "إنشاء منصة جديدة",
+      "refreshData": "تحديث البيانات",
+      "lockPlatform": "قفل المنصة",
+      "searchPlaceholder": "ابحث بالاسم أو Slug..."
+    },
+    "stats": {
+      "totalCafes": "TOTAL CAFES",
+      "registeredCafe": "مقهى مسجل",
+      "activeSubs": "ACTIVE SUBS",
+      "currentlyActive": "نشط حالياً",
+      "suspended": "SUSPENDED",
+      "stopped": "موقوف",
+      "monthlyMrr": "MONTHLY MRR",
+      "returns": "MAD عوائد"
+    },
+    "table": {
+      "project": "المشروع (Project)",
+      "plan": "الباقة (Plan)",
+      "status": "الحالة (Status)",
+      "expiry": "التجديد (Expiry)",
+      "usage": "النشاط (Usage)",
+      "action": "إجراء (Action)",
+      "noData": "لا توجد بيانات مطابقة للبحث.",
+      "adminPanelTooltip": "لوحة الإدارة",
+      "expiredSince": "منتهي منذ {days} يوم",
+      "remainingDays": "متبقي {days} يوم",
+      "inspectBtn": "تفتيش 📂"
+    },
+    "dossier": {
+      "overrideSubtitle": "Deep Dossier Override",
+      "editAuthTitle": "تعديل بيانات المالك (Auth)",
+      "newEmailLabel": "البريد الإلكتروني الجديد",
+      "newPasswordLabel": "كلمة المرور الجديدة",
+      "passwordPlaceholder": "اتركه فارغاً للتجاهل...",
+      "forceUpdateAuthBtn": "فرض التحديث 🔐",
+      "updatingAuthBtn": "جاري التحديث...",
+      "godModeTitle": "تجاوزات النظام (God Mode)",
+      "changePlanLabel": "تغيير الباقة (Plan)",
+      "expiryDateLabel": "تاريخ انتهاء الصلاحية",
+      "forceStatusLabel": "حالة الاشتراك الإجبارية",
+      "statusActive": "ACTIVE (نشط وموثق)",
+      "statusPending": "PENDING (مهلة دفع)",
+      "statusSuspended": "SUSPENDED (إيقاف إجباري)",
+      "saveOverrideBtn": "حفظ التجاوز الملكي 💾",
+      "deepWipeBtn": "تدمير المقهى نهائياً (Deep Wipe)"
+    },
+    "factory": {
+      "title": "معمل تفريخ المنصات (SaaS Factory)",
+      "subtitle": "تجهيز بيئة عمل متكاملة لمشروع جديد ونشره على السحابة بضغطة زر.",
+      "cafeNameLabel": "الاسم التجاري للمقهى",
+      "slugLabel": "الرابط المختصر (Slug اللاتيني)",
+      "ownerEmailLabel": "البريد الإلكتروني (المالك)",
+      "tempPasswordLabel": "كلمة المرور المؤقتة",
+      "planTypeLabel": "نوع الباقة",
+      "trialDaysLabel": "التجربة (أيام)",
+      "cashierPinLabel": "PIN الكاشير الإفتراضي",
+      "launchBtn": "إطلاق الخوادم والمشروع (Launch Protocol)",
+      "launchingBtn": "جاري النشر...",
+      "disclaimer": "Make sure to manually link Auth ID later if required by strict schema.",
+      "successTitle": "تم نشر خوادم \"{cafeName}\" بنجاح! 🚀",
+      "closeBtn": "إغلاق والعودة للوحة",
+      "planSilver": "Silver (2,000 MAD)",
+      "planGold": "Gold (2,990 MAD)",
+      "planDiamond": "Diamond (4,990 MAD)",
+      "planSilverShort": "Silver",
+      "planGoldShort": "Gold",
+      "planDiamondShort": "Diamond"
+    }
   }
 }

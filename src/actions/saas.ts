@@ -103,9 +103,11 @@ export async function getUltimateDashboardData(accessToken?: string) {
   }
 
   const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
-  const adminEmail = process.env.SUPER_ADMIN_EMAIL;
+  
+  // 🌟 الحل 1: تثبيت الإيميل يدوياً لمنع خطأ الـ Security Alert بسبب الـ ENV
+  const adminEmail = "elotmanikamal607@gmail.com";
 
-  if (error || !user || user.email !== adminEmail) {
+  if (error || !user || user.email?.toLowerCase() !== adminEmail.toLowerCase()) {
     throw new Error("SECURITY ALERT: UNAUTHORIZED ACCESS BLOCKED!");
   }
 
@@ -130,9 +132,10 @@ export async function getUltimateDashboardData(accessToken?: string) {
   
   const totalMRR = cafeList.reduce((acc, c) => {
     if (c.subscription_status !== 'active') return acc;
-    if (c.plan_type === 'starter') return acc + 150;
-    if (c.plan_type === 'enterprise') return acc + 499;
-    return acc + 299; 
+    if (c.plan_type === 'silver') return acc + 2000;
+    if (c.plan_type === 'gold') return acc + 2990;
+    if (c.plan_type === 'diamond') return acc + 4990;
+    return acc; 
   }, 0);
 
   return {
@@ -143,18 +146,33 @@ export async function getUltimateDashboardData(accessToken?: string) {
 }
 
 // 5. تعديل تاريخ الاشتراك يدوياً
-export async function forceUpdateCafeSub(cafeId: string, newStatus: string, newEndsAt: string) {
-  const { error } = await supabaseAdmin
-    .from('cafes')
-    .update({ 
-      subscription_status: newStatus, 
-      subscription_ends_at: newEndsAt,
-      can_use_grace: true 
-    })
-    .eq('id', cafeId);
+export async function forceUpdateCafeSub(cafeId: string, status: string, endsAt: string, planType: string) {
+  try {
+    // 🌟 الحل 2: تحويل التاريخ لصيغة ISO لكي تقبله قاعدة البيانات دون أخطاء
+    const isoDate = new Date(endsAt).toISOString();
 
-  revalidatePath('/ego-owner-9539');
-  return !error;
+    const { error } = await supabaseAdmin
+      .from('cafes')
+      .update({
+        subscription_status: status,
+        subscription_ends_at: isoDate,
+        plan_type: planType 
+      })
+      .eq('id', cafeId);
+
+    if (error) {
+      console.error("Supabase Update Error:", error);
+      return false;
+    }
+
+    // 🌟 الحل 3: مسح الـ Cache لإجبار Next.js على جلب الباقة الجديدة (ينهي مشكلة التحديث الوهمي)
+    revalidatePath('/ego-owner-9539');
+    
+    return true;
+  } catch (err) {
+    console.error("Force update catch error:", err);
+    return false;
+  }
 }
 
 // 6. معمل تفريخ المقاهي
@@ -184,8 +202,9 @@ export async function provisionNewCafe(payload: {
     if (authErr || !authUser.user) return { success: false, error: "فشل إنشاء حساب المالك: " + authErr?.message };
 
     const endsAt = new Date(Date.now() + payload.trialDays * 24 * 60 * 60 * 1000).toISOString();
-    const maxC = payload.planType === 'enterprise' ? 10 : payload.planType === 'starter' ? 1 : 3;
-    const maxK = payload.planType === 'enterprise' ? 5 : payload.planType === 'starter' ? 1 : 2;
+    
+    const maxC = payload.planType === 'diamond' ? 99 : payload.planType === 'gold' ? 3 : 1;
+    const maxK = payload.planType === 'diamond' ? 99 : payload.planType === 'gold' ? 3 : 1;
 
     const { data: newCafe, error: dbErr } = await supabaseAdmin.from('cafes').insert([{
       name: payload.name,
@@ -218,7 +237,7 @@ export async function provisionNewCafe(payload: {
   }
 }
 
-// 7. تحديث حساب المالك (استراتيجية SWAP AND BURN 💣)
+// 7. تحديث حساب المالك
 export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: string, newEmail?: string, newPassword?: string) {
   try {
     if (!newEmail || newEmail.trim() === '') throw new Error("البريد الإلكتروني مطلوب!");
@@ -226,32 +245,26 @@ export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: 
     const cleanEmail = newEmail.trim();
     const cleanPassword = newPassword && newPassword.trim() !== '' ? newPassword.trim() : undefined;
 
-    // 1. جلب الإيميل الحالي للمقهى لمعرفة هل تم تغييره أم لا
     const { data: currentCafe } = await supabaseAdmin.from('cafes').select('owner_email').eq('id', cafeId).single();
 
-    // 2. إذا كان الإيميل هو نفسه، نحاول تحديث كلمة المرور فقط
     if (currentCafe?.owner_email === cleanEmail) {
       const updates: any = { email_confirm: true };
       if (cleanPassword) updates.password = cleanPassword;
 
       const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(oldAuthUserId, updates);
 
-      // إذا نجح التحديث، نخرج بسلام
       if (!updateErr) {
         revalidatePath('/ego-owner-9539');
         return { success: true };
       }
 
-      // إذا كان الخطأ شيئاً آخر غير "User not found"، نرجع الخطأ (إذا كان User not found سننتقل للخطوة 3)
       if (!updateErr.message.includes("not found") && !updateErr.message.includes("not exist")) {
         throw updateErr;
       }
     }
 
-    // 3. استراتيجية (SWAP AND BURN): الإيميل تغير أو الحساب مفقود (Ghost ID)
     const passToUse = cleanPassword || "EgoCafe2026!";
 
-    // أ- (CREATE) إنشاء حساب جديد كلياً
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: cleanEmail,
       password: passToUse,
@@ -262,7 +275,6 @@ export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: 
 
     const newAuthId = newUser.user.id;
 
-    // ب- (LINK) ربط الحساب الجديد في جدول المقاهي
     const { error: dbError } = await supabaseAdmin
       .from('cafes')
       .update({ 
@@ -272,16 +284,12 @@ export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: 
       .eq('id', cafeId);
 
     if (dbError) {
-      // Rollback: تدمير الحساب إذا فشل الربط
       await supabaseAdmin.auth.admin.deleteUser(newAuthId);
       throw new Error("فشل ربط الحساب بالمقهى: " + dbError.message);
     }
 
-    // ج- (BURN) تدمير الحساب القديم بصمت لتنظيف النظام
     if (oldAuthUserId && oldAuthUserId !== newAuthId) {
-      await supabaseAdmin.auth.admin.deleteUser(oldAuthUserId).catch(() => {
-        // نتجاهل الخطأ لأن الحساب قد يكون محذوفاً مسبقاً
-      });
+      await supabaseAdmin.auth.admin.deleteUser(oldAuthUserId).catch(() => {});
     }
 
     revalidatePath('/ego-owner-9539');

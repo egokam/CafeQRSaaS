@@ -584,43 +584,176 @@
       "email": "Email Us"
     },
     "plans": {
-    "silver": {
-      "name": "Silver",
-      "target": "Perfect for small & emerging cafes",
-      "price": "2,000",
-      "features": [
-        "Unlimited QR orders with 0% commission",
-        "1 POS Terminal to manage all tables centrally",
-        "Automatic Kitchen Printing upon POS order confirmation",
-        "Secure Staff PINs to track cashier shifts safely",
-        "Instant menu updates (No more reprinting costs)",
-        "Daily revenue tracking & simple dashboard"
-      ]
-    },
-    "gold": {
-      "name": "Gold",
-      "target": "For busy cafes needing kitchen sync",
-      "price": "2,990",
-      "features": [
-        "All Silver features, plus:",
-        "Up to 3 POS Terminals to speed up checkout lines",
-        "Insights to identify best-selling items & peak hours",
-        "Priority WhatsApp support for quick fixes"
-      ]
-    },
-    "diamond": {
-      "name": "Diamond",
-      "target": "For franchises & large operations",
-      "price": "4,990",
-      "features": [
-        "All Gold features, plus:",
-        "Unlimited POS terminals & kitchen printers",
-        "Custom domain branding (e.g., menu.yourcafe.ma)",
-        "Done-for-you full menu data entry & system setup",
-        "Multi-branch architecture ready",
-        "24/7 direct phone & WhatsApp emergency hotline"
-      ]
+      "silver": {
+        "name": "Silver",
+        "target": "Perfect for small & emerging cafes",
+        "price": "2,000",
+        "features": [
+          "Unlimited QR orders with 0% commission",
+          "1 POS Terminal to manage all tables centrally",
+          "Automatic Kitchen Printing upon POS order confirmation",
+          "Secure Staff PINs to track cashier shifts safely",
+          "Instant menu updates (No more reprinting costs)",
+          "Daily revenue tracking & simple dashboard"
+        ]
+      },
+      "gold": {
+        "name": "Gold",
+        "target": "For busy cafes needing kitchen sync",
+        "price": "2,990",
+        "features": [
+          "All Silver features, plus:",
+          "Up to 3 POS Terminals to speed up checkout lines",
+          "Insights to identify best-selling items & peak hours",
+          "Priority WhatsApp support for quick fixes"
+        ]
+      },
+      "diamond": {
+        "name": "Diamond",
+        "target": "For franchises & large operations",
+        "price": "4,990",
+        "features": [
+          "All Gold features, plus:",
+          "Unlimited POS terminals & kitchen printers",
+          "Custom domain branding (e.g., menu.yourcafe.ma)",
+          "Done-for-you full menu data entry & system setup",
+          "Multi-branch architecture ready",
+          "24/7 direct phone & WhatsApp emergency hotline"
+        ]
+      }
     }
-  }
+  },
+  "SuperAdminLogin": {
+    "errors": {
+      "unauthorized": "⛔ Access denied: Unauthorized account.",
+      "invalidLogin": "Invalid login credentials.",
+      "sendOtpFailed": "Failed to send OTP. Ensure the email is registered.",
+      "invalidOtp": "Invalid or expired OTP."
+    },
+    "ui": {
+      "portalTitle": "EgoDev Portal",
+      "restrictedAccess": "RESTRICTED ACCESS",
+      "masterControl": "Master Control<br />Protocol.",
+      "gatewayDesc": "Secure gateway to the central nervous system. Authorized personnel only. All access attempts are strictly logged and monitored.",
+      "sysVer": "SYS_VER: 3.0.0-PROD",
+      "operational": "SYSTEM OPERATIONAL",
+      "emailLabel": "Admin Email",
+      "passwordLabel": "Master Key",
+      "otpAuthLabel": "Auth Verification (Admin Email)",
+      "otpSentMsg": "A 6-digit code has been sent to your approved email.",
+      "emailPlaceholder": "admin@egodev.com",
+      "passwordPlaceholder": "••••••••••••",
+      "otpPlaceholder": "------",
+      "loginBtn": "Secure Login",
+      "forgotBtn": "Forgot Password? (OTP Override)",
+      "backBtn": "Back to Secure Login",
+      "sendOtpBtn": "Send Override Code ✉️",
+      "verifyOtpBtn": "Confirm Access 🔓",
+      "footer": "© {year} EGODEV PROTOCOL. ALL RIGHTS RESERVED."
+    }
+  },
+  "SuperAdminDashboard": {
+    "errors": {
+      "loadDelay": "Delay in fetching data. Please refresh the page.",
+      "unauthorized": "⛔ Security Alert: Unauthorized access attempt to Central Dashboard.",
+      "forceUpdateFail": "Secret override failed.",
+      "missingAuthId": "This cafe has no linked Auth account (Missing Auth ID)!",
+      "emailRequired": "Email is required!",
+      "updateFailPrefix": "Update failed: ",
+      "deleteFailPrefix": "Wipe failed: ",
+      "missingFields": "Please fill in the required fields!",
+      "provisionFail": "Error occurred during provisioning"
+    },
+    "success": {
+      "forceUpdate": "Override successfully applied! 🚀",
+      "credentialsUpdated": "Owner credentials successfully changed! 🔐",
+      "cafeDeleted": "Cafe executed and cloud data wiped successfully 🗑️"
+    },
+    "warnings": {
+      "deepDeleteConfirm1": "⚠️ DANGER: Are you sure you want to completely destroy the \"{cafeName}\" platform?",
+      "deepDeleteConfirm2": "This action is irreversible! It will permanently wipe the cafe, products, orders, and owner account.\nType \"DELETE\" in uppercase to confirm:"
+    },
+    "whatsapp": {
+      "welcome": "Welcome to the EgoCafe SaaS Platform ☕🚀",
+      "provisioned": "Your cafe system \"{cafeName}\" has been successfully provisioned! The free trial is active for {trialDays} days.",
+      "linksHeader": "🔗 Your Access Links:",
+      "adminLink": "1️⃣ Admin Dashboard (For Owners):\n{url}/{slug}/admin\n▪️ Email: {email}\n▪️ Password: {password}",
+      "cashierLink": "2️⃣ Cashier & POS Screen:\n{url}/{slug}/cashier\n▪️ PIN Code: {pin}",
+      "footer": "*(Please log in to the admin panel and change your password and PINs immediately)*"
+    },
+    "ui": {
+      "copiedSuccess": "Copied successfully!",
+      "copyWhatsappBtn": "Copy Welcome Msg to WhatsApp 📲",
+      "verifyingProtocol": "VERIFYING MASTER PROTOCOL...",
+      "superAdmin": "Super Admin V3.0",
+      "centralTitle": "EgoDev Central",
+      "createNewPlatform": "Deploy New Platform",
+      "refreshData": "Refresh Data",
+      "lockPlatform": "Lock Platform",
+      "searchPlaceholder": "Search by Name or Slug..."
+    },
+    "stats": {
+      "totalCafes": "TOTAL CAFES",
+      "registeredCafe": "Registered",
+      "activeSubs": "ACTIVE SUBS",
+      "currentlyActive": "Currently Active",
+      "suspended": "SUSPENDED",
+      "stopped": "Stopped",
+      "monthlyMrr": "MONTHLY MRR",
+      "returns": "MAD Returns"
+    },
+    "table": {
+      "project": "Project",
+      "plan": "Plan",
+      "status": "Status",
+      "expiry": "Expiry",
+      "usage": "Usage",
+      "action": "Action",
+      "noData": "No matching data found.",
+      "adminPanelTooltip": "Admin Panel",
+      "expiredSince": "Expired {days} days ago",
+      "remainingDays": "{days} days left",
+      "inspectBtn": "Inspect 📂"
+    },
+    "dossier": {
+      "overrideSubtitle": "Deep Dossier Override",
+      "editAuthTitle": "Edit Owner Auth",
+      "newEmailLabel": "New Email Address",
+      "newPasswordLabel": "New Password",
+      "passwordPlaceholder": "Leave blank to ignore...",
+      "forceUpdateAuthBtn": "Force Update 🔐",
+      "updatingAuthBtn": "Updating...",
+      "godModeTitle": "System Overrides (God Mode)",
+      "changePlanLabel": "Change Plan",
+      "expiryDateLabel": "Expiration Date",
+      "forceStatusLabel": "Forced Subscription Status",
+      "statusActive": "ACTIVE",
+      "statusPending": "PENDING VERIFICATION",
+      "statusSuspended": "SUSPENDED",
+      "saveOverrideBtn": "Save God Override 💾",
+      "deepWipeBtn": "Permanently Destroy Cafe (Deep Wipe)"
+    },
+    "factory": {
+      "title": "SaaS Platform Factory",
+      "subtitle": "Provision a complete environment for a new project and deploy to cloud with one click.",
+      "cafeNameLabel": "Cafe Commercial Name",
+      "slugLabel": "URL Slug",
+      "ownerEmailLabel": "Owner Email (Auth)",
+      "tempPasswordLabel": "Temporary Password",
+      "planTypeLabel": "Plan Type",
+      "trialDaysLabel": "Trial (Days)",
+      "cashierPinLabel": "Default Cashier PIN",
+      "launchBtn": "Launch Protocol & Deploy",
+      "launchingBtn": "Deploying...",
+      "disclaimer": "Make sure to manually link Auth ID later if required by strict schema.",
+      "successTitle": "Servers for \"{cafeName}\" deployed successfully! 🚀",
+      "closeBtn": "Close & Return",
+      "planSilver": "Silver (2,000 MAD)",
+      "planGold": "Gold (2,990 MAD)",
+      "planDiamond": "Diamond (4,990 MAD)",
+      "planSilverShort": "Silver",
+      "planGoldShort": "Gold",
+      "planDiamondShort": "Diamond"
+    }
   }
 }
