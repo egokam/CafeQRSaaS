@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Gem,
   AlertTriangle,
-  Timer
+  Timer,
+  X
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -83,6 +84,10 @@ export default function BillingTab({ cafeId, cafeName, activeLang, t }: BillingT
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
   const [selectedCycle, setSelectedCycle] = useState<"monthly" | "yearly">("monthly");
 
+  // 🌟 حالات النافذة المنبثقة المخصصة
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
+
   const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
@@ -119,29 +124,50 @@ export default function BillingTab({ cafeId, cafeName, activeLang, t }: BillingT
 
   const isInvalidSub = subStatus === "paused" || daysRemaining < 0;
 
-  const handleFakeUpgrade = async (planId: string) => {
+  const handleFakeUpgrade = (planId: string) => {
     if (isInvalidSub) {
       alert("⚠️ Renew your subscription first!");
       return;
     }
 
     if (planId === currentPlan && selectedCycle === currentCycle) return;
+
+    if (daysRemaining > 0) {
+      setPendingPlanId(planId);
+      setShowWarningModal(true);
+      return;
+    }
     
+    executeUpgrade(planId);
+  };
+
+  const executeUpgrade = async (planId: string) => {
     setIsProcessing(planId);
+    setShowWarningModal(false);
+    
+    const newEndDate = new Date();
+    if (selectedCycle === 'yearly') {
+      newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+    } else {
+      newEndDate.setMonth(newEndDate.getMonth() + 1);
+    }
     
     setTimeout(async () => {
       const { error } = await supabase
         .from("cafes")
         .update({ 
           plan_type: planId,
-          billing_cycle: selectedCycle
+          billing_cycle: selectedCycle,
+          subscription_status: 'active',
+          subscription_ends_at: newEndDate.toISOString() 
         })
         .eq("id", cafeId);
 
       if (!error) {
         setCurrentPlan(planId);
         setCurrentCycle(selectedCycle);
-        alert(`تمت الترقية إلى باقة ${planId.toUpperCase()} (${selectedCycle}) بنجاح! 🎉\n(هذه ترقية تجريبية لتخطي الدفع)`);
+        const successMsg = activeLang === 'ar' ? `تمت الترقية إلى باقة ${planId.toUpperCase()} بنجاح! 🎉` : `Successfully upgraded to ${planId.toUpperCase()}! 🎉`;
+        alert(successMsg);
         window.location.reload();
       } else {
         alert("حدث خطأ أثناء ترقية الباقة. حاول مجدداً.");
@@ -217,7 +243,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang, t }: BillingT
         </div>
       </div>
 
-      {/* 🌟 Billing Cycle Toggle */}
+      {/* Billing Cycle Toggle */}
       <div className="flex justify-center mt-8 mb-4">
         <div className="bg-white p-1.5 rounded-2xl flex items-center border border-border shadow-sm">
           <button
@@ -334,6 +360,51 @@ export default function BillingTab({ cafeId, cafeName, activeLang, t }: BillingT
           <p className="text-xs mt-1">For now, use the buttons above to test different plan limits.</p>
         </div>
       </div>
+
+      {/* 🌟 Custom Warning Modal */}
+      {showWarningModal && pendingPlanId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200" dir={dir}>
+            <button 
+              onClick={() => { setShowWarningModal(false); setPendingPlanId(null); }} 
+              className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'} text-muted-foreground hover:text-foreground bg-muted p-2 rounded-full transition-colors`}
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-6 mx-auto border border-amber-200/50">
+              <AlertTriangle size={36} />
+            </div>
+            
+            <h2 className="text-2xl font-black text-center mb-4 text-foreground">
+              {activeLang === 'ar' ? 'تنبيه استبدال الباقة' : activeLang === 'fr' ? 'Avertissement de Remplacement' : 'Plan Replacement Warning'}
+            </h2>
+            
+            <p className="text-muted-foreground text-center text-sm font-bold leading-relaxed mb-8">
+              {activeLang === 'ar' 
+                ? 'التبديل إلى باقة جديدة سيحل محل اشتراكك النشط الحالي فوراً. سيتم فقدان الأيام المتبقية في باقتك القديمة نهائياً.' 
+                : activeLang === 'fr' 
+                ? 'Passer à un nouveau forfait remplacera immédiatement votre abonnement actif actuel. Les jours restants sur votre ancien forfait seront définitivement perdus.' 
+                : 'Switching to a new plan will immediately replace your current active subscription. Any remaining days on your old plan will be permanently lost.'}
+            </p>
+            
+            <div className="flex gap-3 mt-4">
+              <button 
+                onClick={() => { setShowWarningModal(false); setPendingPlanId(null); }} 
+                className="flex-1 py-4 font-bold rounded-2xl bg-muted text-foreground hover:bg-muted/80 transition-colors"
+              >
+                {activeLang === 'ar' ? 'إلغاء' : activeLang === 'fr' ? 'Annuler' : 'Cancel'}
+              </button>
+              <button 
+                onClick={() => executeUpgrade(pendingPlanId)} 
+                className="flex-1 py-4 font-bold rounded-2xl bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 active:scale-95"
+              >
+                {activeLang === 'ar' ? 'نعم، قم بالترقية' : activeLang === 'fr' ? 'Oui, Mettre à niveau' : 'Yes, Upgrade'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
