@@ -90,7 +90,7 @@ export async function getPlatformBankDetails() {
     .single();
 
   if (error || !data) {
-    return { bank_name: "CIH BANK", rib: "230041540854821102280094", holder_name: "KAMAL El Otmani" };
+    return { bank_name: "CIH BANK", rib: "230041540854821102280094", holder_name: "KAMAL EL OTMANI" };
   }
 
   return data;

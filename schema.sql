@@ -3551,9 +3551,9 @@ ALTER TABLE public.payment_receipts OWNER TO postgres;
 CREATE TABLE public.platform_settings (
     id integer DEFAULT 1 NOT NULL,
     bank_name text DEFAULT 'CIH BANK'::text,
-    rib text DEFAULT '230 330 0000000000000000 00'::text,
-    holder_name text DEFAULT 'KAMAL EGO-DEV'::text,
-    support_whatsapp text DEFAULT '212600000000'::text,
+    rib text DEFAULT '230041540854821102280094'::text,
+    holder_name text DEFAULT 'KAMAL EL OTMANI'::text,
+    support_whatsapp text DEFAULT '212781991384'::text,
     updated_at timestamp with time zone DEFAULT now(),
     CONSTRAINT single_row_only CHECK ((id = 1))
 );
