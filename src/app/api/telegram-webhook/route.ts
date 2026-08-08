@@ -11,13 +11,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    // 1. معالجة الضغط على الأزرار التفاعلية
+    // 1. معالجة الضغط على الأزرار (Callback Query)
     if (body.callback_query) {
       const callback = body.callback_query;
       const [action, receiptId] = callback.data.split("_");
       const chatId = callback.message.chat.id;
 
-      // استخراج cafe_id من قاعدة البيانات
       const { data: receipt } = await supabase
         .from("payment_receipts")
         .select("cafe_id")
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
       if (!receipt) {
         return NextResponse.json({ error: "Receipt not found" });
       }
-      
+
       const cafeId = receipt.cafe_id;
 
       if (action === "app") {

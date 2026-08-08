@@ -56,7 +56,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
 
   const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
 
-  // نصوص الترجمة المدمجة
   const translations = {
     ar: {
       billingAndSub: "الفوترة والاشتراك",
@@ -102,7 +101,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       uploadHere: "اضغط هنا لرفع صورة الإيصال",
       confirmSend: "تأكيد وإرسال الإيصال (تفعيل فوري)",
       successMsg: "✅ تم استلام الإيصال! تم تفعيل حسابك فوراً لمدة 48 ساعة ريثما تتحقق الإدارة من التحويل.",
-      errorMsg: "حدث خطأ أثناء معالجة الإيصال: "
+      errorMsg: "حدث خطأ أثناء معالجة الإيصال: ",
+      alreadyPending: "لديك طلب تفعيل قيد المراجعة بالفعل. يرجى انتظار رد الإدارة قبل تقديم طلب جديد."
     },
     fr: {
       billingAndSub: "Facturation et Abonnement",
@@ -148,7 +148,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       uploadHere: "Cliquez ici pour télécharger le reçu",
       confirmSend: "Confirmer et envoyer le reçu (Activation immédiate)",
       successMsg: "✅ Reçu téléchargé ! Votre compte est instantanément actif pour 48h en attendant la vérification.",
-      errorMsg: "Une erreur s'est produite lors du traitement du reçu : "
+      errorMsg: "Une erreur s'est produite lors du traitement du reçu : ",
+      alreadyPending: "Vous avez déjà une demande en attente. Veuillez patienter la réponse de l'administration."
     },
     en: {
       billingAndSub: "Billing & Subscription",
@@ -194,7 +195,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       uploadHere: "Click here to upload receipt",
       confirmSend: "Confirm & Send Receipt (Instant Activation)",
       successMsg: "✅ Receipt uploaded! Your account is instantly active for 48h pending verification.",
-      errorMsg: "An error occurred while processing the receipt: "
+      errorMsg: "An error occurred while processing the receipt: ",
+      alreadyPending: "You already have a pending activation request. Please wait for the administration's response."
     }
   };
 
@@ -299,6 +301,11 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
   const isInvalidSub = subStatus === "paused" || daysRemaining < 0;
 
   const handleInitiateUpgrade = (planId: string) => {
+    if (subStatus === "pending_verification") {
+      alert(l.alreadyPending);
+      return;
+    }
+
     if (planId === currentPlan && selectedCycle === currentCycle) return;
     setPendingPlanId(planId);
 
@@ -321,6 +328,11 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
   };
 
   const handleUploadAndSubmit = async () => {
+    if (subStatus === "pending_verification") {
+      alert(l.alreadyPending);
+      return;
+    }
+
     if (!file || !pendingPlanId) return;
     setIsUploading(true);
 
@@ -366,18 +378,18 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
 
       if (cafeUpdateError) throw cafeUpdateError;
 
-      // 🌟 استدعاء دالة إرسال التنبيه إلى Telegram
       try {
         await sendTelegramReceipt({
           receiptId: receiptData?.id || "N/A",
           cafeId: cafeId,
           cafeName: cafeName,
           amount: amountNum,
-          receiptUrl: receiptUrl
+          receiptUrl: receiptUrl,
+          planId: pendingPlanId || "unknown",
+          billingCycle: selectedCycle
         });
       } catch (tgError) {
         console.error("Telegram notification failed:", tgError);
-        // لا نوقف العملية إذا فشل إشعار تليغرام
       }
 
       alert(l.successMsg);
@@ -505,6 +517,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {PLANS.map((plan) => {
           const isActive = currentPlan === plan.id && currentCycle === selectedCycle;
+          const isPending = subStatus === "pending_verification";
+          const isDisabled = isPending || (isActive && subStatus !== "paused");
 
           return (
             <div 
@@ -549,15 +563,17 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
               </div>
 
               <button
-                disabled={isActive && subStatus !== "paused"}
+                disabled={isDisabled}
                 onClick={() => handleInitiateUpgrade(plan.id)}
                 className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${
-                  isActive && subStatus !== "paused"
+                  isDisabled
                     ? "bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200" 
                     : "bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95 shadow-lg shadow-zinc-900/10"
                 }`}
               >
-                {isActive && subStatus !== "paused" ? (
+                {isPending ? (
+                  l.pendingVerif
+                ) : isActive && subStatus !== "paused" ? (
                    l.currentPlanBtn
                 ) : (
                   <>{l.upgradeTo} {plan.name} <ArrowRight size={18} className={dir === 'rtl' ? 'rotate-180' : ''} /></>

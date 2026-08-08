@@ -6,6 +6,8 @@ export async function sendTelegramReceipt(data: {
   cafeName: string;
   amount: number;
   receiptUrl: string;
+  planId: string;
+  billingCycle: string;
 }) {
   const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -14,17 +16,27 @@ export async function sendTelegramReceipt(data: {
     throw new Error("بيانات اعتماد Telegram مفقودة");
   }
 
-  const caption = `🧾 *طلب تفعيل جديد*\n\n` +
-    `• *المقهى:* ${data.cafeName}\n` +
-    `• *المبلغ:* ${data.amount} MAD\n` +
-    `• *معرف الإيصال:* \`${data.receiptId}\``;
+  const currentDate = new Date().toLocaleString("en-GB", { 
+    timeZone: "Africa/Casablanca",
+    dateStyle: "medium",
+    timeStyle: "short"
+  });
 
-  // تصغير حجم callback_data ليتوافق مع قيود تليغرام (أقل من 64 حرف)
+  const cycleText = data.billingCycle === "yearly" ? "سنوي" : "شهري";
+
+  const caption = `🚨 <b>طلب تفعيل جديد</b>\n\n` +
+    `🏢 <b>المقهى:</b> ${data.cafeName}\n` +
+    `📦 <b>الباقة:</b> ${data.planId.toUpperCase()} (${cycleText})\n` +
+    `💰 <b>المبلغ:</b> ${data.amount} MAD\n` +
+    `📅 <b>التاريخ:</b> ${currentDate}\n` +
+    `🆔 <b>الإيصال:</b> <code>${data.receiptId}</code>\n\n` +
+    `يرجى مراجعة الإيصال المرفق لاتخاذ القرار:`;
+
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "✅ قبول", callback_data: `app_${data.receiptId}` },
-        { text: "❌ رفض", callback_data: `den_${data.receiptId}` }
+        { text: "✅ قبول التفعيل", callback_data: `app_${data.receiptId}` },
+        { text: "❌ رفض الطلب", callback_data: `den_${data.receiptId}` }
       ]
     ]
   };
@@ -36,7 +48,7 @@ export async function sendTelegramReceipt(data: {
       chat_id: TELEGRAM_CHAT_ID,
       photo: data.receiptUrl,
       caption: caption,
-      parse_mode: "Markdown",
+      parse_mode: "HTML",
       reply_markup: keyboard
     })
   });
