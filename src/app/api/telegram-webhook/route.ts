@@ -14,11 +14,23 @@ export async function POST(req: Request) {
     // 1. معالجة الضغط على الأزرار التفاعلية
     if (body.callback_query) {
       const callback = body.callback_query;
-      const [action, receiptId, cafeId] = callback.data.split("_");
+      const [action, receiptId] = callback.data.split("_");
       const chatId = callback.message.chat.id;
 
-      if (action === "approve") {
-        // حساب تاريخ انتهاء جديد (سنة واحدة افتراضياً)
+      // استخراج cafe_id من قاعدة البيانات
+      const { data: receipt } = await supabase
+        .from("payment_receipts")
+        .select("cafe_id")
+        .eq("id", receiptId)
+        .single();
+
+      if (!receipt) {
+        return NextResponse.json({ error: "Receipt not found" });
+      }
+      
+      const cafeId = receipt.cafe_id;
+
+      if (action === "app") {
         const newEndDate = new Date();
         newEndDate.setFullYear(newEndDate.getFullYear() + 1);
 
@@ -33,17 +45,17 @@ export async function POST(req: Request) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: chatId,
-            text: `✅ تم تأكيد استلام المبلغ. الحساب الخاص بالمقهى (${cafeId}) نشط الآن بشكل دائم.`
+            text: `✅ تم تأكيد استلام المبلغ. الحساب نشط الآن بشكل دائم.`
           })
         });
       } 
-      else if (action === "deny") {
+      else if (action === "den") {
         await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: chatId,
-            text: `لتحديد سبب الرفض وإيقاف المقهى، انسخ النص التالي واكتب السبب في نهايته:\n\nreason_${receiptId}_${cafeId}_اكتب_السبب_هنا`
+            text: `لتحديد سبب الرفض وإيقاف المقهى، انسخ النص التالي واكتب السبب في نهايته:\n\nreason_${receiptId}_اكتب_السبب_هنا`
           })
         });
       }
@@ -61,26 +73,33 @@ export async function POST(req: Request) {
     if (body.message?.text?.startsWith("reason_")) {
       const parts = body.message.text.split("_");
       const receiptId = parts[1];
-      const cafeId = parts[2];
-      const reason = parts.slice(3).join("_");
+      const reason = parts.slice(2).join("_");
 
-      await supabase.from("payment_receipts").update({
-        status: "rejected",
-        rejection_reason: reason
-      }).eq("id", receiptId);
+      const { data: receipt } = await supabase
+        .from("payment_receipts")
+        .select("cafe_id")
+        .eq("id", receiptId)
+        .single();
 
-      await supabase.from("cafes").update({
-        subscription_status: "paused"
-      }).eq("id", cafeId);
+      if (receipt) {
+        await supabase.from("payment_receipts").update({
+          status: "rejected",
+          rejection_reason: reason
+        }).eq("id", receiptId);
 
-      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          chat_id: body.message.chat.id,
-          text: `❌ تم الرفض بنجاح وتوقف حساب المقهى.\nالسبب المسجل: ${reason}`
-        })
-      });
+        await supabase.from("cafes").update({
+          subscription_status: "paused"
+        }).eq("id", receipt.cafe_id);
+
+        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: body.message.chat.id,
+            text: `❌ تم الرفض بنجاح وتوقف الحساب.\nالسبب المسجل: ${reason}`
+          })
+        });
+      }
     }
 
     return NextResponse.json({ ok: true });

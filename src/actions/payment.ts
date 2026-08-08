@@ -19,11 +19,12 @@ export async function sendTelegramReceipt(data: {
     `• *المبلغ:* ${data.amount} MAD\n` +
     `• *معرف الإيصال:* \`${data.receiptId}\``;
 
+  // تصغير حجم callback_data ليتوافق مع قيود تليغرام (أقل من 64 حرف)
   const keyboard = {
     inline_keyboard: [
       [
-        { text: "✅ قبول", callback_data: `approve_${data.receiptId}_${data.cafeId}` },
-        { text: "❌ رفض", callback_data: `deny_${data.receiptId}_${data.cafeId}` }
+        { text: "✅ قبول", callback_data: `app_${data.receiptId}` },
+        { text: "❌ رفض", callback_data: `den_${data.receiptId}` }
       ]
     ]
   };
