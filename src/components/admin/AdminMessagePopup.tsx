@@ -9,38 +9,51 @@ export default function AdminMessagePopup({ cafeId }: { cafeId: string }) {
   const [isVisible, setIsVisible] = useState(false);
   const [lang, setLang] = useState<"ar" | "fr" | "en">("ar");
 
-  useEffect(() => {
-    const fetchMessage = async () => {
-      if (!cafeId) return;
+  const checkMessage = async () => {
+    if (!cafeId) return;
 
-      const { data: cafe } = await supabase
-        .from("cafes")
-        .select("subscription_status")
-        .eq("id", cafeId)
+    const { data: cafe } = await supabase
+      .from("cafes")
+      .select("subscription_status")
+      .eq("id", cafeId)
+      .single();
+
+    if (cafe?.subscription_status === "paused") {
+      const { data: receipt } = await supabase
+        .from("payment_receipts")
+        .select("id, rejection_reason")
+        .eq("cafe_id", cafeId)
+        .eq("status", "rejected")
+        .order("created_at", { ascending: false })
+        .limit(1)
         .single();
 
-      if (cafe?.subscription_status === "paused") {
-        const { data: receipt } = await supabase
-          .from("payment_receipts")
-          .select("id, rejection_reason")
-          .eq("cafe_id", cafeId)
-          .eq("status", "rejected")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-
-        if (receipt?.rejection_reason) {
-          // التحقق مما إذا كان العميل قد قرأ هذه الرسالة مسبقاً
-          const isRead = localStorage.getItem(`msg_read_${receipt.id}`);
-          if (!isRead) {
-            setMessage({ id: receipt.id, text: receipt.rejection_reason });
-            setIsVisible(true);
-          }
+      if (receipt?.rejection_reason) {
+        const isRead = localStorage.getItem(`msg_read_${receipt.id}`);
+        if (!isRead) {
+          setMessage({ id: receipt.id, text: receipt.rejection_reason });
+          setIsVisible(true);
         }
       }
-    };
+    }
+  };
 
-    fetchMessage();
+  useEffect(() => {
+    checkMessage();
+
+    // الاستماع لأي تغييرات تحدث على جدول cafes وتحديداً حالة الاشتراك
+    const channel = supabase
+      .channel(`popup_changes_${cafeId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "cafes", filter: `id=eq.${cafeId}` },
+        () => checkMessage()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [cafeId]);
 
   const handleMarkAsRead = () => {
@@ -86,7 +99,6 @@ export default function AdminMessagePopup({ cafeId }: { cafeId: string }) {
     <div className="fixed bottom-6 right-6 sm:bottom-10 sm:right-10 z-[100] w-full max-w-[90vw] sm:max-w-md animate-in slide-in-from-bottom-8 fade-in duration-500 font-sans">
       <div className="bg-white rounded-[2rem] shadow-2xl border-2 border-rose-200 overflow-hidden" dir={dir}>
         
-        {/* Header & Lang Switcher */}
         <div className="bg-rose-50 px-6 py-4 flex justify-between items-center border-b border-rose-100">
           <div className="flex items-center gap-2 text-rose-600 font-black">
             <AlertTriangle size={20} />
@@ -99,7 +111,6 @@ export default function AdminMessagePopup({ cafeId }: { cafeId: string }) {
           </div>
         </div>
 
-        {/* Content */}
         <div className="p-6">
           <p className="text-sm font-bold text-zinc-500 mb-3">{t[lang].sub}</p>
           <div className="bg-zinc-900 text-rose-200 p-4 rounded-2xl font-mono text-sm shadow-inner border border-zinc-800 leading-relaxed">

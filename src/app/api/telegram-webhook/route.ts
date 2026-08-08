@@ -49,12 +49,14 @@ export async function POST(req: Request) {
         });
       } 
       else if (action === "den") {
+        // إرسال رسالة تطلب الرد المباشر (Force Reply) وتحتوي على الـ ID
         await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chat_id: chatId,
-            text: `لتحديد سبب الرفض وإيقاف المقهى، انسخ النص التالي واكتب السبب في نهايته:\n\nreason_${receiptId}_اكتب_السبب_هنا`
+            text: `الرجاء كتابة سبب الرفض بالرد المباشر (Reply) على هذه الرسالة.\n\nID: ${receiptId}`,
+            reply_markup: { force_reply: true }
           })
         });
       }
@@ -68,36 +70,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    // 2. معالجة نص سبب الرفض
-    if (body.message?.text?.startsWith("reason_")) {
-      const parts = body.message.text.split("_");
-      const receiptId = parts[1];
-      const reason = parts.slice(2).join("_");
+    // 2. معالجة الرد المباشر (الاستخراج التلقائي)
+    if (body.message?.reply_to_message?.text) {
+      const replyText = body.message.reply_to_message.text;
+      
+      // البحث عن UUID (معرف الإيصال) داخل الرسالة التي تم الرد عليها
+      const uuidRegex = /([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/;
+      const match = replyText.match(uuidRegex);
 
-      const { data: receipt } = await supabase
-        .from("payment_receipts")
-        .select("cafe_id")
-        .eq("id", receiptId)
-        .single();
+      if (match && match[1]) {
+        const receiptId = match[1];
+        const reason = body.message.text;
 
-      if (receipt) {
-        await supabase.from("payment_receipts").update({
-          status: "rejected",
-          rejection_reason: reason
-        }).eq("id", receiptId);
+        const { data: receipt } = await supabase
+          .from("payment_receipts")
+          .select("cafe_id")
+          .eq("id", receiptId)
+          .single();
 
-        await supabase.from("cafes").update({
-          subscription_status: "paused"
-        }).eq("id", receipt.cafe_id);
+        if (receipt) {
+          // تحديث حالة الإيصال
+          await supabase.from("payment_receipts").update({
+            status: "rejected",
+            rejection_reason: reason
+          }).eq("id", receiptId);
 
-        await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: body.message.chat.id,
-            text: `❌ تم الرفض بنجاح وتوقف الحساب.\nالسبب المسجل: ${reason}`
-          })
-        });
+          // إيقاف الحساب
+          await supabase.from("cafes").update({
+            subscription_status: "paused"
+          }).eq("id", receipt.cafe_id);
+
+          await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: body.message.chat.id,
+              text: `❌ تم الرفض بنجاح وتوقف الحساب.\nالسبب المسجل: ${reason}`
+            })
+          });
+        }
       }
     }
 
