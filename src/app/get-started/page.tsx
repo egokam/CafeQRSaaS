@@ -1,19 +1,28 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, MessageCircle, Mail, ArrowLeft, Zap, Star, Gem } from "lucide-react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { LanguageSwitcher } from "@/components/landing/LanguageSwitcher"; 
 
 const WHATSAPP_NUMBER = "212781991384";
 const EMAIL_ADDRESS = "egokam.business@gmail.com";
+
+// قاموس محلي للنصوص الجديدة الخاصة بدورة الدفع لتجنب أخطاء الترجمة المفقودة
+const CYCLE_TRANSLATIONS: Record<string, any> = {
+  en: { monthly: "Monthly", yearly: "Yearly", free: "2 Months FREE", mo: "mo", yr: "yr" },
+  fr: { monthly: "Mensuel", yearly: "Annuel", free: "2 Mois GRATUITS", mo: "mois", yr: "an" },
+  ar: { monthly: "شهري", yearly: "سنوي", free: "شهران مجاناً", mo: "شهر", yr: "سنة" }
+};
 
 const PLANS_CONFIG = [
   {
     id: "silver",
     icon: Zap,
     popular: false,
+    prices: { monthly: "249", yearly: "2,490" },
     theme: "zinc",
     color: "text-zinc-300",
     iconBg: "bg-zinc-800/50 text-zinc-300",
@@ -27,6 +36,7 @@ const PLANS_CONFIG = [
     id: "gold",
     icon: Star,
     popular: true,
+    prices: { monthly: "399", yearly: "3,990" },
     theme: "amber",
     color: "text-amber-400",
     iconBg: "bg-amber-500/10 text-amber-400",
@@ -40,6 +50,7 @@ const PLANS_CONFIG = [
     id: "diamond",
     icon: Gem,
     popular: false,
+    prices: { monthly: "799", yearly: "7,990" },
     theme: "cyan",
     color: "text-cyan-400",
     iconBg: "bg-cyan-500/10 text-cyan-400",
@@ -53,10 +64,14 @@ const PLANS_CONFIG = [
 
 export default function GetStartedPage() {
   const t = useTranslations("GetStarted");
+  const locale = useLocale();
+  const ct = CYCLE_TRANSLATIONS[locale] || CYCLE_TRANSLATIONS.en;
+  
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
   const handleWhatsAppClick = (planId: string) => {
     const planName = t(`plans.${planId}.name`);
-    const text = encodeURIComponent(t("whatsappMessage", { plan: planName }));
+    const text = encodeURIComponent(t("whatsappMessage", { plan: planName }) + ` (${billingCycle})`);
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, "_blank");
   };
 
@@ -81,7 +96,7 @@ export default function GetStartedPage() {
         </div>
         
         {/* Header Section */}
-        <div className="text-center mb-20">
+        <div className="text-center mb-12">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -103,8 +118,41 @@ export default function GetStartedPage() {
           </motion.p>
         </div>
 
+        {/* 🌟 Billing Cycle Toggle */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex justify-center mb-12"
+        >
+          <div className="bg-zinc-900/50 p-1.5 rounded-2xl flex items-center border border-white/5 backdrop-blur-sm">
+            <button
+              onClick={() => setBillingCycle("monthly")}
+              className={`px-8 py-3.5 rounded-xl text-sm font-black transition-all ${
+                billingCycle === "monthly" 
+                  ? "bg-zinc-800 text-white shadow-sm border border-white/10" 
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 border border-transparent"
+              }`}
+            >
+              {ct.monthly}
+            </button>
+            <button
+              onClick={() => setBillingCycle("yearly")}
+              className={`px-6 sm:px-8 py-3.5 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${
+                billingCycle === "yearly" 
+                  ? "bg-amber-500/10 text-amber-400 shadow-sm border border-amber-500/20" 
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50 border border-transparent"
+              }`}
+            >
+              {ct.yearly}
+              <span className={`px-2 py-0.5 rounded-full text-[10px] whitespace-nowrap ${billingCycle === "yearly" ? "bg-amber-500/20 text-amber-300" : "bg-zinc-800 text-zinc-400"}`}>
+                {ct.free}
+              </span>
+            </button>
+          </div>
+        </motion.div>
+
         {/* 🌟 Pricing Cards Grid */}
-        {/* 🛑 تمت إضافة mt-8 لإعطاء مساحة إضافية للتاج العلوي لكي لا يلتصق بالنص */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch mt-8">
           {PLANS_CONFIG.map((plan, index) => {
             const features = t.raw(`plans.${plan.id}.features`) as string[];
@@ -114,7 +162,7 @@ export default function GetStartedPage() {
                 key={plan.id}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.15, ease: "easeOut" }}
+                transition={{ duration: 0.5, delay: index * 0.15 + 0.3, ease: "easeOut" }}
                 /* 🛑 تم إزالة overflow-hidden من هنا لكي لا تُقص كلمة الأكثر طلباً */
                 className={`group relative flex flex-col bg-zinc-900/40 backdrop-blur-md border rounded-[2.5rem] p-8 lg:p-10 transition-all duration-500 hover:-translate-y-2 ${plan.border} ${plan.hoverBorder}`}
               >
@@ -126,7 +174,7 @@ export default function GetStartedPage() {
 
                 {/* Popular Badge */}
                 {plan.popular && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-amber-400 text-zinc-950 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(251,191,36,0.3)] z-20">
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-amber-400 text-zinc-950 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_20px_rgba(251,191,36,0.3)] z-20 whitespace-nowrap">
                     <Star size={14} className="fill-zinc-950" /> {t("mostPopular")}
                   </div>
                 )}
@@ -147,10 +195,10 @@ export default function GetStartedPage() {
                     
                     <div className="mt-8 flex items-baseline justify-center sm:justify-start gap-1.5">
                       <span className="text-4xl md:text-5xl font-black tracking-tight text-white">
-                        {t(`plans.${plan.id}.price`)}
+                        {plan.prices[billingCycle]}
                       </span>
                       <span className="text-zinc-500 font-semibold text-sm">
-                        {t("billing")}
+                        MAD / {billingCycle === 'yearly' ? ct.yr : ct.mo}
                       </span>
                     </div>
                   </div>
