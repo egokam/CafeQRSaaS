@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Edit, Trash2 } from "lucide-react";
+import { X, Edit, Trash2, AlertCircle } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../actions/auth";
 
@@ -44,7 +44,7 @@ const compressImageBeforeUpload = (file: File): Promise<File> => {
   });
 };
 
-export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts }: any) {
+export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts, maxMenu = 150 }: any) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
@@ -55,6 +55,12 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
+  // 🌟 استخراج البيانات الحالية للقيود
+  const currentCount = products.length;
+  const isDiamond = maxMenu >= 9999;
+  const isLimitReached = !isDiamond && currentCount >= maxMenu;
+  const usagePercent = isDiamond ? 0 : Math.min(100, (currentCount / maxMenu) * 100);
+
   const resetForm = () => {
     setEditingId(null); setName(""); setNameEn(""); setNameFr(""); setDescription(""); setPrice(""); setImageFile(null);
   };
@@ -62,6 +68,13 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   const handleAddOrUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cafeId || !name || !price || (!imageFile && !editingId)) return alert(t.fillFields);
+    
+    // 🌟 منع تجاوز الحد عند الإضافة الجديدة فقط (السماح بالتعديل)
+    if (!editingId && isLimitReached) {
+      alert(activeLang === 'ar' ? "لقد وصلت للحد الأقصى للمنتجات المسموح بها في باقتك." : "Menu limit reached. Upgrade your plan.");
+      return;
+    }
+
     setIsUploading(true);
     try {
       let finalImageUrl = undefined;
@@ -90,8 +103,8 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
         if (success) alert(t.updatedSuccess); else throw new Error();
       } else {
         productData.cafe_id = cafeId; productData.is_active = true;
-        const { success } = await adminAddProduct(productData);
-        if (success) alert(t.addedSuccess); else throw new Error();
+        const { success, error: serverError } = await adminAddProduct(productData);
+        if (success) alert(t.addedSuccess); else throw new Error(serverError);
       }
       resetForm(); fetchProducts(cafeId);
     } catch (err: any) { alert(t.errorPrefix + (err.message || t.errorPrefix)); } finally { setIsUploading(false); }
@@ -119,7 +132,26 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <div className="lg:col-span-1 bg-white p-6 rounded-3xl shadow-sm border border-border h-fit relative">
         {editingId && <button onClick={resetForm} className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'} text-muted-foreground hover:text-red-500`}><X size={24} /></button>}
+        
         <h2 className="text-xl font-bold mb-6 border-b pb-4">{editingId ? t.editProduct : t.addProduct}</h2>
+        
+        {/* 🌟 رسالة تنبيه عند الوصول للحد الأقصى، وتختفي عند التعديل */}
+        {!editingId && isLimitReached && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3">
+            <AlertCircle size={20} className="shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-bold text-sm">
+                {activeLang === 'ar' ? "الحد الأقصى للمنيو" : "Menu Limit Reached"}
+              </h4>
+              <p className="text-xs mt-1 opacity-80">
+                {activeLang === 'ar' 
+                  ? "لا يمكنك إضافة منتجات جديدة. يرجى ترقية باقتك."
+                  : "You cannot add new products. Please upgrade your plan."}
+              </p>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleAddOrUpdateProduct} className="space-y-4">
           <div><label className="block text-sm font-bold mb-2">{t.nameAr}</label><input required type="text" value={name} onChange={(e) => setName(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} /></div>
           <div className="grid grid-cols-2 gap-4">
@@ -138,13 +170,45 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
           </div>
           <div>
             <label className="block text-sm font-bold mb-2">{t.imageLabel}</label>
-            <div className="border-2 border-dashed border-primary/50 rounded-xl p-4 text-center cursor-pointer relative"><input required={!editingId} type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="absolute inset-0 w-full h-full opacity-0" /><div className="text-primary font-bold">{imageFile ? imageFile.name : editingId ? t.changeImage : t.chooseImage}</div></div>
+            <div className={`border-2 border-dashed rounded-xl p-4 text-center relative ${!editingId && isLimitReached ? 'border-gray-300 bg-gray-50' : 'border-primary/50 cursor-pointer'}`}>
+              <input required={!editingId} disabled={!editingId && isLimitReached} type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className={`absolute inset-0 w-full h-full opacity-0 ${!editingId && isLimitReached ? 'hidden' : 'cursor-pointer'}`} />
+              <div className={`font-bold ${!editingId && isLimitReached ? 'text-gray-400' : 'text-primary'}`}>{imageFile ? imageFile.name : editingId ? t.changeImage : t.chooseImage}</div>
+            </div>
           </div>
-          <button disabled={isUploading} type="submit" className={`w-full text-white py-4 rounded-xl font-bold shadow-lg ${editingId ? 'bg-blue-500' : 'bg-primary'}`}>{isUploading ? t.saving : editingId ? t.saveEdit : t.publishProduct}</button>
+          <button 
+            disabled={isUploading || (!editingId && isLimitReached)} 
+            type="submit" 
+            className={`w-full text-white py-4 rounded-xl font-bold shadow-lg transition-colors ${
+              !editingId && isLimitReached 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : editingId 
+                ? 'bg-blue-500 hover:bg-blue-600' 
+                : 'bg-primary hover:bg-primary/90'
+            }`}
+          >
+            {isUploading ? t.saving : editingId ? t.saveEdit : (!editingId && isLimitReached ? "Locked 🔒" : t.publishProduct)}
+          </button>
         </form>
       </div>
+      
       <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-border">
-        <h2 className="text-xl font-bold mb-6 border-b pb-4">{t.currentProducts}</h2>
+        {/* 🌟 الترويسة وشريط التقدم الخاص بالمنتجات */}
+        <div className="flex items-center justify-between mb-4 border-b pb-4">
+          <h2 className="text-xl font-bold">{t.currentProducts}</h2>
+          <div className="text-sm font-bold text-muted-foreground flex items-center gap-2" dir="ltr">
+            {currentCount} / {isDiamond ? "♾️" : maxMenu}
+          </div>
+        </div>
+        
+        {!isDiamond && (
+          <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-6">
+            <div 
+              className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? 'bg-red-500' : 'bg-primary'}`} 
+              style={{ width: `${usagePercent}%` }} 
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {products.map((product: any) => (
             <div key={product.id} className="flex gap-4 border border-border/50 p-3 rounded-2xl items-center bg-muted/10">

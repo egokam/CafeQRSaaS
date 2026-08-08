@@ -22,12 +22,10 @@ export async function checkCafeSubscription(cafeSlug: string) {
   const now = new Date();
   const endsAt = new Date(cafe.subscription_ends_at);
 
-  // إذا كان موقوفاً
   if (cafe.subscription_status === 'paused') {
     return { isValid: false, status: 'paused', cafeName: cafe.name };
   }
 
-  // إذا انتهى الوقت، يتم تحويله فوراً إلى paused
   if (now > endsAt) {
     await supabaseAdmin
       .from('cafes')
@@ -66,7 +64,7 @@ export async function submitBankTransferReceipt(cafeId: string, receiptUrl: stri
       const { error: cafeError } = await supabaseAdmin
         .from('cafes')
         .update({ 
-          subscription_status: 'paused', // 🌟 تم التغيير إلى paused بدلاً من pending_verification
+          subscription_status: 'paused',
           can_use_grace: false 
         })
         .eq('id', cafeId);
@@ -125,34 +123,46 @@ export async function getUltimateDashboardData(accessToken?: string) {
 
   const cafeList = cafes || [];
   const activeCafes = cafeList.filter(c => c.subscription_status === 'active').length;
-  const pausedCafes = cafeList.filter(c => c.subscription_status === 'paused').length; // 🌟 تم التحديث إلى paused
+  const pausedCafes = cafeList.filter(c => c.subscription_status === 'paused').length;
   
+  // 🌟 حساب الـ MRR بناءً على الأسعار الجديدة ودورة الدفع
   const totalMRR = cafeList.reduce((acc, c) => {
     if (c.subscription_status !== 'active') return acc;
-    if (c.plan_type === 'silver') return acc + 2000;
-    if (c.plan_type === 'gold') return acc + 2990;
-    if (c.plan_type === 'diamond') return acc + 4990;
-    return acc; 
+    let monthlyVal = 0;
+    if (c.plan_type === 'silver') monthlyVal = c.billing_cycle === 'yearly' ? (2490 / 12) : 249;
+    if (c.plan_type === 'gold') monthlyVal = c.billing_cycle === 'yearly' ? (3990 / 12) : 399;
+    if (c.plan_type === 'diamond') monthlyVal = c.billing_cycle === 'yearly' ? (7990 / 12) : 799;
+    return acc + monthlyVal; 
   }, 0);
 
   return {
     cafes: cafeList,
     receipts: receipts || [],
-    stats: { total: cafeList.length, active: activeCafes, paused: pausedCafes, mrr: totalMRR } 
+    stats: { total: cafeList.length, active: activeCafes, paused: pausedCafes, mrr: Math.round(totalMRR) } 
   };
 }
 
 // 5. تعديل تاريخ الاشتراك يدوياً
-export async function forceUpdateCafeSub(cafeId: string, status: string, endsAt: string, planType: string) {
+export async function forceUpdateCafeSub(cafeId: string, status: string, endsAt: string, planType: string, billingCycle: string = 'monthly') {
   try {
     const isoDate = new Date(endsAt).toISOString();
+
+    // 🌟 حساب القيود الديناميكية
+    let maxC = 1, maxT = 30, maxM = 150, isWL = false;
+    if (planType === 'gold') { maxC = 3; maxT = 100; maxM = 9999; }
+    if (planType === 'diamond') { maxC = 9999; maxT = 9999; maxM = 9999; isWL = true; }
 
     const { error } = await supabaseAdmin
       .from('cafes')
       .update({
         subscription_status: status,
         subscription_ends_at: isoDate,
-        plan_type: planType 
+        plan_type: planType,
+        billing_cycle: billingCycle,
+        max_cashiers: maxC,
+        max_tables: maxT,
+        max_menu_items: maxM,
+        is_white_label: isWL
       })
       .eq('id', cafeId);
 
@@ -162,7 +172,6 @@ export async function forceUpdateCafeSub(cafeId: string, status: string, endsAt:
     }
 
     revalidatePath('/ego-owner-9539');
-    
     return true;
   } catch (err) {
     console.error("Force update catch error:", err);
@@ -177,6 +186,7 @@ export async function provisionNewCafe(payload: {
   ownerEmail: string;
   ownerPassword?: string;
   planType: string;
+  billingCycle: string;
   trialDays: number;
   adminPin: string;
   cashierPin: string;
@@ -198,8 +208,10 @@ export async function provisionNewCafe(payload: {
 
     const endsAt = new Date(Date.now() + payload.trialDays * 24 * 60 * 60 * 1000).toISOString();
     
-    const maxC = payload.planType === 'diamond' ? 99 : payload.planType === 'gold' ? 3 : 1;
-    const maxK = payload.planType === 'diamond' ? 99 : payload.planType === 'gold' ? 3 : 1;
+    // 🌟 حساب القيود الديناميكية
+    let maxC = 1, maxT = 30, maxM = 150, isWL = false;
+    if (payload.planType === 'gold') { maxC = 3; maxT = 100; maxM = 9999; }
+    if (payload.planType === 'diamond') { maxC = 9999; maxT = 9999; maxM = 9999; isWL = true; }
 
     const { data: newCafe, error: dbErr } = await supabaseAdmin.from('cafes').insert([{
       name: payload.name,
@@ -209,11 +221,15 @@ export async function provisionNewCafe(payload: {
       admin_pin: payload.adminPin || "1234",
       cashier_pin: payload.cashierPin || "0000",
       plan_type: payload.planType,
+      billing_cycle: payload.billingCycle,
       subscription_status: 'active',
       subscription_ends_at: endsAt,
       can_use_grace: true,
       max_cashiers: maxC,
-      max_kitchens: maxK
+      max_tables: maxT,
+      max_menu_items: maxM,
+      is_white_label: isWL,
+      max_kitchens: payload.planType === 'diamond' ? 99 : 1
     }]).select().single();
 
     if (dbErr || !newCafe) {

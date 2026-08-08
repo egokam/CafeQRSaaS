@@ -38,6 +38,7 @@ export default function UltimateSuperAdminDashboard() {
   const [facEmail, setFacEmail] = useState("");
   const [facPass, setFacPass] = useState("CafeSaaS2026!");
   const [facPlan, setFacPlan] = useState("silver");
+  const [facBillingCycle, setFacBillingCycle] = useState("monthly"); // 🌟 الإضافة الجديدة لدورة الدفع
   const [facTrial, setFacTrial] = useState(14);
   const [facCashierPin, setFacCashierPin] = useState("0000");
   const [facAdminPin, setFacAdminPin] = useState("1234");
@@ -80,10 +81,8 @@ export default function UltimateSuperAdminDashboard() {
       loadAll(session.access_token);
     });
 
-    // 🌟 الحل 4: إزالة `|| !session` لمنع الطرد عند التحديث (Refresh)
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (!isMounted) return;
-      // لا نطرد المستخدم إلا إذا سجل خروجه بشكل صريح
       if (event === 'SIGNED_OUT') {
         router.replace("/ego-owner-9539/login");
       }
@@ -100,27 +99,28 @@ export default function UltimateSuperAdminDashboard() {
 
   const handleInspect = (cafe: any) => { setInspectedCafe(cafe); };
 
-  const handleForceSave = async (cafeId: string, newStatus: string, rawDate: string, newPlan: string) => {
+  // 🌟 تم إضافة newCycle كمعامل خامس
+  const handleForceSave = async (cafeId: string, newStatus: string, rawDate: string, newPlan: string, newCycle: string) => {
     try {
       const isoDate = new Date(rawDate).toISOString();
-      const success = await forceUpdateCafeSub(cafeId, newStatus, isoDate, newPlan);
+      // 🌟 تم إرسال newCycle إلى الخادم
+      const success = await forceUpdateCafeSub(cafeId, newStatus, isoDate, newPlan, newCycle);
 
       if (success) {
         alert(t("success.forceUpdate"));
 
-        // 🌟 الحل الجذري للتحديث الوهمي (Optimistic UI Update)
-        // نقوم بتحديث البيانات في الواجهة فوراً لتنعكس على الجدول والمفتش
         setData((prevData: any) => {
           const updatedCafes = prevData.cafes.map((c: any) =>
             c.id === cafeId
-              ? { ...c, subscription_status: newStatus, subscription_ends_at: isoDate, plan_type: newPlan }
+              // 🌟 تحديث الواجهة فوراً لتشمل التعديل على دورة الدفع
+              ? { ...c, subscription_status: newStatus, subscription_ends_at: isoDate, plan_type: newPlan, billing_cycle: newCycle }
               : c
           );
           return { ...prevData, cafes: updatedCafes };
         });
 
-        setInspectedCafe(null); // إغلاق النافذة
-        router.refresh(); // إخبار Next.js بتنظيف الكاش في الخلفية
+        setInspectedCafe(null);
+        router.refresh();
 
       } else {
         alert(t("errors.forceUpdateFail"));
@@ -164,9 +164,10 @@ export default function UltimateSuperAdminDashboard() {
     if (!facName || !facSlug || !facEmail) return alert(t("errors.missingFields"));
     setFacSubmitting(true); setFacResult(null);
 
+    // 🌟 تمرير facBillingCycle إلى دالة إنشاء مقهى جديد
     const res = await provisionNewCafe({
       name: facName, slug: facSlug, ownerEmail: facEmail, ownerPassword: facPass,
-      planType: facPlan, trialDays: Number(facTrial), adminPin: facAdminPin, cashierPin: facCashierPin
+      planType: facPlan, billingCycle: facBillingCycle, trialDays: Number(facTrial), adminPin: facAdminPin, cashierPin: facCashierPin
     });
 
     setFacSubmitting(false);
@@ -379,13 +380,22 @@ export default function UltimateSuperAdminDashboard() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-5 bg-zinc-900/30 rounded-3xl border border-white/5">
+                {/* 🌟 تعديل الشبكة إلى 4 أعمدة لتسع خانة Billing Cycle */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-5 bg-zinc-900/30 rounded-3xl border border-white/5">
                   <div>
                     <label className="block text-[10px] font-mono text-zinc-500 mb-2 font-bold uppercase tracking-widest">{t("factory.planTypeLabel")}</label>
                     <select value={facPlan} onChange={(e) => setFacPlan(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs font-mono text-white outline-none appearance-none focus:border-amber-400/50" dir="ltr">
-                      <option value="silver">Silver (2,000 MAD)</option>
-                      <option value="gold">Gold (2,990 MAD)</option>
-                      <option value="diamond">Diamond (4,990 MAD)</option>
+                      <option value="silver">Silver</option>
+                      <option value="gold">Gold</option>
+                      <option value="diamond">Diamond</option>
+                    </select>
+                  </div>
+                  {/* 🌟 إضافة حقل اختيار دورة الدفع */}
+                  <div>
+                    <label className="block text-[10px] font-mono text-zinc-500 mb-2 font-bold uppercase tracking-widest">Billing Cycle</label>
+                    <select value={facBillingCycle} onChange={(e) => setFacBillingCycle(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs font-mono text-white outline-none appearance-none focus:border-amber-400/50" dir="ltr">
+                      <option value="monthly">Monthly</option>
+                      <option value="yearly">Yearly</option>
                     </select>
                   </div>
                   <div>
@@ -421,7 +431,7 @@ export default function UltimateSuperAdminDashboard() {
                     {copied ? <Check size={18} /> : <Copy size={18} />}
                     <span>{copied ? t("ui.copiedSuccess") : t("ui.copyWhatsappBtn")}</span>
                   </button>
-                  <button onClick={() => { setShowFactory(false); setFacName(""); setFacSlug(""); setFacEmail(""); }} className="w-full sm:w-auto px-8 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl text-sm transition-colors border border-white/5">
+                  <button onClick={() => { setShowFactory(false); setFacName(""); setFacSlug(""); setFacEmail(""); setFacBillingCycle("monthly"); }} className="w-full sm:w-auto px-8 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-2xl text-sm transition-colors border border-white/5">
                     {t("factory.closeBtn")}
                   </button>
                 </div>

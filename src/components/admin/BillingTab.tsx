@@ -19,6 +19,10 @@ import { supabase } from "@/lib/supabase";
 interface BillingTabProps {
   cafeId: string;
   cafeName: string;
+  planType?: string | null;
+  billingCycle?: string;
+  activeLang?: string;
+  t?: any;
 }
 
 const PLANS = [
@@ -26,7 +30,7 @@ const PLANS = [
     id: "silver",
     name: "Silver",
     target: "Perfect for small & emerging cafes",
-    price: "2,000",
+    prices: { monthly: "249", yearly: "2,490" },
     icon: <Shield className="text-slate-500" size={28} />,
     color: "bg-slate-50 text-slate-700 border-slate-200",
     features: [
@@ -42,7 +46,7 @@ const PLANS = [
     id: "gold",
     name: "Gold",
     target: "For busy cafes needing kitchen sync",
-    price: "2,990",
+    prices: { monthly: "399", yearly: "3,990" },
     icon: <Zap className="text-amber-500" size={28} />,
     color: "bg-amber-50 text-amber-700 border-amber-300 shadow-amber-100",
     features: [
@@ -56,7 +60,7 @@ const PLANS = [
     id: "diamond",
     name: "Diamond",
     target: "For franchises & large operations",
-    price: "4,990",
+    prices: { monthly: "799", yearly: "7,990" },
     icon: <Gem className="text-purple-500" size={28} />,
     color: "bg-purple-50 text-purple-700 border-purple-300 shadow-purple-100",
     features: [
@@ -70,12 +74,16 @@ const PLANS = [
   }
 ];
 
-export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
+export default function BillingTab({ cafeId, cafeName, activeLang, t }: BillingTabProps) {
   const [currentPlan, setCurrentPlan] = useState<string | null>(null);
+  const [currentCycle, setCurrentCycle] = useState<string>("monthly");
   const [subStatus, setSubStatus] = useState<string>("active");
-  const [daysRemaining, setDaysRemaining] = useState<number>(0); // 🌟 تتبع الأيام المتبقية
+  const [daysRemaining, setDaysRemaining] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const [selectedCycle, setSelectedCycle] = useState<"monthly" | "yearly">("monthly");
+
+  const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
     const fetchBillingDetails = async () => {
@@ -83,16 +91,16 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
       try {
         const { data, error } = await supabase
           .from("cafes")
-          // 🌟 تم إضافة subscription_ends_at للاستعلام
-          .select("plan_type, subscription_status, subscription_ends_at") 
+          .select("plan_type, billing_cycle, subscription_status, subscription_ends_at") 
           .eq("id", cafeId)
           .single();
 
         if (!error && data) {
           setCurrentPlan(data.plan_type || "silver");
+          setCurrentCycle(data.billing_cycle || "monthly");
+          setSelectedCycle((data.billing_cycle as "monthly" | "yearly") || "monthly");
           setSubStatus(data.subscription_status || "active");
           
-          // 🌟 حساب الأيام المتبقية
           if (data.subscription_ends_at) {
             const ends = new Date(data.subscription_ends_at);
             const diffDays = Math.ceil((ends.getTime() - Date.now()) / (1000 * 3600 * 24));
@@ -109,29 +117,31 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
     if (cafeId) fetchBillingDetails();
   }, [cafeId]);
 
-  // 🌟 التحقق مما إذا كان الحساب موقوفاً أو منتهياً
   const isInvalidSub = subStatus === "paused" || daysRemaining < 0;
 
   const handleFakeUpgrade = async (planId: string) => {
-    // 🌟 نظام الحماية: منع أي إجراء وإظهار تنبيه إذا كان الاشتراك غير صالح
     if (isInvalidSub) {
       alert("⚠️ Renew your subscription first!");
       return;
     }
 
-    if (planId === currentPlan) return;
+    if (planId === currentPlan && selectedCycle === currentCycle) return;
     
     setIsProcessing(planId);
     
     setTimeout(async () => {
       const { error } = await supabase
         .from("cafes")
-        .update({ plan_type: planId })
+        .update({ 
+          plan_type: planId,
+          billing_cycle: selectedCycle
+        })
         .eq("id", cafeId);
 
       if (!error) {
         setCurrentPlan(planId);
-        alert(`تمت الترقية إلى باقة ${planId.toUpperCase()} بنجاح! 🎉\n(هذه ترقية تجريبية لتخطي الدفع)`);
+        setCurrentCycle(selectedCycle);
+        alert(`تمت الترقية إلى باقة ${planId.toUpperCase()} (${selectedCycle}) بنجاح! 🎉\n(هذه ترقية تجريبية لتخطي الدفع)`);
         window.location.reload();
       } else {
         alert("حدث خطأ أثناء ترقية الباقة. حاول مجدداً.");
@@ -149,9 +159,8 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300" dir="ltr">
+    <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300" dir={dir}>
       
-      {/* 🌟 لافتة التحذير الكبيرة تظهر إذا انتهى الاشتراك أو تم إيقافه */}
       {isInvalidSub && (
         <div className="bg-rose-50 border-2 border-rose-500/20 p-6 rounded-3xl flex items-start gap-4 animate-in slide-in-from-top-4">
           <div className="p-3 bg-rose-100 text-rose-600 rounded-2xl shrink-0">
@@ -180,12 +189,14 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
           </div>
         </div>
         
-        {/* 🌟 مؤشرات الحالة والأيام المتبقية */}
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <div className="bg-muted/30 px-5 py-3 rounded-2xl border text-center flex-1 min-w-[120px]">
             <span className="block text-[10px] font-bold text-muted-foreground mb-1 uppercase tracking-wider">Current Plan</span>
-            <div className="text-lg font-black uppercase text-primary tracking-wider">
+            <div className="text-lg font-black uppercase text-primary tracking-wider flex items-center justify-center gap-2">
               {currentPlan || "Silver"}
+              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                {currentCycle === 'yearly' ? 'YR' : 'MO'}
+              </span>
             </div>
           </div>
           
@@ -206,10 +217,39 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
         </div>
       </div>
 
+      {/* 🌟 Billing Cycle Toggle */}
+      <div className="flex justify-center mt-8 mb-4">
+        <div className="bg-white p-1.5 rounded-2xl flex items-center border border-border shadow-sm">
+          <button
+            onClick={() => setSelectedCycle("monthly")}
+            className={`px-8 py-3.5 rounded-xl text-sm font-black transition-all ${
+              selectedCycle === "monthly" 
+                ? "bg-muted text-foreground shadow-sm border border-border" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setSelectedCycle("yearly")}
+            className={`px-8 py-3.5 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${
+              selectedCycle === "yearly" 
+                ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"
+            }`}
+          >
+            Yearly
+            <span className={`px-2 py-0.5 rounded-full text-[10px] ${selectedCycle === "yearly" ? "bg-emerald-200 text-emerald-800" : "bg-emerald-100 text-emerald-600"}`}>
+              2 Months FREE
+            </span>
+          </button>
+        </div>
+      </div>
+
       {/* Pricing Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {PLANS.map((plan) => {
-          const isActive = currentPlan === plan.id;
+          const isActive = currentPlan === plan.id && currentCycle === selectedCycle;
           const isUpgradingThis = isProcessing === plan.id;
 
           return (
@@ -219,7 +259,7 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
                 isActive 
                   ? `${plan.color} shadow-lg scale-[1.02] border-opacity-100` 
                   : "bg-white border-border hover:border-primary/30"
-              } ${isInvalidSub ? 'opacity-80 grayscale-[30%]' : ''}`} // 🌟 تأثير بصري باهت إذا كان الحساب غير صالح
+              } ${isInvalidSub ? 'opacity-80 grayscale-[30%]' : ''}`}
             >
               {isActive && (
                 <div className={`absolute -top-4 left-1/2 -translate-x-1/2 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm ${isInvalidSub ? 'bg-rose-500' : 'bg-foreground'}`}>
@@ -241,7 +281,7 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
 
               <div className="mb-8 pb-6 border-b border-black/10">
                 <p className="text-sm font-bold opacity-70">
-                  <span className="text-4xl font-black">{plan.price}</span> MAD / mo
+                  <span className="text-4xl font-black">{plan.prices[selectedCycle]}</span> MAD / {selectedCycle === "yearly" ? "yr" : "mo"}
                 </p>
               </div>
 
@@ -255,23 +295,22 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
               </div>
 
               <button
-                // 🌟 لاحظ: أزلنا disabled={isInvalidSub} لكي يظل الزر قابلاً للنقر، وتظهر نافذة الـ Alert
                 disabled={isActive || isProcessing !== null}
                 onClick={() => handleFakeUpgrade(plan.id)}
                 className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${
                   isActive
                     ? "bg-black/5 text-black/40 cursor-not-allowed border border-black/5" 
                     : isInvalidSub
-                    ? "bg-rose-500 text-white hover:bg-rose-600 shadow-xl" // لون أحمر لتوضيح المشكلة
+                    ? "bg-rose-500 text-white hover:bg-rose-600 shadow-xl"
                     : "bg-foreground text-white hover:opacity-90 active:scale-95 shadow-xl"
                 }`}
               >
-                {isUpgradingThis ? (
+                {isProcessing === plan.id ? (
                   <Loader2 className="animate-spin" size={20} />
                 ) : isActive ? (
                   isInvalidSub ? "PLAN LOCKED" : "Current Plan"
                 ) : isInvalidSub ? (
-                  "Action Locked 🔒" // نص الزر في حالة الإيقاف
+                  "Action Locked 🔒"
                 ) : (
                   <>Test Upgrade to {plan.name} <ArrowRight size={18} /></>
                 )}
@@ -281,8 +320,8 @@ export default function BillingTab({ cafeId, cafeName }: BillingTabProps) {
         })}
       </div>
 
-      {/* Invoice History Mockup (Hidden during testing) */}
-      <div className="bg-white p-8 rounded-3xl border border-border shadow-sm opacity-50 grayscale select-none pointer-events-none">
+      {/* Invoice History Mockup */}
+      <div className="bg-white p-8 rounded-3xl border border-border shadow-sm opacity-50 grayscale select-none pointer-events-none mt-10">
         <div className="flex items-center justify-between mb-6 pb-4 border-b border-border/50">
           <h3 className="text-xl font-extrabold flex items-center gap-2">
             <History className="text-muted-foreground" size={24} /> Payment History (Coming Soon)

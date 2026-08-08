@@ -2,7 +2,7 @@
 
 import { useState, useEffect, use } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag, Ban, Hourglass, Loader2 } from "lucide-react";
+import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag, Ban, Hourglass, Loader2, Zap } from "lucide-react";
 import {
   cashierMarkOutOfStock,
   cashierUpdateOrderStatus,
@@ -206,7 +206,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     if (res.success) setOrders(res.orders);
   };
 
-  // 🌟 1. Device fingerprinting & Session Restore
   useEffect(() => {
     let storedId = localStorage.getItem(`cafeqr_device_${cafeSlug}`);
 
@@ -267,7 +266,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     initCafe();
   }, [cafeSlug]);
 
-  // 📡 2. Realtime Monitoring (Deduplicated and strictly cleaned up)
   useEffect(() => {
     if (!isAuthenticated || !cafeId || !deviceId) return;
 
@@ -324,7 +322,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       }
     });
 
-    // Cleanup: Safely destroy the connections to prevent ghosts
     return () => {
       supabase.removeChannel(ordersChannel);
       supabase.removeChannel(deviceChannel);
@@ -519,7 +516,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     <>
       <style dangerouslySetInnerHTML={{ __html: `@media print { .no-print { display: none !important; } .print-only { display: block !important; } @page { margin: 0; size: 80mm auto; } body { background-color: white; margin: 0; } }` }} />
 
-      <div className="min-h-screen bg-muted/20 p-6 md:p-12 no-print font-sans" dir={dir}>
+      <div className="min-h-screen bg-muted/20 p-6 md:p-12 no-print font-sans flex flex-col" dir={dir}>
 
         <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between bg-white p-6 rounded-[2rem] shadow-sm border border-border gap-4">
           <div>
@@ -629,9 +626,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
           {orders.length === 0 ? (
-            <div className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed p-10">
+            <div className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed p-10 mt-auto mb-auto">
               <ShoppingBag className="mx-auto text-muted-foreground/30 mb-3" size={48} />
               <p className="text-muted-foreground text-lg font-bold">{t.noOrdersTitle}</p>
               <p className="text-xs text-muted-foreground/70 mt-1">{t.noOrdersSub}</p>
@@ -686,12 +683,22 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           ))}
         </div>
 
+        {/* 🌟 تذييل المنصة (White-label Control) */}
+        {!cafeDataObj?.is_white_label && (
+          <div className="mt-auto pt-12 pb-2 flex flex-col items-center justify-center opacity-40 select-none">
+            <div className="flex items-center gap-1.5 text-muted-foreground">
+              <Zap size={14} className="text-amber-500" />
+              <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Powered by CafeQR</span>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {printOrder && (
         <div className="print-only hidden font-mono text-black bg-white w-full max-w-[300px] mx-auto p-4 text-sm" dir={dir}>
           <div className="text-center pb-4 border-b-2 border-dashed border-gray-400 mb-4">
-            <h2 className="text-2xl font-extrabold mb-1">EgoCafe</h2>
+            <h2 className="text-2xl font-extrabold mb-1">{cafeDataObj?.name || "Cafe"}</h2>
             <p className="text-xs">{t.printTitle}</p>
           </div>
           <div className="mb-4 text-xs space-y-1 font-bold">
@@ -713,6 +720,13 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           <div className="text-center">
             <p className="text-xl font-extrabold" dir="ltr">{formatMAD(printOrder.total_amount)}</p>
           </div>
+          
+          {/* 🌟 تذييل الطباعة (White-label Control) */}
+          {!cafeDataObj?.is_white_label && (
+            <div className="text-center mt-6 pt-4 border-t-2 border-dashed border-gray-400">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Powered by CafeQR</p>
+            </div>
+          )}
         </div>
       )}
     </>

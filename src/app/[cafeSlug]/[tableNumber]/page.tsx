@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useCart } from "../../../store/useCart";
 import MenuCard from "../../../components/MenuCard";
-import { Receipt, X as XIcon, Clock, CheckCircle, Coffee, CakeSlice, CupSoda, Croissant, AlertTriangle, QrCode } from "lucide-react";
+import { Receipt, X as XIcon, Clock, CheckCircle, Coffee, CakeSlice, CupSoda, Croissant, AlertTriangle, QrCode, Zap } from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { checkCafeSubscription } from "../../../actions/saas";
 import {
@@ -83,10 +83,9 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🌟 دروع الحماية والأخطاء
   const [isTableNotFound, setIsTableNotFound] = useState(false);
   const [isCafeNotFound, setIsCafeNotFound] = useState(false);
-  const [isSuspended, setIsSuspended] = useState(false); // 💀 حالة انتهاء الاشتراك
+  const [isSuspended, setIsSuspended] = useState(false);
 
   const displayTitle = cafeData?.name ? cafeData.name : (activeLang === 'ar' ? "مقهى النخبة" : activeLang === 'fr' ? "Café Élite" : "Elite Cafe");
 
@@ -105,13 +104,11 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         setIsCafeNotFound(false);
         setIsSuspended(false);
 
-        // 1. المصادقة الشبحية
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           await supabase.auth.signInAnonymously();
         }
 
-        // 2. فحص الاشتراك (تم إبقاؤه لأنه مهم أمنياً)
         const subCheck = await checkCafeSubscription(cafeSlug);
         if (subCheck.status === 'not_found') {
           setIsCafeNotFound(true);
@@ -124,7 +121,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           return;
         }
 
-        // 🌟 3. جلب البيانات من الخادم (من الكاش مباشرة بسرعه البرق!)
         const menuData = await getCachedCafeMenu(cafeSlug, tableNumber);
 
         if (menuData.error === 'cafe_not_found') {
@@ -146,7 +142,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           setProducts(menuData.products);
         }
 
-        // 4. إعداد جلسة الطلبات
         let sessionId = localStorage.getItem('cafe_lux_client_session');
         if (!sessionId) {
           sessionId = getSafeUUID();
@@ -177,7 +172,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     return () => { supabase.removeChannel(channel); };
   }, [isTableNotFound, isCafeNotFound, isSuspended]);
 
-  // 💓 نبض الساس الصامت للكليان: يتأكد كل 60 ثانية أن المقهى مازال مخلص
   useEffect(() => {
     if (isSuspended || isCafeNotFound || isTableNotFound) return;
 
@@ -195,7 +189,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     return () => clearInterval(heartbeat);
   }, [cafeSlug, isSuspended, isCafeNotFound, isTableNotFound]);
 
-  // 🚀 إرسال الطلب مباشرة بدون فحص الموقع أو مسافة المقهى
   const handleCheckout = async () => {
     if (totalItems() === 0 || !cafeData || !tableId) return;
     setIsSubmitting(true);
@@ -239,7 +232,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center font-bold text-foreground">جاري التحميل...</div>;
 
-  // 💀 شاشة قطع الخدمة الملكية (تظهر عند انتهاء اشتراك المقهى)
   if (isSuspended) {
     return (
       <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col items-center justify-center p-6 text-center select-none" dir="rtl">
@@ -255,7 +247,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     );
   }
 
-  // 🚫 شاشة الخطأ الصارمة للمقهى الوهمي
   if (isCafeNotFound) {
     return (
       <div className="min-h-screen bg-muted/20 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
@@ -266,7 +257,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     );
   }
 
-  // 🚫 شاشة الخطأ الأنيقة للطاولة غير المسجلة
   if (isTableNotFound) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center select-none" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
@@ -402,6 +392,16 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           })()}
         </div>
       </main>
+
+      {/* 🌟 تذييل المنصة (White-label Control) */}
+      {!cafeData?.is_white_label && (
+        <div className="pt-12 pb-6 flex flex-col items-center justify-center opacity-40 select-none">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Zap size={14} className="text-amber-500" />
+            <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Powered by CafeQR</span>
+          </div>
+        </div>
+      )}
 
       {/* 🌟 شريط السلة السفلي النظيف */}
       {totalItems() > 0 && (

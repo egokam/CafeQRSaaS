@@ -1,4 +1,3 @@
-// src/components/KitchenReceipt.tsx
 import React, { forwardRef } from 'react';
 
 interface OrderItem {
@@ -12,13 +11,13 @@ interface KitchenReceiptProps {
   orderId: string;
   items: OrderItem[];
   time: string;
+  isWhiteLabel?: boolean;
 }
 
 export const KitchenReceipt = forwardRef<HTMLDivElement, KitchenReceiptProps>(
-  ({ tableNumber, orderId, items, time }, ref) => {
+  ({ tableNumber, orderId, items, time, isWhiteLabel = false }, ref) => {
     return (
       <div className="hidden">
-
         <div ref={ref} className="w-[80mm] p-4 text-black bg-white font-mono text-sm">
           <div className="text-center border-b-2 border-dashed border-black pb-4 mb-4">
             <h1 className="text-2xl font-bold uppercase">Next Order</h1>
@@ -39,7 +38,16 @@ export const KitchenReceipt = forwardRef<HTMLDivElement, KitchenReceiptProps>(
           </div>
 
           <div className="text-center border-t-2 border-dashed border-black pt-4">
-            <p className="font-bold">*** End of Ticket ***</p>
+            <p className="font-bold mb-4">*** End of Ticket ***</p>
+            
+            {/* White-label Control */}
+            {!isWhiteLabel && (
+              <div className="mt-4 pt-2 border-t border-gray-300">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                  Powered by CafeQR
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

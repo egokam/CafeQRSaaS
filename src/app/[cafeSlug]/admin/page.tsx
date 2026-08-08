@@ -69,13 +69,19 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [newPasswordInput, setNewPasswordInput] = useState("");
 
   const [cafeName, setCafeName] = useState("");
-  const [maxCashiers, setMaxCashiers] = useState("2");
   const [activeCashiers, setActiveCashiers] = useState(0);
+
+  // 🌟 استخراج القيود وتخزينها كمتغيرات حالة
+  const [planType, setPlanType] = useState<string | null>(null);
+  const [billingCycle, setBillingCycle] = useState<string>("monthly");
+  const [maxCashiers, setMaxCashiers] = useState("1");
+  const [maxTables, setMaxTables] = useState(30);
+  const [maxMenu, setMaxMenu] = useState(150);
+  const [isWhiteLabel, setIsWhiteLabel] = useState(false);
 
   const [activeTab, setActiveTab] = useState("products");
   const [products, setProducts] = useState<any[]>([]);
   const [cafeId, setCafeId] = useState<string | null>(null);
-  const [planType, setPlanType] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -90,7 +96,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [devicesList, setDevicesList] = useState<any[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
-  // 🔗 Helper: Switch tab & update URL hash
   const switchTab = (tab: string) => {
     setActiveTab(tab);
     const hash = TAB_TO_HASH[tab] || tab;
@@ -99,7 +104,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     if (tab === 'devices' && cafeId) fetchDevices(cafeId);
   };
 
-  // 🔗 URL Hash Synchronization Listener
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
@@ -161,9 +165,17 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       if (!cafeRes.success || !cafeRes.cafe) { setIsNotFound(true); setIsLoading(false); return; }
 
       const cafeData = cafeRes.cafe;
-      setCafeId(cafeData.id); setPlanType(cafeData.plan_type);
+      setCafeId(cafeData.id); 
+      setPlanType(cafeData.plan_type);
+      
       if (cafeData.name) setCafeName(cafeData.name);
+      
+      // 🌟 جلب القيم من قاعدة البيانات
+      if (cafeData.billing_cycle) setBillingCycle(cafeData.billing_cycle);
       if (cafeData.max_cashiers) setMaxCashiers(cafeData.max_cashiers.toString());
+      if (cafeData.max_tables) setMaxTables(cafeData.max_tables);
+      if (cafeData.max_menu_items) setMaxMenu(cafeData.max_menu_items);
+      if (cafeData.is_white_label !== undefined) setIsWhiteLabel(cafeData.is_white_label);
 
       if (cafeData.owner_email) {
         setOwnerEmail(cafeData.owner_email);
@@ -370,12 +382,13 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         </div>
       </header>
 
-      {activeTab === 'products' && <MenuTab cafeId={cafeId!} activeLang={activeLang} t={t} products={products} fetchProducts={fetchProducts} />}
-      {activeTab === 'qr' && <TablesTab cafeId={cafeId!} cafeSlug={cafeSlug} cafeName={cafeName} activeLang={activeLang} t={t} tablesList={tablesList} setTablesList={setTablesList} fetchTables={fetchTables} isLoadingTables={isLoadingTables} />}
+      {/* 🌟 تمرير القيود المستخرجة للمكونات الفرعية */}
+      {activeTab === 'products' && <MenuTab cafeId={cafeId!} activeLang={activeLang} t={t} products={products} fetchProducts={fetchProducts} maxMenu={maxMenu} />}
+      {activeTab === 'qr' && <TablesTab cafeId={cafeId!} cafeSlug={cafeSlug} cafeName={cafeName} activeLang={activeLang} t={t} tablesList={tablesList} setTablesList={setTablesList} fetchTables={fetchTables} isLoadingTables={isLoadingTables} maxTables={maxTables} />}
       {activeTab === 'sales' && <SalesTab cafeId={cafeId!} activeLang={activeLang} t={t} planType={planType} monthlyOrders={monthlyOrders} monthlyIncome={monthlyIncome} isLoadingSales={isLoadingSales} fetchMonthlySales={fetchMonthlySales} setActiveTab={switchTab} />}
       {activeTab === 'devices' && <DevicesTab cafeId={cafeId!} activeLang={activeLang} t={t} devicesList={devicesList} fetchDevices={fetchDevices} isLoadingDevices={isLoadingDevices} maxCashiers={maxCashiers} />}
-      {activeTab === 'settings' && <SettingsTab cafeId={cafeId!} activeLang={activeLang} t={t} cafeName={cafeName} setCafeName={setCafeName} maxCashiers={maxCashiers} activeCashiers={activeCashiers} />}
-      {activeTab === 'billing' && <BillingTab cafeId={cafeId!} cafeName={cafeName} />}
+      {activeTab === 'settings' && <SettingsTab cafeId={cafeId!} activeLang={activeLang} t={t} cafeName={cafeName} setCafeName={setCafeName} maxCashiers={maxCashiers} activeCashiers={activeCashiers} planType={planType} billingCycle={billingCycle} maxTables={maxTables} maxMenu={maxMenu} />}
+      {activeTab === 'billing' && <BillingTab cafeId={cafeId!} cafeName={cafeName} planType={planType} billingCycle={billingCycle} activeLang={activeLang} t={t} />}
     </div>
   );
 }
