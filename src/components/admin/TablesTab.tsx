@@ -56,23 +56,54 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
       
       <style dangerouslySetInnerHTML={{ __html: `
         @media print { 
-          @page { size: portrait; margin: 0; }
-          html, body { width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden !important; background-color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          /* Set exact physical dimensions for table cards (100mm x 150mm is a standard label/card size) */
+          @page { size: 100mm 150mm; margin: 0; }
+          
+          html, body { 
+            width: 100mm !important; 
+            height: 150mm !important; 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            overflow: hidden !important; 
+            background-color: #fff; 
+            -webkit-print-color-adjust: exact; 
+            print-color-adjust: exact; 
+          }
+          
           body * { visibility: hidden; } 
           #qr-print-area, #qr-print-area * { visibility: visible; } 
+          
           #qr-print-area { 
             position: fixed !important; 
-            left: 0; 
-            top: 0; 
-            width: 100% !important; 
-            height: 100% !important; 
+            left: 0 !important; 
+            top: 0 !important; 
+            width: 100mm !important; 
+            height: 150mm !important; 
             display: flex !important; 
             align-items: center !important; 
             justify-content: center !important; 
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 4mm !important; /* Bleed area */
             z-index: 9999;
-          } 
+            box-sizing: border-box !important;
+          }
+          
+          /* Override the visual wrapper to fit the physical card bounds exactly */
+          .print-card-wrapper {
+            width: 100% !important;
+            height: 100% !important;
+            border-width: 4px !important; /* Thinner border for physical print */
+            border-radius: 12px !important;
+            padding: 5mm !important;
+            box-shadow: none !important;
+          }
+
+          /* Dynamically scale the QR code within the card */
+          .qr-container svg {
+            width: 100% !important;
+            height: auto !important;
+            max-width: 75mm !important;
+          }
         }
       ` }} />
       
@@ -131,20 +162,22 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
       {qrReady && (
         <>
           <div id="qr-print-area" className="w-full flex justify-center animate-in zoom-in duration-300">
-            <div className="w-[400px] border-[8px] border-black rounded-[3rem] p-10 flex flex-col items-center bg-white shadow-2xl print:shadow-none">
-              <h3 className="text-4xl font-black text-black uppercase tracking-tighter text-center">{cafeName || "Cafe"}</h3>
+            <div className="print-card-wrapper w-[400px] aspect-[2/3] border-[8px] border-black rounded-[3rem] p-8 flex flex-col items-center justify-between bg-white shadow-2xl">
+              <h3 className="text-4xl font-black text-black uppercase tracking-tighter text-center mt-2">{cafeName || "Cafe"}</h3>
               
-              <div className="mt-4 mb-8 bg-black text-white px-8 py-2.5 rounded-full font-black text-2xl tracking-widest">
+              <div className="bg-black text-white px-8 py-2.5 rounded-full font-black text-2xl tracking-widest mt-2">
                 {t.table} {tableNum}
               </div>
               
-              <div className="p-4 border-4 border-gray-100 rounded-[2rem] mb-8">
-                <QRCode value={qrUrl} size={220} level="H" fgColor="#000000" bgColor="#ffffff" />
+              <div className="qr-container p-4 border-4 border-gray-100 rounded-[2rem] w-full flex items-center justify-center my-4">
+                <QRCode value={qrUrl} className="w-[220px] h-auto" level="H" fgColor="#000000" bgColor="#ffffff" />
               </div>
               
-              <div className="flex items-center gap-3 text-black">
-                <QrCode size={28} />
-                <p className="text-xl font-black uppercase tracking-widest">{t.scanToOrder}</p>
+              <div className="flex items-center gap-3 text-black mb-2">
+                <QrCode size={24} className="shrink-0" />
+                <p className="text-lg font-black uppercase tracking-widest leading-none text-center">
+                  {t.scanToOrder}
+                </p>
               </div>
             </div>
           </div>
