@@ -55,7 +55,28 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
 
   return (
     <div className="bg-white p-10 rounded-3xl shadow-sm border border-border flex flex-col items-center max-w-3xl mx-auto mt-10 text-center relative overflow-hidden">
-      <style dangerouslySetInnerHTML={{ __html: `@media print { body * { visibility: hidden; } #qr-print-area, #qr-print-area * { visibility: visible; } #qr-print-area { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 100%; text-align: center; } }` }} />
+      
+      {/* 🌟 CSS الطباعة المحدث لضمان صفحة واحدة وتوسيط مثالي وإخفاء هوامش المتصفح */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print { 
+          @page { size: auto; margin: 0mm; }
+          body { background-color: #fff; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body * { visibility: hidden; } 
+          #qr-print-area, #qr-print-area * { visibility: visible; } 
+          #qr-print-area { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            display: flex !important; 
+            align-items: center !important; 
+            justify-content: center !important; 
+            margin: 0; 
+            padding: 0; 
+          } 
+        }
+      ` }} />
       
       <div className="bg-primary/10 p-4 rounded-full text-primary mb-4"><QrCode size={48} /></div>
       <h2 className="text-2xl font-bold mb-2">{t.qrTitle}</h2>
@@ -112,11 +133,24 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
 
       {qrReady && (
         <>
-          <div id="qr-print-area" className="bg-white p-10 rounded-3xl border-4 border-foreground w-full max-w-md animate-in zoom-in duration-300">
-            <h3 className="text-3xl font-extrabold mb-2">{cafeName || "Cafe"}</h3>
-            <p className="text-lg font-bold text-primary mb-8 border-b-2 pb-4">{t.table} {tableNum}</p>
-            <div className="p-4 inline-block"><QRCode value={qrUrl} size={220} level="H" /></div>
-            <p className="mt-8 text-lg font-bold">{t.scanToOrder}</p>
+          {/* 🌟 بطاقة الطباعة بتصميم فاخر وجديد */}
+          <div id="qr-print-area" className="w-full flex justify-center animate-in zoom-in duration-300">
+            <div className="w-[400px] border-[8px] border-black rounded-[3rem] p-10 flex flex-col items-center bg-white shadow-2xl print:shadow-none">
+              <h3 className="text-4xl font-black text-black uppercase tracking-tighter text-center">{cafeName || "Cafe"}</h3>
+              
+              <div className="mt-4 mb-8 bg-black text-white px-8 py-2.5 rounded-full font-black text-2xl tracking-widest">
+                {t.table} {tableNum}
+              </div>
+              
+              <div className="p-4 border-4 border-gray-100 rounded-[2rem] mb-8">
+                <QRCode value={qrUrl} size={220} level="H" fgColor="#000000" bgColor="#ffffff" />
+              </div>
+              
+              <div className="flex items-center gap-3 text-black">
+                <QrCode size={28} />
+                <p className="text-xl font-black uppercase tracking-widest">{t.scanToOrder}</p>
+              </div>
+            </div>
           </div>
           <button onClick={() => window.print()} className="mt-8 bg-foreground text-white px-10 py-4 rounded-2xl font-bold flex items-center gap-3 text-lg hover:scale-105 transition-transform"><Printer size={24} /> {t.printBtn}</button>
         </>
