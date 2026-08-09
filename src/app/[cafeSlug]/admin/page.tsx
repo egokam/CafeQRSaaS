@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, use, useRef } from "react";
+import { useState, useEffect, use } from "react";
 import { supabase } from "../../../lib/supabase";
 import {
   QrCode, PackageSearch, Lock, Settings, AlertTriangle,
-  CreditCard, TrendingUp, Laptop, KeyRound, MessageCircle, Bell, Send, Loader2
+  CreditCard, TrendingUp, Laptop, KeyRound, MessageCircle
 } from "lucide-react";
 
 import {
@@ -13,7 +13,6 @@ import {
   signInAdminWithEmail,
   getAdminTables
 } from "../../../actions/auth";
-import { sendSupportTicket } from "@/actions/support";
 
 // Isolated Tab Components
 import MenuTab from "../../../components/admin/MenuTab";
@@ -22,6 +21,7 @@ import SalesTab from "../../../components/admin/SalesTab";
 import DevicesTab from "../../../components/admin/DevicesTab";
 import SettingsTab from "../../../components/admin/SettingsTab";
 import BillingTab from "@/components/admin/BillingTab";
+import SupportChat from "@/components/admin/SupportChat"; // 🌟 Imported the new component
 
 const TRANSLATIONS: Record<string, any> = {
   en: { 
@@ -104,17 +104,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
   const [devicesList, setDevicesList] = useState<any[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
-
-  const [messages, setMessages] = useState<any[]>([]);
-  const [supportInput, setSupportInput] = useState("");
-  const [isSendingSupport, setIsSendingSupport] = useState(false);
-  const [showMsgDropdown, setShowMsgDropdown] = useState(false);
-  const [hasUnreadMsg, setHasUnreadMsg] = useState(false);
-
-  // 🌟 Refs for auto-scroll and click-outside tracking
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const isDropdownOpen = useRef(showMsgDropdown);
 
   const switchTab = (tab: string) => {
     setActiveTab(tab);
@@ -255,72 +244,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     return () => { cashierChannel.untrack(); supabase.removeChannel(cashierChannel); supabase.removeChannel(devicesChannel); };
   }, [cafeId, isAuthenticated]);
 
-  // 🌟 Sync ref and scroll on dropdown open
-  useEffect(() => {
-    isDropdownOpen.current = showMsgDropdown;
-    if (showMsgDropdown) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [showMsgDropdown]);
-
-  // 🌟 Scroll to bottom on new messages
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  // 🌟 Handle click outside to close
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowMsgDropdown(false);
-      }
-    };
-    if (showMsgDropdown) document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showMsgDropdown]);
-
-  // 🌟 Supabase Realtime for Messages (Removed showMsgDropdown from dependencies)
-  useEffect(() => {
-    if (!cafeId || !isAuthenticated) return;
-
-    const fetchMessages = async () => {
-      const { data } = await supabase.from("admin_messages").select("*").eq("cafe_id", cafeId).order("created_at", { ascending: true });
-      if (data) {
-        setMessages(data);
-        const unread = data.some(m => m.sender === 'super_admin' && !m.is_read);
-        setHasUnreadMsg(unread);
-      }
-    };
-    fetchMessages();
-
-    const messagesChannel = supabase.channel(`support_${cafeId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_messages", filter: `cafe_id=eq.${cafeId}` }, (payload) => {
-        setMessages(prev => [...prev, payload.new]);
-        if (payload.new.sender === 'super_admin' && !isDropdownOpen.current) {
-          setHasUnreadMsg(true);
-        }
-      }).subscribe();
-
-    return () => { supabase.removeChannel(messagesChannel); };
-  }, [cafeId, isAuthenticated]);
-
-  const handleOpenMessages = async () => {
-    setShowMsgDropdown(!showMsgDropdown);
-    if (!showMsgDropdown && hasUnreadMsg) {
-      await supabase.from("admin_messages").update({ is_read: true }).eq("cafe_id", cafeId).eq("sender", "super_admin").eq("is_read", false);
-      setHasUnreadMsg(false);
-    }
-  };
-
-  const handleSendSupport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!supportInput.trim() || !cafeId) return;
-    setIsSendingSupport(true);
-    await sendSupportTicket({ cafeId, cafeName, message: supportInput, planType: planType || "unknown" });
-    setSupportInput("");
-    setIsSendingSupport(false);
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!emailInput || !passwordInput || !cafeId) return;
@@ -459,57 +382,17 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           <div className="flex items-center gap-3">
             <LanguageToggle />
             
-            {/* Dropdown Container Ref */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={handleOpenMessages}
-                className={`relative p-2.5 rounded-full border transition-colors ${hasUnreadMsg ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'}`}
-              >
-                <Bell size={18} className={hasUnreadMsg ? "animate-pulse" : ""} />
-                {hasUnreadMsg && (
-                  <span className="absolute top-0 right-0 flex h-3 w-3 -mt-1 -mr-1">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
-                  </span>
-                )}
-              </button>
-
-              {showMsgDropdown && (
-                <div className={`absolute top-full mt-3 w-80 sm:w-96 bg-white border border-border shadow-2xl rounded-2xl flex flex-col z-[100] animate-in fade-in slide-in-from-top-4 overflow-hidden ${dir === 'rtl' ? 'left-0' : 'right-0'}`} style={{ height: '450px' }}>
-                  <div className="bg-muted/50 p-4 border-b font-black flex items-center gap-2">
-                    <MessageCircle size={18} className="text-primary"/> {t.supportChatTitle}
-                  </div>
-                  
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
-                    {messages.length === 0 ? (
-                      <div className="m-auto text-xs font-bold text-muted-foreground text-center">{t.noMessages}</div>
-                    ) : (
-                      messages.map(msg => (
-                        <div key={msg.id} className={`max-w-[85%] p-3 rounded-xl text-sm font-medium ${msg.sender === 'cafe_admin' ? 'bg-primary text-primary-foreground self-end rounded-tr-none' : 'bg-muted text-foreground self-start rounded-tl-none border border-border'}`}>
-                          {msg.message_text}
-                          <div className={`text-[9px] mt-1 opacity-60 ${msg.sender === 'cafe_admin' ? 'text-right' : 'text-left'}`}>
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                      ))
-                    )}
-                    {/* Auto-scroll target */}
-                    <div ref={messagesEndRef} />
-                  </div>
-
-                  <form onSubmit={handleSendSupport} className="p-3 bg-muted/30 border-t flex gap-2">
-                    <input 
-                      type="text" value={supportInput} onChange={(e) => setSupportInput(e.target.value)}
-                      placeholder={t.writeMessage} disabled={isSendingSupport}
-                      className="flex-1 bg-white border border-border rounded-xl px-3 text-sm outline-none focus:border-primary disabled:opacity-50"
-                    />
-                    <button type="submit" disabled={isSendingSupport || !supportInput.trim()} className="bg-primary text-primary-foreground p-3 rounded-xl disabled:opacity-50 active:scale-95 transition-all">
-                      {isSendingSupport ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className={dir === 'rtl' ? 'rotate-180' : ''}/>}
-                    </button>
-                  </form>
-                </div>
-              )}
-            </div>
+            {/* 🌟 New Extracted SupportChat Component */}
+            {cafeId && (
+              <SupportChat 
+                cafeId={cafeId} 
+                cafeName={cafeName} 
+                planType={planType} 
+                activeLang={activeLang} 
+                t={t} 
+                dir={dir} 
+              />
+            )}
           </div>
 
           <div className="flex flex-wrap bg-muted p-1 rounded-xl gap-1">
