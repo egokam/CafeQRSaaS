@@ -106,9 +106,11 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [devicesList, setDevicesList] = useState<any[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
+  // 🌟 حالات الإشعارات والاتصال المركزي
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
-
-  // 🌟 استخدام useRef لتجنب قتل الاتصال عند التنقل بين الـ Tabs
+  const [latestAdminMessage, setLatestAdminMessage] = useState<any>(null);
+  const [isChatConnected, setIsChatConnected] = useState(false);
+  
   const activeTabRef = useRef(activeTab);
 
   useEffect(() => {
@@ -149,6 +151,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [cafeId]);
 
+  // 🌟 اتصال مركزي واحد يخدم الإشعارات وتحديث الرسائل معاً
   useEffect(() => {
     if (!cafeId || !isAuthenticated) return;
 
@@ -160,16 +163,31 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     };
     checkUnreadMessages();
 
-    // 🌟 إزالة الفلتر وتغيير مصفوفة التبعيات
-    const globalMessagesChannel = supabase.channel(`global_support_${cafeId}`)
+    const channelName = `global_alerts_listener_${cafeId}`;
+    
+    // تنظيف أي اتصال قديم بنفس الاسم لمنع التعارض في المتصفح
+    supabase.getChannels().forEach(c => {
+      if (c.topic === `realtime:${channelName}`) supabase.removeChannel(c);
+    });
+
+    const globalMessagesChannel = supabase.channel(channelName)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_messages" }, (payload) => {
-        if (payload.new.cafe_id === cafeId && payload.new.sender === 'super_admin' && activeTabRef.current !== 'support') {
-          setHasUnreadSupport(true);
+        if (payload.new && payload.new.cafe_id === cafeId) {
+          
+          // إرسال الرسالة إلى التبويب
+          setLatestAdminMessage(payload.new); 
+
+          // إظهار النقطة الحمراء إذا كان التبويب مغلقاً والرسالة من الإدارة
+          if (payload.new.sender === 'super_admin' && activeTabRef.current !== 'support') {
+            setHasUnreadSupport(true);
+          }
         }
-      }).subscribe();
+      }).subscribe((status) => {
+        setIsChatConnected(status === 'SUBSCRIBED');
+      });
 
     return () => { supabase.removeChannel(globalMessagesChannel); };
-  }, [cafeId, isAuthenticated]); // 🌟 تمت إزالة activeTab من هنا!
+  }, [cafeId, isAuthenticated]);
 
   const fetchTables = async (cId: string) => {
     setIsLoadingTables(true);
@@ -460,6 +478,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           t={t} 
           dir={dir} 
           onMessagesRead={handleMessagesRead} 
+          latestMessage={latestAdminMessage}
+          isConnected={isChatConnected}
         />
       )}
     </div>

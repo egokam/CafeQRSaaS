@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { MessageCircle, Send, Loader2 } from "lucide-react";
+import { MessageCircle, Send, Loader2, Wifi } from "lucide-react";
 import { sendSupportTicket } from "@/actions/support";
 
 interface SupportTabProps {
@@ -13,13 +13,21 @@ interface SupportTabProps {
   t: any;
   dir: string;
   onMessagesRead: () => void;
+  latestMessage: any; // 🌟 استقبال الرسالة الجديدة من المكون الأب
+  isConnected: boolean; // 🌟 استقبال حالة الاتصال من المكون الأب
 }
 
-export default function SupportTab({ cafeId, cafeName, planType, activeLang, t, dir, onMessagesRead }: SupportTabProps) {
+export default function SupportTab({ cafeId, cafeName, planType, activeLang, t, dir, onMessagesRead, latestMessage, isConnected }: SupportTabProps) {
   const [messages, setMessages] = useState<any[]>([]);
   const [supportInput, setSupportInput] = useState("");
   const [isSendingSupport, setIsSendingSupport] = useState(false);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const onMessagesReadRef = useRef(onMessagesRead);
+  
+  useEffect(() => {
+    onMessagesReadRef.current = onMessagesRead;
+  }, [onMessagesRead]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,10 +37,11 @@ export default function SupportTab({ cafeId, cafeName, planType, activeLang, t, 
     scrollToBottom();
   }, [messages]);
 
+  // 1. الجلب الأولي للرسائل عند فتح التبويب
   useEffect(() => {
     if (!cafeId) return;
 
-    const fetchMessagesAndMarkRead = async () => {
+    const fetchInitialMessages = async () => {
       const { data } = await supabase
         .from("admin_messages")
         .select("*")
@@ -44,44 +53,42 @@ export default function SupportTab({ cafeId, cafeName, planType, activeLang, t, 
         const hasUnread = data.some(m => m.sender === 'super_admin' && !m.is_read);
         if (hasUnread) {
           await supabase.from("admin_messages").update({ is_read: true }).eq("cafe_id", cafeId).eq("sender", "super_admin").eq("is_read", false);
-          onMessagesRead();
+          onMessagesReadRef.current();
         }
       }
     };
     
-    fetchMessagesAndMarkRead();
+    fetchInitialMessages();
+  }, [cafeId]);
 
-    // 🌟 حل مشكلة Supabase Realtime: إزالة الفلتر والاعتماد على JS
-    const messagesChannel = supabase.channel(`support_tab_${cafeId}`)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_messages" }, async (payload) => {
-        if (payload.new.cafe_id === cafeId) {
-          setMessages(prev => {
-            // منع التكرار مع الـ Optimistic UI
-            if (prev.some(m => m.message_text === payload.new.message_text && m.created_at === payload.new.created_at)) {
-              return prev;
-            }
-            return [...prev, payload.new];
-          });
-          
-          if (payload.new.sender === 'super_admin') {
-            await supabase.from("admin_messages").update({ is_read: true }).eq("id", payload.new.id);
-            onMessagesRead();
-          }
-        }
-      }).subscribe();
-
-    return () => { supabase.removeChannel(messagesChannel); };
-  }, [cafeId, onMessagesRead]);
+  // 2. 🌟 إضافة الرسائل اللحظية الواردة من المكون الأب (بدون تعارض قنوات)
+  useEffect(() => {
+    if (latestMessage && latestMessage.cafe_id === cafeId) {
+      setMessages(prev => {
+        // منع التكرار
+        const exists = prev.some(m => m.id === latestMessage.id || (m.message_text === latestMessage.message_text && m.created_at === latestMessage.created_at));
+        if (exists) return prev;
+        return [...prev, latestMessage];
+      });
+      
+      // تعليم الرسالة كمقروءة فور وصولها لأننا داخل التبويب حالياً
+      if (latestMessage.sender === 'super_admin') {
+        supabase.from("admin_messages").update({ is_read: true }).eq("id", latestMessage.id).then(() => {
+          onMessagesReadRef.current();
+        });
+      }
+    }
+  }, [latestMessage, cafeId]);
 
   const handleSendSupport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!supportInput.trim() || !cafeId) return;
     
     const messageText = supportInput;
-    setSupportInput(""); // مسح الحقل فوراً
+    setSupportInput(""); 
     setIsSendingSupport(true);
 
-    // 🌟 Optimistic UI Update: إظهار الرسالة في الشاشة فوراً (0 ثانية تأخير)
+    // Optimistic UI
     const tempMessage = {
       id: crypto.randomUUID(),
       cafe_id: cafeId,
@@ -105,13 +112,26 @@ export default function SupportTab({ cafeId, cafeName, planType, activeLang, t, 
     <div className="max-w-4xl mx-auto w-full animate-in fade-in duration-300" dir={dir}>
       <div className="bg-white rounded-3xl border border-zinc-200 shadow-sm flex flex-col h-[70vh] min-h-[500px] overflow-hidden">
         
-        <div className="bg-zinc-50 p-5 border-b border-zinc-200 flex items-center gap-3 shrink-0">
-          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
-            <MessageCircle size={24} />
+        <div className="bg-zinc-50 p-5 border-b border-zinc-200 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-indigo-100 text-indigo-600 rounded-xl">
+              <MessageCircle size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-zinc-900">{t.supportChatTitle || "الدعم الفني والإشعارات"}</h2>
+              <p className="text-xs font-bold text-zinc-500 mt-1">تواصل مباشر مع الإدارة</p>
+            </div>
           </div>
           <div>
-            <h2 className="text-xl font-black text-zinc-900">{t.supportChatTitle || "الدعم الفني والإشعارات"}</h2>
-            <p className="text-xs font-bold text-zinc-500 mt-1">تواصل مباشر مع الإدارة</p>
+            {isConnected ? (
+              <span className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-bold bg-emerald-100 px-3 py-1.5 rounded-full shadow-sm">
+                <Wifi size={14} /> {activeLang === 'ar' ? 'متصل' : 'Connected'}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-[11px] text-amber-600 font-bold bg-amber-100 px-3 py-1.5 rounded-full shadow-sm">
+                <Loader2 className="animate-spin" size={14} /> {activeLang === 'ar' ? 'جاري الاتصال...' : 'Connecting...'}
+              </span>
+            )}
           </div>
         </div>
         
