@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react";
 import { supabase } from "../../../lib/supabase";
 import {
   QrCode, PackageSearch, Lock, Settings, AlertTriangle,
-  CreditCard, TrendingUp, Laptop, KeyRound, MessageCircle, Bell
+  CreditCard, TrendingUp, Laptop, KeyRound, MessageCircle, Bell, Send, Loader2
 } from "lucide-react";
 
 import {
@@ -13,6 +13,7 @@ import {
   signInAdminWithEmail,
   getAdminTables
 } from "../../../actions/auth";
+import { sendSupportTicket } from "@/actions/support";
 
 // Isolated Tab Components
 import MenuTab from "../../../components/admin/MenuTab";
@@ -25,15 +26,15 @@ import BillingTab from "@/components/admin/BillingTab";
 const TRANSLATIONS: Record<string, any> = {
   en: { 
     loading: "Loading...", notFoundTitle: "404 - Cafe Not Found", notFoundSub: "Sorry, the link you are trying to access is invalid.", loginTitle: "Admin Login", otpTitle: "Enter Verification Code", resetTitle: "New Password", loginSub: "Log in to manage your project account", otpSub: "A secret code has been sent to your email", resetSub: "Please enter your new account password", emailLabel: "Email Address", emailPlaceholder: "owner@cafe.ma", passwordLabel: "Password", authLoading: "Authenticating...", loginBtn: "Login to Platform 🚀", forgotPassword: "Forgot Password?", otpLabel: "Secret Code (OTP)", verifying: "Verifying...", verifyBtn: "Verify Code ✅", backToLogin: "Back to Login", newPasswordLabel: "New Password", newPasswordPlaceholder: "Enter a strong password...", saving: "Saving...", saveLoginBtn: "Save Login 💾", supportText: "To change the admin email, please contact support.", supportBtn: "Contact via WhatsApp", accessDenied: "⛔ Access Denied: This email is not authorized to manage this cafe.", invalidLogin: "Invalid login credentials ❌", noOwnerEmail: "Sorry, no registered email found for this cafe's owner.", otpSent: "Password recovery code sent to: ", sendError: "Error sending: ", invalidOtp: "Invalid or expired code ❌", passwordUpdateFail: "Failed to update password: ", passwordUpdateSuccess: "Password changed successfully! You can now log in 🔓", adminDashboard: "Admin Dashboard ⚙️", totalControl: "Total Cafe Control", tabMenu: "Menu", tabTables: "Tables", tabSales: "Monthly Sales 📈", tabSettings: "Settings", tabBilling: "Billing & Sub 💳", tabDevices: "Hardware & POS 💻", currentMonthIncome: "Current Month Income", completedOrders: "Completed Orders", avgCustomerSpend: "Average Customer Spend", salesLogTitle: "Sales Log for", salesLogSub: "Paid and delivered orders only", refreshLog: "Refresh Log", calculatingIncome: "Calculating income...", noSalesMonth: "No completed sales this month yet.", table: "Table", directPos: "Direct (POS)", connectedDevices: "Connected Devices", liveMonitoring: "Live monitoring of the active fleet in the cafe.", cashierSlot: "Cashier 💳", cafeSettings: "Cafe Settings & Controls", cafeNameLabel: "Cafe Name", maxCashierLabel: "Max Cashier Screens", adminPinLabel: "Update Backup Admin PIN", leaveEmptyToKeep: "Leave empty to keep current", staffPinLabel: "Update Cashier PIN", saveChangesBtn: "Save Changes 💾", settingsSaved: "Settings saved!", settingsSaveError: "Error saving settings.", addProduct: "Add Product", editProduct: "Edit Product", nameAr: "Product Name (Arabic)", descLabel: "Description", priceLabel: "Price", categoryLabel: "Category", imageLabel: "Image", changeImage: "Change Image", chooseImage: "Choose Image", publishProduct: "Publish Product", saveEdit: "Save Changes", currentProducts: "Current Products", fillFields: "Please fill in all required fields!", updatedSuccess: "Updated successfully!", addedSuccess: "Added successfully!", errorPrefix: "Error: ", confirmDelete: "Confirm deletion?", deleteFailed: "Failed to delete", qrTitle: "Register Tables & Generate QR", qrSub: "Enter table number to register it in the system and generate its code.", tableNumLabel: "Table Number :", processing: "Processing...", generateQrBtn: "Generate Code & Save Table", scanToOrder: "Scan code to order your drink ☕", printBtn: "Print Code", qrError: "Error checking/adding table from server. Please try again.", deleteWarningTitle: "Delete Table Confirmation", deleteWarningDesc: "Warning: This table and all its related orders and sales will be permanently deleted. This action cannot be undone.", understandCheckbox: "I understand that this action is irreversible.", cancelBtn: "Cancel", confirmDeleteBtn: "Confirm Deletion", upgradeToGold: "Upgrade to Gold", analyticsLocked: "Advanced analytics are locked on your current plan. Please upgrade to the Gold plan to access these features.", pendingDevices: "Pending Approval", approvedDevices: "Approved Devices", blockedDevices: "Blocked Devices", approveBtn: "Approve", blockBtn: "Block", deleteBtn: "Delete", noDevices: "No devices found in this category.",
-    adminMsgTitle: "Admin Message", adminMsgSub: "Your account was paused due to the following note:", markAsReadBtn: "Mark as read & dismiss"
+    supportChatTitle: "Support & Notifications", noMessages: "No messages currently.", writeMessage: "Write your message to support..."
   },
   fr: { 
     loading: "Chargement...", notFoundTitle: "404 - Café introuvable", notFoundSub: "Désolé, le lien que vous essayez d'accéder est invalide.", loginTitle: "Connexion Admin", otpTitle: "Code de vérification", resetTitle: "Nouveau mot de passe", loginSub: "Connectez-vous pour gérer votre projet", otpSub: "Un code secret a été envoyé à votre email", resetSub: "Veuillez entrer votre nouveau mot de passe", emailLabel: "Adresse Email", emailPlaceholder: "owner@cafe.ma", passwordLabel: "Mot de passe", authLoading: "Authentification...", loginBtn: "Accéder à la plateforme 🚀", forgotPassword: "Mot de passe oublié ?", otpLabel: "Code secret (OTP)", verifying: "Vérification...", verifyBtn: "Vérifier le code ✅", backToLogin: "Retour à la connexion", newPasswordLabel: "Nouveau mot de passe", newPasswordPlaceholder: "Entrez un mot de passe fort...", saving: "Enregistrement...", saveLoginBtn: "Enregistrer 💾", supportText: "Pour modifier l'email, contactez le support.", supportBtn: "Contacter via WhatsApp", accessDenied: "⛔ Accès refusé : Cet email n'est pas autorisé à gérer ce café.", invalidLogin: "Identifiants invalides ❌", noOwnerEmail: "Désolé, aucun email enregistré trouvé pour ce propriétaire.", otpSent: "Code de récupération envoyé à : ", sendError: "Erreur d'envoi : ", invalidOtp: "Code invalide ou expiré ❌", passwordUpdateFail: "Échec de la mise à jour : ", passwordUpdateSuccess: "Mot de passe modifié ! Vous pouvez vous connecter 🔓", adminDashboard: "Tableau de Bord ⚙️", totalControl: "Contrôle total du café", tabMenu: "Menu", tabTables: "Tables", tabSales: "Ventes mensuelles 📈", tabSettings: "Paramètres", tabBilling: "Facturation 💳", tabDevices: "Appareils Caisse 💻", currentMonthIncome: "Revenus du mois", completedOrders: "Commandes terminées", avgCustomerSpend: "Dépense moyenne", salesLogTitle: "Journal des ventes de", salesLogSub: "Commandes payées et livrées uniquement", refreshLog: "Actualiser", calculatingIncome: "Calcul des revenus...", noSalesMonth: "Aucune vente terminée ce mois-ci.", table: "Table", directPos: "Direct (Caisse)", connectedDevices: "Appareils Connectés", liveMonitoring: "Surveillance en direct de la flotte active.", cashierSlot: "Caisse 💳", cafeSettings: "Paramètres du Café", cafeNameLabel: "Nom du Café", maxCashierLabel: "Écrans Caisse Max", adminPinLabel: "Mettre à jour le code PIN Admin", leaveEmptyToKeep: "Laisser vide pour conserver", staffPinLabel: "Mettre à jour le PIN Caisse", saveChangesBtn: "Enregistrer 💾", settingsSaved: "Paramètres enregistrés !", settingsSaveError: "Erreur d'enregistrement.", addProduct: "Ajouter un Produit", editProduct: "Modifier le Produit", nameAr: "Nom du Produit (Arabe)", descLabel: "Description", priceLabel: "Prix", categoryLabel: "Catégorie", imageLabel: "Image", changeImage: "Changer l'image", chooseImage: "Choisir l'image", publishProduct: "Publier", saveEdit: "Enregistrer", currentProducts: "Produits Actuels", fillFields: "Veuillez remplir tous les champs !", updatedSuccess: "Mis à jour avec succès !", addedSuccess: "Ajouté avec succès !", errorPrefix: "Erreur : ", confirmDelete: "Confirmer la suppression ?", deleteFailed: "Échec de la suppression", qrTitle: "Enregistrer les Tables & Générer QR", qrSub: "Entrez le numéro de la table pour générer son code.", tableNumLabel: "Numéro de Table :", processing: "Traitement...", generateQrBtn: "Générer et Enregistrer", scanToOrder: "Scannez pour commander ☕", printBtn: "Imprimer le Code", qrError: "Erreur serveur. Veuillez réessayer.", deleteWarningTitle: "Confirmation de suppression", deleteWarningDesc: "Avertissement : Cette table ainsi que toutes les commandes et ventes associées seront définitivement supprimées. Cette action est irréversible.", understandCheckbox: "Je comprends que cette action est irréversible.", cancelBtn: "Annuler", confirmDeleteBtn: "Confirmer la suppression", upgradeToGold: "Passer à l'offre Or", analyticsLocked: "Les analyses avancées sont verrouillées sur votre forfait actuel. Veuillez passer au forfait Or pour accéder à ces fonctionnalités.", pendingDevices: "En attente d'approbation", approvedDevices: "Appareils Approuvés", blockedDevices: "Appareils Bloqués", approveBtn: "Approuver", blockBtn: "Bloquer", deleteBtn: "Supprimer", noDevices: "Aucun appareil trouvé dans cette catégorie.",
-    adminMsgTitle: "Message de l'administration", adminMsgSub: "Votre compte a été suspendu suite à cette remarque :", markAsReadBtn: "Marquer comme lu et masquer"
+    supportChatTitle: "Support et Notifications", noMessages: "Aucun message pour le moment.", writeMessage: "Écrivez votre message..."
   },
   ar: { 
     loading: "جاري التحميل...", notFoundTitle: "404 - المقهى غير موجود", notFoundSub: "عذراً، الرابط الذي تحاول الوصول إليه غير صحيح.", loginTitle: "تسجيل دخول الإدارة", otpTitle: "أدخل رمز التحقق", resetTitle: "كلمة مرور جديدة", loginSub: "قم بتسجيل الدخول للتحكم في حساب مشروعك", otpSub: "تم إرسال رمز سري إلى بريدك الإلكتروني", resetSub: "يرجى كتابة كلمة المرور الجديدة لحسابك", emailLabel: "البريد الإلكتروني", emailPlaceholder: "owner@cafe.ma", passwordLabel: "كلمة المرور", authLoading: "جاري المصادقة...", loginBtn: "دخول للمنصة 🚀", forgotPassword: "هل نسيت كلمة المرور؟", otpLabel: "الرمز السري (OTP)", verifying: "جاري التحقق...", verifyBtn: "التحقق من الرمز ✅", backToLogin: "العودة لتسجيل الدخول", newPasswordLabel: "كلمة المرور الجديدة", newPasswordPlaceholder: "أدخل كلمة مرور قوية...", saving: "جاري الحفظ...", saveLoginBtn: "حفظ الدخول 💾", supportText: "لتعديل البريد الإلكتروني للإدارة، يرجى التواصل مع الدعم الفني.", supportBtn: "تواصل عبر واتساب", accessDenied: "⛔ وصول مرفوض: هذا البريد غير مصرح له بإدارة هذا المقهى.", invalidLogin: "بيانات الدخول غير صحيحة ❌", noOwnerEmail: "عذراً، لم يتم العثور على بريد إلكتروني مسجل لمالك هذا المقهى.", otpSent: "تم إرسال رمز استعادة كلمة المرور إلى: ", sendError: "حدث خطأ أثناء الإرسال: ", invalidOtp: "الرمز غير صحيح أو منتهي الصلاحية ❌", passwordUpdateFail: "فشل تحديث كلمة المرور: ", passwordUpdateSuccess: "تم تغيير كلمة المرور بنجاح! يمكنك الآن الدخول للمنصة 🔓", adminDashboard: "لوحة تحكم المدير ⚙️", totalControl: "التحكم الشامل في المقهى", tabMenu: "المنيو", tabTables: "الطاولات", tabSales: "المبيعات الشهرية 📈", tabSettings: "الإعدادات", tabBilling: "الاشتراك والأداء 💳", tabDevices: "الأجهزة والكاشير 💻", currentMonthIncome: "مدخول الشهر الحالي", completedOrders: "الطلبات المنجزة بنجاح", avgCustomerSpend: "متوسط صرف الزبون", salesLogTitle: "سجل مبيعات شهر", salesLogSub: "الطلبات المدفوعة والمستلمة فقط", refreshLog: "تحديث السجل", calculatingIncome: "جاري حساب المداخيل...", noSalesMonth: "لا توجد مبيعات مكتملة في هذا الشهر حتى الآن.", table: "طاولة", directPos: "مباشر (POS)", connectedDevices: "الأجهزة المتصلة الآن", liveMonitoring: "مراقبة حية للأسطول النشط في المقهى.", cashierSlot: "الكاشير 💳", cafeSettings: "إعدادات وضوابط المقهى", cafeNameLabel: "اسم المقهى", maxCashierLabel: "الحد الأقصى لشاشات الكاشير", adminPinLabel: "تحديث رمز المدير البديل (PIN)", leaveEmptyToKeep: "اتركه فارغاً للإبقاء على القديم", staffPinLabel: "تحديث رمز الكاشير (PIN)", saveChangesBtn: "حفظ التغييرات 💾", settingsSaved: "تم حفظ الإعدادات!", settingsSaveError: "حدث خطأ أثناء الحفظ.", addProduct: "إضافة منتج", editProduct: "تعديل المنتج", nameAr: "اسم المنتج (عربي)", descLabel: "الوصف", priceLabel: "السعر", categoryLabel: "القسم", imageLabel: "الصورة", changeImage: "تغيير الصورة", chooseImage: "اختر صورة", publishProduct: "نشر المنتج", saveEdit: "حفظ التعديل", currentProducts: "المنتجات المعروضة حالياً", fillFields: "يرجى تعبئة الحقول!", updatedSuccess: "تم التحديث!", addedSuccess: "تمت الإضافة!", errorPrefix: "خطأ: ", confirmDelete: "تأكيد الحذف؟", deleteFailed: "فشل الحذف", qrTitle: "تسجيل الطاولات وتوليد الـ QR", qrSub: "أدخل رقم الطاولة لتسجيلها في النظام وتوليد الكود الخاص بها.", tableNumLabel: "رقم الطاولة :", processing: "جاري المعالجة...", generateQrBtn: "إنشاء الكود وحفظ الطاولة", scanToOrder: "امسح الكود لطلب مشروبك ☕", printBtn: "طباعة الكود", qrError: "حدث خطأ أثناء فحص/إضافة الطاولة من السيرفر. يرجى المحاولة.", deleteWarningTitle: "تأكيد حذف الطاولة", deleteWarningDesc: "تحذير: سيتم حذف هذه الطاولة وجميع الطلبات والمبيعات المرتبطة بها نهائياً، ولا يمكن التراجع عن هذا الإجراء.", understandCheckbox: "أفهم أن هذا الإجراء نهائي ولا يمكن التراجع عنه.", cancelBtn: "إلغاء", confirmDeleteBtn: "تأكيد الحذف", upgradeToGold: "قم بالترقية للباقة الذهبية", analyticsLocked: "التحليلات المتقدمة غير متاحة في باقتك الحالية. قم بالترقية للباقة الذهبية لفتح هذه الميزات.", pendingDevices: "أجهزة قيد المراجعة", approvedDevices: "الأجهزة المعتمدة", blockedDevices: "الأجهزة المحظورة", approveBtn: "موافقة", blockBtn: "حظر", deleteBtn: "حذف", noDevices: "لا توجد أجهزة في هذه القائمة.",
-    adminMsgTitle: "رسالة الإدارة", adminMsgSub: "تم إيقاف حسابك بسبب الملاحظة التالية:", markAsReadBtn: "تحديد كمقروء وإخفاء"
+    supportChatTitle: "الدعم الفني والإشعارات", noMessages: "لا توجد رسائل حالياً.", writeMessage: "اكتب رسالتك للدعم..."
   }
 };
 
@@ -104,8 +105,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [devicesList, setDevicesList] = useState<any[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
-  // حالة جرس الإشعارات
-  const [rejectionMsg, setRejectionMsg] = useState<{ id: string; text: string } | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [supportInput, setSupportInput] = useState("");
+  const [isSendingSupport, setIsSendingSupport] = useState(false);
   const [showMsgDropdown, setShowMsgDropdown] = useState(false);
   const [hasUnreadMsg, setHasUnreadMsg] = useState(false);
 
@@ -248,49 +250,44 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     return () => { cashierChannel.untrack(); supabase.removeChannel(cashierChannel); supabase.removeChannel(devicesChannel); };
   }, [cafeId, isAuthenticated]);
 
-  // مستمع الإشعارات الحية لجدول الإيصالات
   useEffect(() => {
     if (!cafeId || !isAuthenticated) return;
 
-    const fetchMessage = async () => {
-      const { data: receipt } = await supabase
-        .from("payment_receipts")
-        .select("id, rejection_reason")
-        .eq("cafe_id", cafeId)
-        .eq("status", "rejected")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (receipt?.rejection_reason) {
-        const isRead = localStorage.getItem(`msg_read_${receipt.id}`);
-        if (!isRead) {
-          setRejectionMsg({ id: receipt.id, text: receipt.rejection_reason });
-          setHasUnreadMsg(true);
-        }
+    const fetchMessages = async () => {
+      const { data } = await supabase.from("admin_messages").select("*").eq("cafe_id", cafeId).order("created_at", { ascending: true });
+      if (data) {
+        setMessages(data);
+        const unread = data.some(m => m.sender === 'super_admin' && !m.is_read);
+        setHasUnreadMsg(unread);
       }
     };
+    fetchMessages();
 
-    fetchMessage();
+    const messagesChannel = supabase.channel(`support_${cafeId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_messages", filter: `cafe_id=eq.${cafeId}` }, (payload) => {
+        setMessages(prev => [...prev, payload.new]);
+        if (payload.new.sender === 'super_admin' && !showMsgDropdown) setHasUnreadMsg(true);
+      }).subscribe();
 
-    const notificationsChannel = supabase
-      .channel(`receipt_notifications_${cafeId}`)
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "payment_receipts", filter: `cafe_id=eq.${cafeId}` },
-        (payload) => {
-          if (payload.new.status === "rejected" && payload.new.rejection_reason) {
-            setRejectionMsg({ id: payload.new.id, text: payload.new.rejection_reason });
-            setHasUnreadMsg(true);
-          }
-        }
-      )
-      .subscribe();
+    return () => { supabase.removeChannel(messagesChannel); };
+  }, [cafeId, isAuthenticated, showMsgDropdown]);
 
-    return () => {
-      supabase.removeChannel(notificationsChannel);
-    };
-  }, [cafeId, isAuthenticated]);
+  const handleOpenMessages = async () => {
+    setShowMsgDropdown(!showMsgDropdown);
+    if (!showMsgDropdown && hasUnreadMsg) {
+      await supabase.from("admin_messages").update({ is_read: true }).eq("cafe_id", cafeId).eq("sender", "super_admin").eq("is_read", false);
+      setHasUnreadMsg(false);
+    }
+  };
+
+  const handleSendSupport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supportInput.trim() || !cafeId) return;
+    setIsSendingSupport(true);
+    await sendSupportTicket({ cafeId, cafeName, message: supportInput, planType: planType || "unknown" });
+    setSupportInput("");
+    setIsSendingSupport(false);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -430,10 +427,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           <div className="flex items-center gap-3">
             <LanguageToggle />
             
-            {/* جرس الإشعارات */}
             <div className="relative">
               <button
-                onClick={() => setShowMsgDropdown(!showMsgDropdown)}
+                onClick={handleOpenMessages}
                 className={`relative p-2.5 rounded-full border transition-colors ${hasUnreadMsg ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'}`}
               >
                 <Bell size={18} className={hasUnreadMsg ? "animate-pulse" : ""} />
@@ -445,29 +441,37 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
                 )}
               </button>
 
-              {/* القائمة المنسدلة للرسالة */}
-              {showMsgDropdown && rejectionMsg && (
-                <div className={`absolute top-full mt-3 w-80 bg-white border border-rose-200 shadow-2xl rounded-2xl p-5 z-[100] animate-in fade-in slide-in-from-top-4 ${dir === 'rtl' ? 'left-0' : 'right-0'}`}>
-                  <div className="flex items-center gap-2 text-rose-600 font-black mb-3">
-                    <AlertTriangle size={20} />
-                    <span>{t.adminMsgTitle}</span>
+              {showMsgDropdown && (
+                <div className={`absolute top-full mt-3 w-80 sm:w-96 bg-white border border-border shadow-2xl rounded-2xl flex flex-col z-[100] animate-in fade-in slide-in-from-top-4 overflow-hidden ${dir === 'rtl' ? 'left-0' : 'right-0'}`} style={{ height: '450px' }}>
+                  <div className="bg-muted/50 p-4 border-b font-black flex items-center gap-2">
+                    <MessageCircle size={18} className="text-primary"/> {t.supportChatTitle}
                   </div>
-                  <p className="text-xs font-bold text-muted-foreground mb-3 leading-relaxed">
-                    {t.adminMsgSub}
-                  </p>
-                  <div className="bg-zinc-900 text-rose-200 p-4 rounded-xl font-mono text-sm shadow-inner mb-4 leading-relaxed whitespace-pre-wrap">
-                    "{rejectionMsg.text}"
+                  
+                  <div className="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
+                    {messages.length === 0 ? (
+                      <div className="m-auto text-xs font-bold text-muted-foreground text-center">{t.noMessages}</div>
+                    ) : (
+                      messages.map(msg => (
+                        <div key={msg.id} className={`max-w-[85%] p-3 rounded-xl text-sm font-medium ${msg.sender === 'cafe_admin' ? 'bg-primary text-primary-foreground self-end rounded-tr-none' : 'bg-muted text-foreground self-start rounded-tl-none border border-border'}`}>
+                          {msg.message_text}
+                          <div className={`text-[9px] mt-1 opacity-60 ${msg.sender === 'cafe_admin' ? 'text-right' : 'text-left'}`}>
+                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      ))
+                    )}
                   </div>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem(`msg_read_${rejectionMsg.id}`, "true");
-                      setHasUnreadMsg(false);
-                      setShowMsgDropdown(false);
-                    }}
-                    className="w-full py-3 bg-rose-600 text-white rounded-xl font-black text-sm hover:bg-rose-700 transition-colors active:scale-95 shadow-lg shadow-rose-600/20"
-                  >
-                    {t.markAsReadBtn}
-                  </button>
+
+                  <form onSubmit={handleSendSupport} className="p-3 bg-muted/30 border-t flex gap-2">
+                    <input 
+                      type="text" value={supportInput} onChange={(e) => setSupportInput(e.target.value)}
+                      placeholder={t.writeMessage} disabled={isSendingSupport}
+                      className="flex-1 bg-white border border-border rounded-xl px-3 text-sm outline-none focus:border-primary disabled:opacity-50"
+                    />
+                    <button type="submit" disabled={isSendingSupport || !supportInput.trim()} className="bg-primary text-primary-foreground p-3 rounded-xl disabled:opacity-50 active:scale-95 transition-all">
+                      {isSendingSupport ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} className={dir === 'rtl' ? 'rotate-180' : ''}/>}
+                    </button>
+                  </form>
                 </div>
               )}
             </div>
@@ -484,7 +488,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         </div>
       </header>
 
-      {/* 🌟 تمرير القيود المستخرجة للمكونات الفرعية */}
       {activeTab === 'products' && <MenuTab cafeId={cafeId!} activeLang={activeLang} t={t} products={products} fetchProducts={fetchProducts} maxMenu={maxMenu} />}
       {activeTab === 'qr' && <TablesTab cafeId={cafeId!} cafeSlug={cafeSlug} cafeName={cafeName} activeLang={activeLang} t={t} tablesList={tablesList} setTablesList={setTablesList} fetchTables={fetchTables} isLoadingTables={isLoadingTables} maxTables={maxTables} />}
       {activeTab === 'sales' && <SalesTab cafeId={cafeId!} activeLang={activeLang} t={t} planType={planType} monthlyOrders={monthlyOrders} monthlyIncome={monthlyIncome} isLoadingSales={isLoadingSales} fetchMonthlySales={fetchMonthlySales} setActiveTab={switchTab} />}
