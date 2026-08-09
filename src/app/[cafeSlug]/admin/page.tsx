@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import {
   QrCode, PackageSearch, Lock, Settings, AlertTriangle,
@@ -110,6 +110,11 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [isSendingSupport, setIsSendingSupport] = useState(false);
   const [showMsgDropdown, setShowMsgDropdown] = useState(false);
   const [hasUnreadMsg, setHasUnreadMsg] = useState(false);
+
+  // 🌟 Refs for auto-scroll and click-outside tracking
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isDropdownOpen = useRef(showMsgDropdown);
 
   const switchTab = (tab: string) => {
     setActiveTab(tab);
@@ -250,6 +255,31 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     return () => { cashierChannel.untrack(); supabase.removeChannel(cashierChannel); supabase.removeChannel(devicesChannel); };
   }, [cafeId, isAuthenticated]);
 
+  // 🌟 Sync ref and scroll on dropdown open
+  useEffect(() => {
+    isDropdownOpen.current = showMsgDropdown;
+    if (showMsgDropdown) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [showMsgDropdown]);
+
+  // 🌟 Scroll to bottom on new messages
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // 🌟 Handle click outside to close
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowMsgDropdown(false);
+      }
+    };
+    if (showMsgDropdown) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showMsgDropdown]);
+
+  // 🌟 Supabase Realtime for Messages (Removed showMsgDropdown from dependencies)
   useEffect(() => {
     if (!cafeId || !isAuthenticated) return;
 
@@ -266,11 +296,13 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     const messagesChannel = supabase.channel(`support_${cafeId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_messages", filter: `cafe_id=eq.${cafeId}` }, (payload) => {
         setMessages(prev => [...prev, payload.new]);
-        if (payload.new.sender === 'super_admin' && !showMsgDropdown) setHasUnreadMsg(true);
+        if (payload.new.sender === 'super_admin' && !isDropdownOpen.current) {
+          setHasUnreadMsg(true);
+        }
       }).subscribe();
 
     return () => { supabase.removeChannel(messagesChannel); };
-  }, [cafeId, isAuthenticated, showMsgDropdown]);
+  }, [cafeId, isAuthenticated]);
 
   const handleOpenMessages = async () => {
     setShowMsgDropdown(!showMsgDropdown);
@@ -427,7 +459,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
           <div className="flex items-center gap-3">
             <LanguageToggle />
             
-            <div className="relative">
+            {/* Dropdown Container Ref */}
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={handleOpenMessages}
                 className={`relative p-2.5 rounded-full border transition-colors ${hasUnreadMsg ? 'bg-rose-50 border-rose-200 text-rose-600' : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'}`}
@@ -460,6 +493,8 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
                         </div>
                       ))
                     )}
+                    {/* Auto-scroll target */}
+                    <div ref={messagesEndRef} />
                   </div>
 
                   <form onSubmit={handleSendSupport} className="p-3 bg-muted/30 border-t flex gap-2">
