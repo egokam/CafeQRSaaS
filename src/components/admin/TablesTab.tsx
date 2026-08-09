@@ -15,7 +15,6 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
   const [deleteUnderstood, setDeleteUnderstood] = useState(false);
   const [isDeletingTable, setIsDeletingTable] = useState(false);
 
-  // 🌟 استخراج البيانات الحالية للقيود
   const currentCount = tablesList.length;
   const isDiamond = maxTables >= 9999;
   const isLimitReached = !isDiamond && currentCount >= maxTables;
@@ -24,7 +23,6 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
   const handleGenerateSmartQR = async () => {
     if (!tableNum || !cafeId) return;
 
-    // 🌟 منع التجاوز قبل إرسال الطلب للسيرفر
     if (isLimitReached) {
       alert(activeLang === 'ar' ? "لقد وصلت للحد الأقصى للطاولات المسموح بها في باقتك." : "Table limit reached. Upgrade your plan.");
       return;
@@ -56,24 +54,24 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
   return (
     <div className="bg-white p-10 rounded-3xl shadow-sm border border-border flex flex-col items-center max-w-3xl mx-auto mt-10 text-center relative overflow-hidden">
       
-      {/* 🌟 CSS الطباعة المحدث لضمان صفحة واحدة وتوسيط مثالي وإخفاء هوامش المتصفح */}
       <style dangerouslySetInnerHTML={{ __html: `
         @media print { 
-          @page { size: auto; margin: 0mm; }
-          body { background-color: #fff; margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          @page { size: portrait; margin: 0; }
+          html, body { width: 100%; height: 100vh; margin: 0; padding: 0; overflow: hidden !important; background-color: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
           body * { visibility: hidden; } 
           #qr-print-area, #qr-print-area * { visibility: visible; } 
           #qr-print-area { 
-            position: absolute; 
+            position: fixed !important; 
             left: 0; 
             top: 0; 
-            width: 100vw; 
-            height: 100vh; 
+            width: 100% !important; 
+            height: 100% !important; 
             display: flex !important; 
             align-items: center !important; 
             justify-content: center !important; 
-            margin: 0; 
-            padding: 0; 
+            margin: 0;
+            padding: 0;
+            z-index: 9999;
           } 
         }
       ` }} />
@@ -82,7 +80,6 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
       <h2 className="text-2xl font-bold mb-2">{t.qrTitle}</h2>
       <p className="text-muted-foreground mb-6 text-sm">{t.qrSub}</p>
 
-      {/* 🌟 رسالة تنبيه عند الوصول للحد الأقصى */}
       {isLimitReached && (
         <div className="mb-6 w-full max-w-sm bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3 text-left" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
           <AlertCircle size={20} className="shrink-0 mt-0.5" />
@@ -133,7 +130,6 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
 
       {qrReady && (
         <>
-          {/* 🌟 بطاقة الطباعة بتصميم فاخر وجديد */}
           <div id="qr-print-area" className="w-full flex justify-center animate-in zoom-in duration-300">
             <div className="w-[400px] border-[8px] border-black rounded-[3rem] p-10 flex flex-col items-center bg-white shadow-2xl print:shadow-none">
               <h3 className="text-4xl font-black text-black uppercase tracking-tighter text-center">{cafeName || "Cafe"}</h3>
@@ -158,7 +154,6 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
 
       <div className="w-full mt-16 pt-8 border-t border-border/50 animate-in fade-in duration-500">
         
-        {/* 🌟 الترويسة وشريط التقدم الخاص بالطاولات */}
         <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
           <h3 className="text-xl font-extrabold flex items-center gap-2">
             {activeLang === 'ar' ? 'الطاولات المسجلة حالياً' : activeLang === 'fr' ? 'Tables Enregistrées' : 'Registered Tables'}
