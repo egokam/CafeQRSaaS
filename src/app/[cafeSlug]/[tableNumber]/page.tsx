@@ -3,7 +3,8 @@
 import { useState, useEffect, use } from "react";
 import { useCart } from "../../../store/useCart";
 import MenuCard from "../../../components/MenuCard";
-import { Receipt, X as XIcon, Clock, CheckCircle, Coffee, CakeSlice, CupSoda, Croissant, AlertTriangle, QrCode, Zap } from "lucide-react";
+import { Receipt, X as XIcon, Clock, CheckCircle, Coffee, AlertTriangle, QrCode, Zap, LayoutGrid } from "lucide-react";
+import * as Icons from "lucide-react";
 import { supabase } from "../../../lib/supabase";
 import { checkCafeSubscription } from "../../../actions/saas";
 import {
@@ -21,10 +22,7 @@ const TRANSLATIONS: Record<string, any> = {
     orderNum: "رقم الطلب", addMore: "+ طلب شيء آخر", cancel: "إلغاء الطلب",
     myOrders: "طلباتي الحالية", emptyOrders: "لا توجد طلبات نشطة حالياً.", close: "إغلاق",
     tableErrorTitle: "الطاولة غير مفعّلة 🚫", tableErrorDesc: "عذراً، كود الـ QR الخاص بهذه الطاولة غير مسجل في النظام بعد. يرجى مراجعة طاقم المقهى.",
-    categories: [
-      { id: "coffee", name: "القهوة", icon: Coffee }, { id: "sweets", name: "الحلوى", icon: CakeSlice },
-      { id: "juice", name: "عصائر", icon: CupSoda }, { id: "bakery", name: "مخبوزات", icon: Croissant }
-    ]
+    all: "الكل"
   },
   en: {
     subtitle: "Discover Authentic Taste ☕", empty: "No products in this category.",
@@ -33,10 +31,7 @@ const TRANSLATIONS: Record<string, any> = {
     orderNum: "Order #", addMore: "+ Add more", cancel: "Cancel",
     myOrders: "My Orders", emptyOrders: "No active orders.", close: "Close",
     tableErrorTitle: "Table Not Active 🚫", tableErrorDesc: "Sorry, this table's QR code is not registered in the system yet. Please ask the cafe staff.",
-    categories: [
-      { id: "coffee", name: "Coffee", icon: Coffee }, { id: "sweets", name: "Sweets", icon: CakeSlice },
-      { id: "juice", name: "Juices", icon: CupSoda }, { id: "bakery", name: "Bakery", icon: Croissant }
-    ]
+    all: "All"
   },
   fr: {
     subtitle: "Découvrez le goût authentique ☕", empty: "Aucun produit dans cette catégorie.",
@@ -45,10 +40,7 @@ const TRANSLATIONS: Record<string, any> = {
     orderNum: "N° Cmd", addMore: "+ Ajouter", cancel: "Annuler",
     myOrders: "Mes Commandes", emptyOrders: "Aucune commande active.", close: "Fermer",
     tableErrorTitle: "Table Non Active 🚫", tableErrorDesc: "Désolé, le code QR de cette table n'est pas encore enregistré. Veuillez contacter le personnel.",
-    categories: [
-      { id: "coffee", name: "Café", icon: Coffee }, { id: "sweets", name: "Desserts", icon: CakeSlice },
-      { id: "juice", name: "Jus", icon: CupSoda }, { id: "bakery", name: "Boulangerie", icon: Croissant }
-    ]
+    all: "Tout"
   }
 };
 
@@ -71,7 +63,10 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   const [activeLang, setActiveLang] = useState("en");
   const t = TRANSLATIONS[activeLang];
-  const [activeCategoryId, setActiveCategoryId] = useState("coffee");
+  
+  // 🌟 متغيرات الأقسام الديناميكية
+  const [categories, setCategories] = useState<any[]>([]);
+  const [activeCategoryId, setActiveCategoryId] = useState("all");
 
   const [products, setProducts] = useState<any[]>([]);
   const [cafeData, setCafeData] = useState<any>(null);
@@ -91,7 +86,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   const fetchUserOrders = async (sessionId: string, targetCafeId = cafeData?.id) => {
     if (!targetCafeId) return;
-
     const res = await getClientActiveOrders(targetCafeId, sessionId);
     if (res.success) setActiveOrders(res.orders);
   };
@@ -140,6 +134,17 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           setCafeData(menuData.cafe);
           setTableId(menuData.table.id);
           setProducts(menuData.products);
+
+          // 🌟 جلب الأقسام الديناميكية الخاصة بهذا المقهى
+          const { data: cats } = await supabase
+            .from('menu_categories')
+            .select('*')
+            .eq('cafe_id', menuData.cafe.id)
+            .order('created_at', { ascending: true });
+            
+          if (cats) {
+            setCategories(cats);
+          }
         }
 
         let sessionId = localStorage.getItem('cafe_lux_client_session');
@@ -332,7 +337,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         </div>
       )}
 
-      {/* 🌟 الهيدر الكلاسيكي النظيف */}
+      {/* 🌟 الهيدر */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-border/50">
         <div className="flex flex-col">
           <h1 className="text-2xl font-black text-foreground tracking-tight uppercase">{displayTitle}</h1>
@@ -356,26 +361,38 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         </div>
       </header>
 
-      {/* 🌟 أقسام المنيو */}
-      <div className="px-5 py-6 overflow-x-auto scrollbar-none flex gap-3 bg-muted/20">
-        {t.categories.map((cat: any) => (
-          <button key={cat.id} onClick={() => setActiveCategoryId(cat.id)} className={`px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-colors flex items-center gap-2.5 shadow-sm active:scale-95 ${activeCategoryId === cat.id ? "bg-foreground text-white" : "bg-white text-foreground border border-border"}`}>
-            <cat.icon size={18} className={`${activeCategoryId === cat.id ? 'text-primary' : 'text-muted-foreground'}`} /> {cat.name}
-          </button>
-        ))}
+      {/* 🌟 الأقسام الديناميكية */}
+      <div className="px-5 py-6 overflow-x-auto custom-scrollbar flex gap-3 bg-muted/20">
+        <button 
+          onClick={() => setActiveCategoryId('all')} 
+          className={`px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-colors shadow-sm active:scale-95 flex items-center gap-2.5 ${activeCategoryId === 'all' ? "bg-foreground text-white" : "bg-white text-foreground border border-border hover:bg-muted"}`}
+        >
+          <LayoutGrid size={18} className={activeCategoryId === 'all' ? 'text-primary' : 'text-muted-foreground'} />
+          {t.all}
+        </button>
+        {categories.map((cat: any) => {
+          const IconComponent = (Icons as any)[cat.icon || 'Coffee'] || Coffee;
+          
+          return (
+            <button 
+              key={cat.id} 
+              onClick={() => setActiveCategoryId(cat.id)} 
+              className={`px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-colors shadow-sm active:scale-95 flex items-center gap-2.5 ${activeCategoryId === cat.id ? "bg-foreground text-white" : "bg-white text-foreground border border-border hover:bg-muted"}`}
+            >
+              <IconComponent size={18} className={activeCategoryId === cat.id ? 'text-primary' : 'text-muted-foreground'} />
+              {activeLang === 'ar' ? cat.name_ar : activeLang === 'fr' ? cat.name_fr : cat.name_en}
+            </button>
+          );
+        })}
       </div>
 
       <main className="px-6 mt-6 space-y-3">
         <div className="flex flex-col gap-3">
           {(() => {
-            const filteredProducts = products.filter(p => {
-              const dbCat = p.category;
-              if (activeCategoryId === 'coffee') return dbCat === 'القهوة';
-              if (activeCategoryId === 'sweets') return dbCat === 'الحلوى';
-              if (activeCategoryId === 'juice') return dbCat === 'عصائر';
-              if (activeCategoryId === 'bakery') return dbCat === 'مخبوزات';
-              return false;
-            });
+            // 🌟 تصفية المنتجات بناءً على الـ category_id
+            const filteredProducts = activeCategoryId === 'all' 
+              ? products 
+              : products.filter(p => p.category_id === activeCategoryId);
 
             if (filteredProducts.length === 0) {
               return (
@@ -393,7 +410,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         </div>
       </main>
 
-      {/* 🌟 تذييل المنصة (White-label Control) */}
       {!cafeData?.is_white_label && (
         <div className="pt-12 pb-6 flex flex-col items-center justify-center opacity-40 select-none">
           <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -403,7 +419,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         </div>
       )}
 
-      {/* 🌟 شريط السلة السفلي النظيف */}
       {totalItems() > 0 && (
         <div className="fixed bottom-0 left-0 w-full bg-white border-t border-border/50 p-6 shadow-[0_-15px_60px_rgba(0,0,0,0.06)] z-50 rounded-t-[2rem]">
           <div className="max-w-md mx-auto flex items-center justify-between gap-6" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>

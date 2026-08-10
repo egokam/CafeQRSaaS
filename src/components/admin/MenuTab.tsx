@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { X, Edit, Trash2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Edit, Trash2, AlertCircle, Settings2, Loader2, Edit2 } from "lucide-react";
+import * as Icons from "lucide-react"; // استيراد جميع الأيقونات
 import { supabase } from "../../lib/supabase";
 import { adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../actions/auth";
+import { getCategories, addCategory, updateCategory, deleteCategory } from "../../actions/menu";
 
-const CATEGORY_MAP: Record<string, Record<string, string>> = {
-  "القهوة": { ar: "القهوة", en: "Coffee", fr: "Café" },
-  "الحلوى": { ar: "الحلوى", en: "Desserts", fr: "Desserts" },
-  "عصائر": { ar: "عصائر", en: "Juices", fr: "Jus" },
-  "مخبوزات": { ar: "مخبوزات", en: "Bakery", fr: "Boulangerie" }
-};
-const CATEGORIES = Object.keys(CATEGORY_MAP);
+// مكتبة الأيقونات المتاحة للأقسام
+const AVAILABLE_ICONS = [
+  "Coffee", "CakeSlice", "CupSoda", "Croissant", "Pizza", "Sandwich", 
+  "Soup", "Utensils", "UtensilsCrossed", "IceCream", "Beer", "Wine", 
+  "GlassWater", "Apple", "Carrot", "Beef", "Fish", "ChefHat", "Flame", "Leaf"
+];
 
 const compressImageBeforeUpload = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
@@ -45,33 +46,52 @@ const compressImageBeforeUpload = (file: File): Promise<File> => {
 };
 
 export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts, maxMenu = 150 }: any) {
+  const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
+  
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
   const [nameFr, setNameFr] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [category, setCategory] = useState("القهوة");
+  const [categoryId, setCategoryId] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // 🌟 استخراج البيانات الحالية للقيود
+  const [categories, setCategories] = useState<any[]>([]);
+  const [isLoadingCats, setIsLoadingCats] = useState(true);
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [catForm, setCatForm] = useState({ id: "", name_ar: "", name_en: "", name_fr: "", icon: "Coffee" });
+  const [isSubmittingCat, setIsSubmittingCat] = useState(false);
+
   const currentCount = products.length;
   const isDiamond = maxMenu >= 9999;
   const isLimitReached = !isDiamond && currentCount >= maxMenu;
   const usagePercent = isDiamond ? 0 : Math.min(100, (currentCount / maxMenu) * 100);
 
+  useEffect(() => {
+    if (cafeId) fetchCategoriesData();
+  }, [cafeId]);
+
+  const fetchCategoriesData = async () => {
+    setIsLoadingCats(true);
+    const res = await getCategories(cafeId);
+    if (res.success) setCategories(res.data);
+    setIsLoadingCats(false);
+  };
+
   const resetForm = () => {
-    setEditingId(null); setName(""); setNameEn(""); setNameFr(""); setDescription(""); setPrice(""); setImageFile(null);
+    setEditingId(null); setName(""); setNameEn(""); setNameFr(""); setDescription(""); setPrice(""); setCategoryId(""); setImageFile(null);
   };
 
   const handleAddOrUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cafeId || !name || !price || (!imageFile && !editingId)) return alert(t.fillFields);
+    if (!cafeId || !name || !price || !categoryId || (!imageFile && !editingId)) {
+      return alert(t.fillFields || "يرجى تعبئة الحقول الأساسية واختيار القسم.");
+    }
     
-    // 🌟 منع تجاوز الحد عند الإضافة الجديدة فقط (السماح بالتعديل)
     if (!editingId && isLimitReached) {
-      alert(activeLang === 'ar' ? "لقد وصلت للحد الأقصى للمنتجات المسموح بها في باقتك." : "Menu limit reached. Upgrade your plan.");
+      alert(activeLang === 'ar' ? "لقد وصلت للحد الأقصى." : "Menu limit reached.");
       return;
     }
 
@@ -95,7 +115,17 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
         }
       }
 
-      const productData: any = { name_ar: name, name_en: nameEn, name_fr: nameFr, description_ar: description, price: parseFloat(price), category: category };
+      // إضافة category: "none" كإجراء احتياطي لتفادي قيد NOT NULL في حال لم يتم تنفيذ أمر SQL
+      const productData: any = { 
+        name_ar: name, 
+        name_en: nameEn, 
+        name_fr: nameFr, 
+        description_ar: description, 
+        price: parseFloat(price), 
+        category_id: categoryId,
+        category: "none" 
+      };
+      
       if (finalImageUrl) productData.image_url = finalImageUrl;
 
       if (editingId) {
@@ -107,7 +137,11 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
         if (success) alert(t.addedSuccess); else throw new Error(serverError);
       }
       resetForm(); fetchProducts(cafeId);
-    } catch (err: any) { alert(t.errorPrefix + (err.message || t.errorPrefix)); } finally { setIsUploading(false); }
+    } catch (err: any) { 
+      alert(t.errorPrefix + (err.message || "Error")); 
+    } finally { 
+      setIsUploading(false); 
+    }
   };
 
   const handleDelete = async (id: string, imageUrl: string) => {
@@ -123,31 +157,71 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   };
 
   const handleEditClick = (product: any) => {
-    setEditingId(product.id); setName(product.name_ar || ""); setNameEn(product.name_en || ""); setNameFr(product.name_fr || "");
-    setDescription(product.description_ar || ""); setPrice(product.price.toString()); setCategory(product.category); setImageFile(null);
+    setEditingId(product.id); 
+    setName(product.name_ar || ""); 
+    setNameEn(product.name_en || ""); 
+    setNameFr(product.name_fr || "");
+    setDescription(product.description_ar || ""); 
+    setPrice(product.price.toString()); 
+    setCategoryId(product.category_id || "");
+    setImageFile(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingCat(true);
+    if (catForm.id) {
+      await updateCategory(catForm.id, catForm.name_ar, catForm.name_en, catForm.name_fr, catForm.icon);
+    } else {
+      await addCategory(cafeId, catForm.name_ar, catForm.name_en, catForm.name_fr, catForm.icon);
+    }
+    await fetchCategoriesData();
+    setCatForm({ id: "", name_ar: "", name_en: "", name_fr: "", icon: "Coffee" });
+    setIsSubmittingCat(false);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm(activeLang === 'ar' ? "تأكيد حذف القسم؟" : "Delete category?")) return;
+    await deleteCategory(id);
+    fetchCategoriesData();
+    fetchProducts(cafeId);
+  };
+
+  const getCategoryName = (catId: string) => {
+    const cat = categories.find(c => c.id === catId);
+    if (!cat) return activeLang === 'ar' ? 'بدون قسم' : 'Uncategorized';
+    return activeLang === 'ar' ? cat.name_ar : activeLang === 'fr' ? cat.name_fr : cat.name_en;
+  };
+
+  const renderIcon = (iconName: string) => {
+    const IconComponent = (Icons as any)[iconName] || Icons.HelpCircle;
+    return <IconComponent size={20} />;
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" dir={dir}>
       <div className="lg:col-span-1 bg-white p-6 rounded-3xl shadow-sm border border-border h-fit relative">
         {editingId && <button onClick={resetForm} className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'} text-muted-foreground hover:text-red-500`}><X size={24} /></button>}
         
-        <h2 className="text-xl font-bold mb-6 border-b pb-4">{editingId ? t.editProduct : t.addProduct}</h2>
+        <div className="flex justify-between items-center mb-6 border-b pb-4">
+          <h2 className="text-xl font-bold">{editingId ? t.editProduct : t.addProduct}</h2>
+          <button 
+            onClick={() => setShowCatModal(true)}
+            type="button"
+            className="text-xs bg-muted hover:bg-muted/80 text-foreground px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-bold transition-colors shadow-sm"
+          >
+            <Settings2 size={14} /> 
+            {activeLang === 'ar' ? 'الأقسام' : 'Categories'}
+          </button>
+        </div>
         
-        {/* 🌟 رسالة تنبيه عند الوصول للحد الأقصى، وتختفي عند التعديل */}
         {!editingId && isLimitReached && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3">
             <AlertCircle size={20} className="shrink-0 mt-0.5" />
             <div>
-              <h4 className="font-bold text-sm">
-                {activeLang === 'ar' ? "الحد الأقصى للمنيو" : "Menu Limit Reached"}
-              </h4>
-              <p className="text-xs mt-1 opacity-80">
-                {activeLang === 'ar' 
-                  ? "لا يمكنك إضافة منتجات جديدة. يرجى ترقية باقتك."
-                  : "You cannot add new products. Please upgrade your plan."}
-              </p>
+              <h4 className="font-bold text-sm">{activeLang === 'ar' ? "الحد الأقصى للمنيو" : "Menu Limit Reached"}</h4>
+              <p className="text-xs mt-1 opacity-80">{activeLang === 'ar' ? "لا يمكنك إضافة منتجات جديدة." : "Limit reached."}</p>
             </div>
           </div>
         )}
@@ -163,8 +237,11 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
             <div><label className="block text-sm font-bold mb-2">{t.priceLabel}</label><input required type="number" step="0.5" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30" dir="ltr" /></div>
             <div>
               <label className="block text-sm font-bold mb-2">{t.categoryLabel}</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 ${activeLang === 'ar' ? 'text-right' : 'text-left'}`}>
-                {CATEGORIES.map(cat => <option key={cat} value={cat}>{CATEGORY_MAP[cat][activeLang]}</option>)}
+              <select required value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 ${activeLang === 'ar' ? 'text-right' : 'text-left'}`}>
+                <option value="" disabled>{activeLang === 'ar' ? 'اختر القسم...' : 'Select Category...'}</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{activeLang === 'ar' ? cat.name_ar : activeLang === 'fr' ? cat.name_fr : cat.name_en}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -175,58 +252,132 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
               <div className={`font-bold ${!editingId && isLimitReached ? 'text-gray-400' : 'text-primary'}`}>{imageFile ? imageFile.name : editingId ? t.changeImage : t.chooseImage}</div>
             </div>
           </div>
-          <button 
-            disabled={isUploading || (!editingId && isLimitReached)} 
-            type="submit" 
-            className={`w-full text-white py-4 rounded-xl font-bold shadow-lg transition-colors ${
-              !editingId && isLimitReached 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : editingId 
-                ? 'bg-blue-500 hover:bg-blue-600' 
-                : 'bg-primary hover:bg-primary/90'
-            }`}
-          >
-            {isUploading ? t.saving : editingId ? t.saveEdit : (!editingId && isLimitReached ? "Locked 🔒" : t.publishProduct)}
+          <button disabled={isUploading || (!editingId && isLimitReached)} type="submit" className={`w-full text-white py-4 rounded-xl font-bold shadow-lg transition-colors flex justify-center items-center gap-2 ${!editingId && isLimitReached ? 'bg-gray-400 cursor-not-allowed' : editingId ? 'bg-blue-500 hover:bg-blue-600' : 'bg-primary hover:bg-primary/90'}`}>
+            {isUploading ? <Loader2 className="animate-spin" size={20} /> : editingId ? t.saveEdit : (!editingId && isLimitReached ? "Locked 🔒" : t.publishProduct)}
           </button>
         </form>
       </div>
       
       <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-border">
-        {/* 🌟 الترويسة وشريط التقدم الخاص بالمنتجات */}
         <div className="flex items-center justify-between mb-4 border-b pb-4">
           <h2 className="text-xl font-bold">{t.currentProducts}</h2>
-          <div className="text-sm font-bold text-muted-foreground flex items-center gap-2" dir="ltr">
-            {currentCount} / {isDiamond ? "♾️" : maxMenu}
-          </div>
+          <div className="text-sm font-bold text-muted-foreground flex items-center gap-2" dir="ltr">{currentCount} / {isDiamond ? "♾️" : maxMenu}</div>
         </div>
-        
         {!isDiamond && (
           <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-6">
-            <div 
-              className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? 'bg-red-500' : 'bg-primary'}`} 
-              style={{ width: `${usagePercent}%` }} 
-            />
+            <div className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? 'bg-red-500' : 'bg-primary'}`} style={{ width: `${usagePercent}%` }} />
           </div>
         )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {products.map((product: any) => (
             <div key={product.id} className="flex gap-4 border border-border/50 p-3 rounded-2xl items-center bg-muted/10">
               <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-muted"><img src={product.image_url} alt={product.name_ar} className="w-full h-full object-cover" /></div>
               <div className="flex-1">
-                <h3 className="font-bold text-sm">
-                  {activeLang === 'en' && product.name_en ? product.name_en : activeLang === 'fr' && product.name_fr ? product.name_fr : product.name_ar}
-                </h3>
-                <p className="text-sm text-primary font-bold" dir="ltr">{product.price} MAD</p>
+                <h3 className="font-bold text-sm">{activeLang === 'en' && product.name_en ? product.name_en : activeLang === 'fr' && product.name_fr ? product.name_fr : product.name_ar}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded-md">{getCategoryName(product.category_id)}</span>
+                  <p className="text-sm text-primary font-bold" dir="ltr">{product.price} MAD</p>
+                </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => handleEditClick(product)} className="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center hover:bg-blue-500 hover:text-white"><Edit size={18} /></button>
-                <button onClick={() => handleDelete(product.id, product.image_url)} className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white"><Trash2 size={18} /></button>
+                <button onClick={() => handleEditClick(product)} className="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center hover:bg-blue-500 hover:text-white transition-colors"><Edit size={18} /></button>
+                <button onClick={() => handleDelete(product.id, product.image_url)} className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><Trash2 size={18} /></button>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* نافذة الأقسام المحسنة بالكامل */}
+      {showCatModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] w-full max-w-4xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-[600px]">
+            
+            <button onClick={() => setShowCatModal(false)} className={`absolute top-4 ${activeLang === 'ar' ? 'left-4' : 'right-4'} z-10 bg-white shadow-md text-zinc-500 hover:text-zinc-900 p-2 rounded-full transition-colors`}>
+              <X size={20} />
+            </button>
+
+            {/* الجزء الأيمن/الأيسر: نموذج الإضافة */}
+            <div className="w-full md:w-1/2 p-6 sm:p-8 bg-zinc-50 flex flex-col h-full overflow-y-auto custom-scrollbar border-b md:border-b-0 md:border-x border-zinc-200">
+              <h3 className="text-2xl font-black mb-6 text-zinc-900 flex items-center gap-2">
+                <Settings2 className="text-primary" /> {activeLang === 'ar' ? 'إعدادات الأقسام' : 'Category Settings'}
+              </h3>
+              
+              <form onSubmit={handleSaveCategory} className="space-y-5 flex-1">
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-zinc-600 block">{activeLang === 'ar' ? 'أسماء القسم باللغات' : 'Category Names'}</label>
+                  <input required placeholder="العربية (AR)" value={catForm.name_ar} onChange={e => setCatForm({...catForm, name_ar: e.target.value})} className="w-full border border-zinc-200 p-3 rounded-xl text-sm font-bold bg-white focus:border-primary outline-none transition-colors" />
+                  <input required placeholder="English (EN)" value={catForm.name_en} onChange={e => setCatForm({...catForm, name_en: e.target.value})} className="w-full border border-zinc-200 p-3 rounded-xl text-sm font-bold bg-white focus:border-primary outline-none transition-colors" />
+                  <input required placeholder="Français (FR)" value={catForm.name_fr} onChange={e => setCatForm({...catForm, name_fr: e.target.value})} className="w-full border border-zinc-200 p-3 rounded-xl text-sm font-bold bg-white focus:border-primary outline-none transition-colors" />
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-sm font-bold text-zinc-600 block">{activeLang === 'ar' ? 'اختر أيقونة' : 'Choose an Icon'}</label>
+                  <div className="grid grid-cols-5 gap-2 bg-white p-3 rounded-xl border border-zinc-200 h-[200px] overflow-y-auto custom-scrollbar">
+                    {AVAILABLE_ICONS.map(iconName => (
+                      <button 
+                        key={iconName} 
+                        type="button"
+                        onClick={() => setCatForm({...catForm, icon: iconName})}
+                        className={`aspect-square rounded-lg flex items-center justify-center transition-all ${catForm.icon === iconName ? 'bg-primary text-white scale-110 shadow-md' : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'}`}
+                        title={iconName}
+                      >
+                        {renderIcon(iconName)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-auto">
+                  <button disabled={isSubmittingCat} type="submit" className="w-full bg-zinc-900 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 hover:bg-zinc-800 transition-colors shadow-lg active:scale-[0.98]">
+                    {isSubmittingCat ? <Loader2 size={20} className="animate-spin" /> : catForm.id ? (activeLang === 'ar' ? "حفظ التعديلات" : "Save Changes") : (activeLang === 'ar' ? "إضافة القسم" : "Add Category")}
+                  </button>
+                  {catForm.id && (
+                    <button type="button" onClick={() => setCatForm({ id: "", name_ar: "", name_en: "", name_fr: "", icon: "Coffee" })} className="w-full mt-2 bg-zinc-200 text-zinc-700 font-bold py-3 rounded-xl hover:bg-zinc-300 transition-colors">
+                      {activeLang === 'ar' ? 'إلغاء التعديل' : 'Cancel Edit'}
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* الجزء الأيسر/الأيمن: قائمة الأقسام */}
+            <div className="w-full md:w-1/2 p-6 sm:p-8 bg-white flex flex-col h-full overflow-hidden">
+              <h4 className="text-lg font-bold mb-4 text-zinc-900 border-b pb-4">
+                {activeLang === 'ar' ? 'الأقسام المسجلة' : 'Registered Categories'}
+              </h4>
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
+                {isLoadingCats ? (
+                  <div className="flex justify-center p-6"><Loader2 size={28} className="animate-spin text-zinc-400" /></div>
+                ) : categories.length === 0 ? (
+                  <p className="text-center text-zinc-400 text-sm font-bold p-6 border border-dashed rounded-xl bg-zinc-50">
+                    {activeLang === 'ar' ? 'لا توجد أقسام مسجلة.' : 'No categories found.'}
+                  </p>
+                ) : (
+                  categories.map(cat => (
+                    <div key={cat.id} className="flex justify-between items-center p-4 border border-zinc-200 rounded-2xl hover:border-primary/50 transition-colors group bg-white shadow-sm">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                          {renderIcon(cat.icon)}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-black text-zinc-900">{cat.name_ar}</span>
+                          <span className="text-xs font-bold text-zinc-400">{cat.name_en} • {cat.name_fr}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setCatForm(cat)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg"><Edit2 size={16}/></button>
+                        <button onClick={() => handleDeleteCategory(cat.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg"><Trash2 size={16}/></button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

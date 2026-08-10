@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
-import { unstable_cache } from "next/cache";
+import { unstable_cache, revalidatePath } from "next/cache";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -231,4 +231,49 @@ export async function cancelClientOrder(orderId: string, cafeId: string, session
   } catch (error: unknown) {
     return { success: false, error: getErrorMessage(error) };
   }
+}
+
+
+
+
+// أضف هذه الدوال إلى ملف src/actions/menu.ts
+
+export async function getCategories(cafeId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('menu_categories')
+    .select('*')
+    .eq('cafe_id', cafeId)
+    .order('created_at', { ascending: true });
+  return { success: !error, data: data || [], error: error?.message };
+}
+
+export async function addCategory(cafeId: string, name_ar: string, name_en: string, name_fr: string, icon: string) {
+  const { data, error } = await supabaseAdmin
+    .from('menu_categories')
+    .insert([{ cafe_id: cafeId, name_ar, name_en, name_fr, icon }])
+    .select()
+    .single();
+  
+  if (!error) revalidatePath('/', 'layout');
+  return { success: !error, data, error: error?.message };
+}
+
+export async function updateCategory(id: string, name_ar: string, name_en: string, name_fr: string, icon: string) {
+  const { error } = await supabaseAdmin
+    .from('menu_categories')
+    .update({ name_ar, name_en, name_fr, icon })
+    .eq('id', id);
+    
+  if (!error) revalidatePath('/', 'layout');
+  return { success: !error, error: error?.message };
+}
+
+export async function deleteCategory(id: string) {
+  const { error } = await supabaseAdmin
+    .from('menu_categories')
+    .delete()
+    .eq('id', id);
+    
+  if (!error) revalidatePath('/', 'layout');
+  return { success: !error, error: error?.message };
 }
