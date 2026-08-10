@@ -729,7 +729,7 @@
       "forceStatusLabel": "Forced Subscription Status",
       "statusActive": "ACTIVE",
       "statusPaused": "PAUSED",
-      "saveOverrideBtn": "Save God Override 💾",
+      "saveOverrideBtn": "Save Override 💾",
       "deepWipeBtn": "Permanently Destroy Cafe (Deep Wipe)"
     },
     "factory": {

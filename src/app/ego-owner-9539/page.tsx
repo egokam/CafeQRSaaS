@@ -38,7 +38,7 @@ export default function UltimateSuperAdminDashboard() {
   const [facEmail, setFacEmail] = useState("");
   const [facPass, setFacPass] = useState("CafeSaaS2026!");
   const [facPlan, setFacPlan] = useState("silver");
-  const [facBillingCycle, setFacBillingCycle] = useState("monthly"); // 🌟 الإضافة الجديدة لدورة الدفع
+  const [facBillingCycle, setFacBillingCycle] = useState("monthly");
   const [facTrial, setFacTrial] = useState(14);
   const [facCashierPin, setFacCashierPin] = useState("0000");
   const [facAdminPin, setFacAdminPin] = useState("1234");
@@ -99,11 +99,9 @@ export default function UltimateSuperAdminDashboard() {
 
   const handleInspect = (cafe: any) => { setInspectedCafe(cafe); };
 
-  // 🌟 تم إضافة newCycle كمعامل خامس
   const handleForceSave = async (cafeId: string, newStatus: string, rawDate: string, newPlan: string, newCycle: string) => {
     try {
       const isoDate = new Date(rawDate).toISOString();
-      // 🌟 تم إرسال newCycle إلى الخادم
       const success = await forceUpdateCafeSub(cafeId, newStatus, isoDate, newPlan, newCycle);
 
       if (success) {
@@ -112,7 +110,6 @@ export default function UltimateSuperAdminDashboard() {
         setData((prevData: any) => {
           const updatedCafes = prevData.cafes.map((c: any) =>
             c.id === cafeId
-              // 🌟 تحديث الواجهة فوراً لتشمل التعديل على دورة الدفع
               ? { ...c, subscription_status: newStatus, subscription_ends_at: isoDate, plan_type: newPlan, billing_cycle: newCycle }
               : c
           );
@@ -164,7 +161,6 @@ export default function UltimateSuperAdminDashboard() {
     if (!facName || !facSlug || !facEmail) return alert(t("errors.missingFields"));
     setFacSubmitting(true); setFacResult(null);
 
-    // 🌟 تمرير facBillingCycle إلى دالة إنشاء مقهى جديد
     const res = await provisionNewCafe({
       name: facName, slug: facSlug, ownerEmail: facEmail, ownerPassword: facPass,
       planType: facPlan, billingCycle: facBillingCycle, trialDays: Number(facTrial), adminPin: facAdminPin, cashierPin: facCashierPin
@@ -280,57 +276,63 @@ export default function UltimateSuperAdminDashboard() {
           </div>
         </div>
 
-        <div className="bg-zinc-900/40 border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl backdrop-blur-xl w-full">
-          <div className="overflow-x-auto hide-scrollbar w-full">
-            <table className={`w-full border-collapse whitespace-nowrap ${isArabic ? 'text-right' : 'text-left'}`}>
-              <thead>
-                <tr className="border-b border-white/5 font-mono text-[10px] sm:text-xs text-zinc-500 uppercase bg-zinc-950/50">
-                  <th className="p-5 sm:p-6 font-bold tracking-widest">{t("table.project")}</th>
-                  <th className="p-5 sm:p-6 font-bold tracking-widest">{t("table.plan")}</th>
-                  <th className="p-5 sm:p-6 font-bold tracking-widest">{t("table.status")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 text-sm">
-                {filteredCafes.length === 0 ? (
-                  <tr>
-                    <td colSpan={3} className="p-12 text-center text-zinc-500 font-mono text-xs">{t("table.noData")}</td>
-                  </tr>
-                ) : filteredCafes.map((cafe: any) => {
-                  const st = cafe.subscription_status;
-                  return (
-                    <tr key={cafe.id} className="hover:bg-zinc-800/40 transition-colors group">
-                      <td className="p-5 sm:p-6">
-                        <div className="font-extrabold text-white text-sm sm:text-base flex items-center gap-3 mb-1">
-                          <span className="truncate max-w-[150px] sm:max-w-xs">{cafe.name}</span>
+        {/* 🌟 جدول المشاريع المحدث (Flexbox Layout للاستجابة للموبايل) */}
+        <div className="bg-zinc-900/40 border border-white/5 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl backdrop-blur-xl w-full flex flex-col">
+          
+          {/* Header Row (Hidden on very small screens, visible on SM+) */}
+          <div className={`hidden sm:flex items-center justify-between p-4 sm:p-6 border-b border-white/5 bg-zinc-950/50 font-mono text-[10px] sm:text-xs text-zinc-500 uppercase font-bold tracking-widest ${isArabic ? 'text-right' : 'text-left'}`}>
+            <div className="flex-1 min-w-0 px-2">{t("table.project")}</div>
+            <div className="shrink-0 w-20 sm:w-28 text-center">{t("table.plan")}</div>
+            <div className={`shrink-0 w-28 sm:w-32 px-2 ${isArabic ? 'text-left' : 'text-right'}`}>{t("table.status")}</div>
+          </div>
 
-                          <button
-                            onClick={() => handleInspect(cafe)}
-                            className="text-zinc-500 hover:text-amber-400 transition-colors shrink-0 outline-none flex items-center"
-                            title={t("table.inspectBtn")}
-                          >
-                            <ExternalLink size={18} strokeWidth={2.5} />
-                          </button>
-                        </div>
-                        <span className="text-[11px] font-mono text-zinc-500" dir="ltr">/{cafe.slug}</span>
-                      </td>
-                      <td className="p-5 sm:p-6 font-mono text-xs uppercase text-amber-400/90 font-bold">
-                        <span className="bg-amber-400/10 px-3 py-1.5 rounded-lg border border-amber-400/20">{cafe.plan_type || 'silver'}</span>
-                      </td>
-                      <td className="p-5 sm:p-6">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-bold tracking-widest font-mono uppercase ${st === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : st === 'pending_verification' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`} dir="ltr">
-                          {st === 'active' && <ShieldCheck size={14} />}
-                          {st === 'pending_verification' && <Clock size={14} />}
-                          {st === 'suspended' && <AlertOctagon size={14} />}
-                          {st}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          {/* Data Rows */}
+          <div className="flex flex-col divide-y divide-white/5">
+            {filteredCafes.length === 0 ? (
+              <div className="p-12 text-center text-zinc-500 font-mono text-xs">{t("table.noData")}</div>
+            ) : filteredCafes.map((cafe: any) => {
+              const st = cafe.subscription_status;
+              const displayStatus = st === 'pending_verification' ? 'PENDING' : st;
+              
+              return (
+                <div 
+                  key={cafe.id} 
+                  onClick={() => handleInspect(cafe)}
+                  className={`flex items-center justify-between p-4 sm:p-6 hover:bg-zinc-800/40 transition-colors group cursor-pointer ${isArabic ? 'text-right' : 'text-left'}`}
+                >
+                  
+                  {/* Project Column */}
+                  <div className="flex-1 min-w-0 pr-2 sm:pr-4 flex flex-col justify-center">
+                    <div className="font-extrabold text-white text-sm sm:text-base flex items-center gap-1.5 sm:gap-2 mb-1">
+                      <span className="truncate">{cafe.name}</span>
+                      <ExternalLink size={14} className="text-zinc-600 group-hover:text-amber-400 transition-colors shrink-0" />
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] font-mono text-zinc-500 truncate" dir="ltr">/{cafe.slug}</div>
+                  </div>
+
+                  {/* Plan Column */}
+                  <div className="shrink-0 w-20 sm:w-28 flex justify-center items-center">
+                    <span className="bg-amber-400/10 text-amber-400/90 border border-amber-400/20 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-mono text-[9px] sm:text-xs uppercase font-bold truncate max-w-full">
+                      {cafe.plan_type || 'silver'}
+                    </span>
+                  </div>
+
+                  {/* Status Column */}
+                  <div className={`shrink-0 w-28 sm:w-32 flex items-center ${isArabic ? 'justify-start' : 'justify-end'}`}>
+                    <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[8px] sm:text-[10px] font-bold tracking-wider font-mono uppercase truncate max-w-full ${st === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : st === 'pending_verification' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`} dir="ltr">
+                      {st === 'active' && <ShieldCheck size={12} className="shrink-0" />}
+                      {st === 'pending_verification' && <Clock size={12} className="shrink-0" />}
+                      {st === 'suspended' && <AlertOctagon size={12} className="shrink-0" />}
+                      <span className="truncate">{displayStatus}</span>
+                    </span>
+                  </div>
+                  
+                </div>
+              );
+            })}
           </div>
         </div>
+
       </div>
 
       <CafeDossierModal
@@ -380,7 +382,6 @@ export default function UltimateSuperAdminDashboard() {
                   </div>
                 </div>
 
-                {/* 🌟 تعديل الشبكة إلى 4 أعمدة لتسع خانة Billing Cycle */}
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 p-5 bg-zinc-900/30 rounded-3xl border border-white/5">
                   <div>
                     <label className="block text-[10px] font-mono text-zinc-500 mb-2 font-bold uppercase tracking-widest">{t("factory.planTypeLabel")}</label>
@@ -390,7 +391,6 @@ export default function UltimateSuperAdminDashboard() {
                       <option value="diamond">Diamond</option>
                     </select>
                   </div>
-                  {/* 🌟 إضافة حقل اختيار دورة الدفع */}
                   <div>
                     <label className="block text-[10px] font-mono text-zinc-500 mb-2 font-bold uppercase tracking-widest">Billing Cycle</label>
                     <select value={facBillingCycle} onChange={(e) => setFacBillingCycle(e.target.value)} className="w-full bg-zinc-950 border border-white/10 rounded-xl p-3 text-xs font-mono text-white outline-none appearance-none focus:border-amber-400/50" dir="ltr">

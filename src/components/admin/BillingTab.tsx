@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { sendTelegramReceipt } from "@/actions/payment";
-import PaymentHistory from "./PaymentHistory"; // 🌟 استيراد المكون الجديد
+import PaymentHistory from "./PaymentHistory";
 
 interface BillingTabProps {
   cafeId: string;
@@ -86,6 +86,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       yr: "سنة",
       currentPlanBtn: "الباقة الحالية",
       upgradeTo: "طلب الاشتراك في",
+      renew: "تجديد",
       warningTitle: "تنبيه الاشتراك",
       warningDesc: "تقديم طلب باقة جديدة سيضيف المدة لاشتراكك إذا تم قبوله. هل تريد المتابعة؟",
       cancel: "إلغاء",
@@ -134,6 +135,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       yr: "an",
       currentPlanBtn: "Forfait Actuel",
       upgradeTo: "Demander",
+      renew: "Renouveler",
       warningTitle: "Avertissement d'abonnement",
       warningDesc: "Soumettre une nouvelle demande ajoutera la durée à votre abonnement si accepté. Voulez-vous continuer ?",
       cancel: "Annuler",
@@ -182,6 +184,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       yr: "yr",
       currentPlanBtn: "Current Plan",
       upgradeTo: "Request",
+      renew: "Renew",
       warningTitle: "Subscription Notice",
       warningDesc: "Submitting a new request will add duration to your sub if accepted. Proceed?",
       cancel: "Cancel",
@@ -293,7 +296,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
           if (
             cafeData?.subscription_status === "active" && 
             cafeData?.plan_type === receipt.requested_plan && 
-            cafeData?.billing_cycle === receipt.requested_cycle
+            cafeData?.billing_cycle === receipt.requested_cycle &&
+            daysRemaining > 0
           ) {
             await supabase.from("payment_receipts").update({ status: "paid" }).eq("id", receipt.id);
             setHasPendingReceipt(false);
@@ -329,7 +333,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
     };
 
     if (cafeId) fetchBillingDetails();
-  }, [cafeId]);
+  }, [cafeId, daysRemaining]);
 
   const isInvalidSub = subStatus === "paused" || daysRemaining < 0;
 
@@ -355,7 +359,9 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       return;
     }
 
-    if (planId === currentPlan && selectedCycle === currentCycle) return;
+    // 🌟 Allow clicking the exact same plan if the subscription is invalid/expired
+    if (planId === currentPlan && selectedCycle === currentCycle && !isInvalidSub) return;
+    
     setPendingPlanId(planId);
 
     if (daysRemaining > 0) {
@@ -564,19 +570,21 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {PLANS.map((plan) => {
-          const isActive = currentPlan === plan.id && currentCycle === selectedCycle;
-          const isDisabled = hasPendingReceipt || (isActive && subStatus === "active");
+          const isActivePlan = currentPlan === plan.id;
+          const isExactCurrent = isActivePlan && currentCycle === selectedCycle;
+          // 🌟 Button is disabled ONLY if there's a pending receipt or if it's the exact current active (and valid) plan.
+          const isDisabled = hasPendingReceipt || (isExactCurrent && !isInvalidSub);
 
           return (
             <div 
               key={plan.id} 
               className={`relative flex flex-col p-8 rounded-3xl border-2 transition-all duration-300 ${
-                isActive 
+                isExactCurrent 
                   ? `${plan.color} scale-[1.02] border-opacity-100` 
                   : "bg-white border-zinc-100 hover:border-zinc-300 hover:shadow-md"
-              } ${(isInvalidSub || hasPendingReceipt) ? 'opacity-80 grayscale-[30%]' : ''}`}
+              } ${(isInvalidSub || hasPendingReceipt) && isExactCurrent ? 'opacity-90 grayscale-[20%]' : ''}`}
             >
-              {isActive && (
+              {isExactCurrent && (
                 <div className={`absolute -top-4 left-1/2 -translate-x-1/2 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm ${isInvalidSub ? 'bg-rose-500' : 'bg-zinc-900'}`}>
                   {isInvalidSub ? l.inactivePlan : l.activePlan}
                 </div>
@@ -589,7 +597,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
                     {plan.target}
                   </p>
                 </div>
-                <div className={`p-3 rounded-2xl shadow-sm border ${isActive ? 'bg-white/50 border-black/5' : 'bg-zinc-50 border-zinc-100'}`}>
+                <div className={`p-3 rounded-2xl shadow-sm border ${isExactCurrent ? 'bg-white/50 border-black/5' : 'bg-zinc-50 border-zinc-100'}`}>
                   {plan.icon}
                 </div>
               </div>
@@ -603,8 +611,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
               <div className="flex-1 space-y-4 mb-8">
                 {plan.features.map((feat, idx) => (
                   <div key={idx} className="flex items-start gap-3">
-                    <CheckCircle2 size={18} className={`shrink-0 mt-0.5 ${isActive ? "text-zinc-700" : "text-zinc-400"}`} />
-                    <span className={`text-sm font-bold leading-snug ${isActive ? 'text-zinc-800' : 'text-zinc-600'}`}>{feat}</span>
+                    <CheckCircle2 size={18} className={`shrink-0 mt-0.5 ${isExactCurrent ? "text-zinc-700" : "text-zinc-400"}`} />
+                    <span className={`text-sm font-bold leading-snug ${isExactCurrent ? 'text-zinc-800' : 'text-zinc-600'}`}>{feat}</span>
                   </div>
                 ))}
               </div>
@@ -618,10 +626,13 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
                     : "bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95 shadow-lg shadow-zinc-900/10"
                 }`}
               >
+                {/* 🌟 Dynamic Button Logic */}
                 {hasPendingReceipt ? (
                   l.pending
-                ) : isActive && subStatus === "active" ? (
-                   l.currentPlanBtn
+                ) : isExactCurrent && !isInvalidSub ? (
+                  l.currentPlanBtn
+                ) : isExactCurrent && isInvalidSub ? (
+                  <>{l.renew} {plan.name} <ArrowRight size={18} className={dir === 'rtl' ? 'rotate-180' : ''} /></>
                 ) : (
                   <>{l.upgradeTo} {plan.name} <ArrowRight size={18} className={dir === 'rtl' ? 'rotate-180' : ''} /></>
                 )}
@@ -631,7 +642,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
         })}
       </div>
 
-      {/* 🌟 New Extracted Payment History Component */}
       <PaymentHistory cafeId={cafeId} activeLang={activeLang} dir={dir} />
 
       {showWarningModal && pendingPlanId && (
