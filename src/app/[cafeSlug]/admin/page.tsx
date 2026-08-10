@@ -21,6 +21,7 @@ import DevicesTab from "../../../components/admin/DevicesTab";
 import SettingsTab from "../../../components/admin/SettingsTab";
 import BillingTab from "@/components/admin/BillingTab";
 import SupportTab from "@/components/admin/SupportTab";
+import SubscriptionWarningBar from "@/components/admin/SubscriptionWarningBar";
 
 const TRANSLATIONS: Record<string, any> = {
   en: { 
@@ -88,6 +89,10 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [maxTables, setMaxTables] = useState(30);
   const [maxMenu, setMaxMenu] = useState(150);
   const [isWhiteLabel, setIsWhiteLabel] = useState(false);
+  
+  // 🌟 حالات الاشتراك للتنبيهات
+  const [subscriptionEndsAt, setSubscriptionEndsAt] = useState<string | null>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>("active");
 
   const [activeTab, setActiveTab] = useState("products");
   const [products, setProducts] = useState<any[]>([]);
@@ -106,7 +111,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [devicesList, setDevicesList] = useState<any[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
 
-  // 🌟 حالات الإشعارات والاتصال المركزي
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
   const [latestAdminMessage, setLatestAdminMessage] = useState<any>(null);
   const [isChatConnected, setIsChatConnected] = useState(false);
@@ -151,7 +155,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     return () => window.removeEventListener("hashchange", handleHashChange);
   }, [cafeId]);
 
-  // 🌟 اتصال مركزي واحد يخدم الإشعارات وتحديث الرسائل معاً
   useEffect(() => {
     if (!cafeId || !isAuthenticated) return;
 
@@ -165,7 +168,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
     const channelName = `global_alerts_listener_${cafeId}`;
     
-    // تنظيف أي اتصال قديم بنفس الاسم لمنع التعارض في المتصفح
     supabase.getChannels().forEach(c => {
       if (c.topic === `realtime:${channelName}`) supabase.removeChannel(c);
     });
@@ -173,11 +175,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     const globalMessagesChannel = supabase.channel(channelName)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_messages" }, (payload) => {
         if (payload.new && payload.new.cafe_id === cafeId) {
-          
-          // إرسال الرسالة إلى التبويب
           setLatestAdminMessage(payload.new); 
-
-          // إظهار النقطة الحمراء إذا كان التبويب مغلقاً والرسالة من الإدارة
           if (payload.new.sender === 'super_admin' && activeTabRef.current !== 'support') {
             setHasUnreadSupport(true);
           }
@@ -235,12 +233,15 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       setPlanType(cafeData.plan_type);
       
       if (cafeData.name) setCafeName(cafeData.name);
-      
       if (cafeData.billing_cycle) setBillingCycle(cafeData.billing_cycle);
       if (cafeData.max_cashiers) setMaxCashiers(cafeData.max_cashiers.toString());
       if (cafeData.max_tables) setMaxTables(cafeData.max_tables);
       if (cafeData.max_menu_items) setMaxMenu(cafeData.max_menu_items);
       if (cafeData.is_white_label !== undefined) setIsWhiteLabel(cafeData.is_white_label);
+      
+      // 🌟 جلب بيانات الاشتراك
+      if (cafeData.subscription_ends_at) setSubscriptionEndsAt(cafeData.subscription_ends_at);
+      if (cafeData.subscription_status) setSubscriptionStatus(cafeData.subscription_status);
 
       if (cafeData.owner_email) {
         setOwnerEmail(cafeData.owner_email);
@@ -431,57 +432,68 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   }
 
   return (
-    <div className="min-h-screen bg-muted/20 p-6 md:p-12 font-sans" dir={dir}>
-      <header className="mb-8 flex flex-col xl:flex-row xl:items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-border gap-4 relative z-50">
-        <div><h1 className="text-3xl font-extrabold text-foreground">{t.adminDashboard}</h1><p className="text-muted-foreground mt-1">{t.totalControl}</p></div>
-        
-        <div className="flex items-center gap-4 flex-wrap">
-          <LanguageToggle />
-
-          <div className="flex flex-wrap bg-muted p-1 rounded-xl gap-1">
-            <button onClick={() => switchTab('products')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'products' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><PackageSearch size={18} /> {t.tabMenu}</button>
-            <button onClick={() => switchTab('qr')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'qr' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><QrCode size={18} /> {t.tabTables}</button>
-            <button onClick={() => switchTab('sales')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'sales' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground'}`}><TrendingUp size={18} /> {t.tabSales}</button>
-            <button onClick={() => switchTab('devices')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'devices' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Laptop size={18} /> {t.tabDevices}</button>
-            <button onClick={() => switchTab('settings')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'settings' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Settings size={18} /> {t.tabSettings}</button>
-            <button onClick={() => switchTab('billing')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'billing' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><CreditCard size={18} /> {t.tabBilling}</button>
-            
-            <button 
-              onClick={() => switchTab('support')} 
-              className={`relative flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'support' ? 'bg-zinc-900 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 transition-colors'}`}
-            >
-              <MessageCircle size={18} /> {t.tabSupport}
-              {hasUnreadSupport && (
-                <span className="absolute top-2 right-2 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {activeTab === 'products' && <MenuTab cafeId={cafeId!} activeLang={activeLang} t={t} products={products} fetchProducts={fetchProducts} maxMenu={maxMenu} />}
-      {activeTab === 'qr' && <TablesTab cafeId={cafeId!} cafeSlug={cafeSlug} cafeName={cafeName} activeLang={activeLang} t={t} tablesList={tablesList} setTablesList={setTablesList} fetchTables={fetchTables} isLoadingTables={isLoadingTables} maxTables={maxTables} />}
-      {activeTab === 'sales' && <SalesTab cafeId={cafeId!} activeLang={activeLang} t={t} planType={planType} monthlyOrders={monthlyOrders} monthlyIncome={monthlyIncome} isLoadingSales={isLoadingSales} fetchMonthlySales={fetchMonthlySales} setActiveTab={switchTab} />}
-      {activeTab === 'devices' && <DevicesTab cafeId={cafeId!} activeLang={activeLang} t={t} devicesList={devicesList} fetchDevices={fetchDevices} isLoadingDevices={isLoadingDevices} maxCashiers={maxCashiers} />}
-      {activeTab === 'settings' && <SettingsTab cafeId={cafeId!} activeLang={activeLang} t={t} cafeName={cafeName} setCafeName={setCafeName} maxCashiers={maxCashiers} activeCashiers={activeCashiers} planType={planType} billingCycle={billingCycle} maxTables={maxTables} maxMenu={maxMenu} />}
-      {activeTab === 'billing' && <BillingTab cafeId={cafeId!} cafeName={cafeName} planType={planType} billingCycle={billingCycle} activeLang={activeLang} t={t} />}
+    <>
+      {/* 🌟 شريط التنبيه بانتهاء الاشتراك مدمج في أعلى الصفحة */}
+      <SubscriptionWarningBar 
+        endsAt={subscriptionEndsAt} 
+        status={subscriptionStatus} 
+        activeLang={activeLang} 
+        onRenewClick={() => switchTab('billing')} 
+        dir={dir} 
+      />
       
-      {activeTab === 'support' && (
-        <SupportTab 
-          cafeId={cafeId!} 
-          cafeName={cafeName} 
-          planType={planType} 
-          activeLang={activeLang} 
-          t={t} 
-          dir={dir} 
-          onMessagesRead={handleMessagesRead} 
-          latestMessage={latestAdminMessage}
-          isConnected={isChatConnected}
-        />
-      )}
-    </div>
+      <div className="min-h-screen bg-muted/20 p-6 md:p-12 font-sans" dir={dir}>
+        <header className="mb-8 flex flex-col xl:flex-row xl:items-center justify-between bg-white p-6 rounded-2xl shadow-sm border border-border gap-4 relative z-50">
+          <div><h1 className="text-3xl font-extrabold text-foreground">{t.adminDashboard}</h1><p className="text-muted-foreground mt-1">{t.totalControl}</p></div>
+          
+          <div className="flex items-center gap-4 flex-wrap">
+            <LanguageToggle />
+
+            <div className="flex flex-wrap bg-muted p-1 rounded-xl gap-1">
+              <button onClick={() => switchTab('products')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'products' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><PackageSearch size={18} /> {t.tabMenu}</button>
+              <button onClick={() => switchTab('qr')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'qr' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><QrCode size={18} /> {t.tabTables}</button>
+              <button onClick={() => switchTab('sales')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'sales' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground'}`}><TrendingUp size={18} /> {t.tabSales}</button>
+              <button onClick={() => switchTab('devices')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'devices' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Laptop size={18} /> {t.tabDevices}</button>
+              <button onClick={() => switchTab('settings')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'settings' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Settings size={18} /> {t.tabSettings}</button>
+              <button onClick={() => switchTab('billing')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'billing' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><CreditCard size={18} /> {t.tabBilling}</button>
+              
+              <button 
+                onClick={() => switchTab('support')} 
+                className={`relative flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'support' ? 'bg-zinc-900 text-white shadow-sm' : 'text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10 transition-colors'}`}
+              >
+                <MessageCircle size={18} /> {t.tabSupport}
+                {hasUnreadSupport && (
+                  <span className="absolute top-2 right-2 flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {activeTab === 'products' && <MenuTab cafeId={cafeId!} activeLang={activeLang} t={t} products={products} fetchProducts={fetchProducts} maxMenu={maxMenu} />}
+        {activeTab === 'qr' && <TablesTab cafeId={cafeId!} cafeSlug={cafeSlug} cafeName={cafeName} activeLang={activeLang} t={t} tablesList={tablesList} setTablesList={setTablesList} fetchTables={fetchTables} isLoadingTables={isLoadingTables} maxTables={maxTables} />}
+        {activeTab === 'sales' && <SalesTab cafeId={cafeId!} activeLang={activeLang} t={t} planType={planType} monthlyOrders={monthlyOrders} monthlyIncome={monthlyIncome} isLoadingSales={isLoadingSales} fetchMonthlySales={fetchMonthlySales} setActiveTab={switchTab} />}
+        {activeTab === 'devices' && <DevicesTab cafeId={cafeId!} activeLang={activeLang} t={t} devicesList={devicesList} fetchDevices={fetchDevices} isLoadingDevices={isLoadingDevices} maxCashiers={maxCashiers} />}
+        {activeTab === 'settings' && <SettingsTab cafeId={cafeId!} activeLang={activeLang} t={t} cafeName={cafeName} setCafeName={setCafeName} maxCashiers={maxCashiers} activeCashiers={activeCashiers} planType={planType} billingCycle={billingCycle} maxTables={maxTables} maxMenu={maxMenu} />}
+        {activeTab === 'billing' && <BillingTab cafeId={cafeId!} cafeName={cafeName} planType={planType} billingCycle={billingCycle} activeLang={activeLang} t={t} />}
+        
+        {activeTab === 'support' && (
+          <SupportTab 
+            cafeId={cafeId!} 
+            cafeName={cafeName} 
+            planType={planType} 
+            activeLang={activeLang} 
+            t={t} 
+            dir={dir} 
+            onMessagesRead={handleMessagesRead} 
+            latestMessage={latestAdminMessage}
+            isConnected={isChatConnected}
+          />
+        )}
+      </div>
+    </>
   );
 }

@@ -507,10 +507,11 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
   }
 }
 
+// 🌟 تحديث مهم: تم إضافة subscription_ends_at و subscription_status إلى الاستعلام
 export async function getAdminCafeBySlug(cafeSlug: string) {
   const { data, error } = await supabaseAdmin
     .from("cafes")
-    .select("id, name, slug, owner_email, plan_type, billing_cycle, max_cashiers, max_tables, max_menu_items, is_white_label")
+    .select("id, name, slug, owner_email, plan_type, billing_cycle, max_cashiers, max_tables, max_menu_items, is_white_label, subscription_ends_at, subscription_status")
     .eq("slug", cafeSlug)
     .single();
 
