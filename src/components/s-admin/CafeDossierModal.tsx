@@ -269,7 +269,7 @@ export default function CafeDossierModal({
                   </div>
 
                   {/* Expiration Date & Forced Status */}
-                  <div className="grid grid-cols-2 gap-4 relative">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
                     <div className="relative">
                       <label className="block text-[10px] font-mono tracking-widest text-zinc-500 mb-2 uppercase font-bold">Expiration Date</label>
                       <input 
