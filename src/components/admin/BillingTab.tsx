@@ -8,7 +8,6 @@ import {
   Shield, 
   ArrowRight, 
   Loader2, 
-  History,
   AlertCircle,
   Gem,
   AlertTriangle,
@@ -22,6 +21,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { sendTelegramReceipt } from "@/actions/payment";
+import PaymentHistory from "./PaymentHistory"; // 🌟 استيراد المكون الجديد
 
 interface BillingTabProps {
   cafeId: string;
@@ -45,7 +45,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
   const [daysRemaining, setDaysRemaining] = useState<number>(0);
   const [rejectionReason, setRejectionReason] = useState<string | null>(null);
   const [hasPendingReceipt, setHasPendingReceipt] = useState(false);
-  const [pendingReceiptId, setPendingReceiptId] = useState<string | null>(null); // 🌟 تتبع الإيصال المعلق
+  const [pendingReceiptId, setPendingReceiptId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCycle, setSelectedCycle] = useState<"monthly" | "yearly">("monthly");
 
@@ -86,8 +86,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       yr: "سنة",
       currentPlanBtn: "الباقة الحالية",
       upgradeTo: "طلب الاشتراك في",
-      paymentHistory: "سجل المدفوعات",
-      invoicesAppearHere: "ستظهر الفواتير هنا.",
       warningTitle: "تنبيه الاشتراك",
       warningDesc: "تقديم طلب باقة جديدة سيضيف المدة لاشتراكك إذا تم قبوله. هل تريد المتابعة؟",
       cancel: "إلغاء",
@@ -136,8 +134,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       yr: "an",
       currentPlanBtn: "Forfait Actuel",
       upgradeTo: "Demander",
-      paymentHistory: "Historique des Paiements",
-      invoicesAppearHere: "Les factures apparaîtront ici.",
       warningTitle: "Avertissement d'abonnement",
       warningDesc: "Soumettre une nouvelle demande ajoutera la durée à votre abonnement si accepté. Voulez-vous continuer ?",
       cancel: "Annuler",
@@ -186,8 +182,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       yr: "yr",
       currentPlanBtn: "Current Plan",
       upgradeTo: "Request",
-      paymentHistory: "Payment History",
-      invoicesAppearHere: "Invoices will appear here.",
       warningTitle: "Subscription Notice",
       warningDesc: "Submitting a new request will add duration to your sub if accepted. Proceed?",
       cancel: "Cancel",
@@ -286,7 +280,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
           }
         }
 
-        // 🌟 فحص إذا كان هناك إيصال معلق
         const { data: pendingReceipts } = await supabase
           .from("payment_receipts")
           .select("id, requested_plan, requested_cycle")
@@ -297,7 +290,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
         if (pendingReceipts && pendingReceipts.length > 0) {
           const receipt = pendingReceipts[0];
           
-          // 🌟 الحل الذكي: التنظيف التلقائي إذا تم التفعيل اليدوي المطابق من طرف السوبر أدمن
           if (
             cafeData?.subscription_status === "active" && 
             cafeData?.plan_type === receipt.requested_plan && 
@@ -341,7 +333,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
 
   const isInvalidSub = subStatus === "paused" || daysRemaining < 0;
 
-  // 🌟 دالة إلغاء الطلب المعلق
   const handleCancelRequest = async () => {
     if (!pendingReceiptId) return;
     if (!confirm(l.cancelConfirm)) return;
@@ -460,7 +451,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300" dir={dir}>
       
-      {/* 🌟 إشعار الطلب المعلق مع زر الإلغاء */}
       {hasPendingReceipt && (
         <div className="bg-indigo-50/80 border-2 border-indigo-500/20 p-6 rounded-3xl flex items-start gap-4 shadow-sm animate-in slide-in-from-top-4 relative">
           <button 
@@ -641,17 +631,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
         })}
       </div>
 
-      <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 shadow-sm opacity-60 select-none mt-10">
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-zinc-200">
-          <h3 className="text-xl font-extrabold flex items-center gap-2 text-zinc-800">
-            <History className="text-zinc-400" size={24} /> {l.paymentHistory}
-          </h3>
-        </div>
-        <div className="flex flex-col items-center justify-center py-12 text-center text-zinc-500 bg-zinc-100/50 rounded-2xl border border-dashed border-zinc-300">
-          <AlertCircle size={32} className="mb-3 text-zinc-300" />
-          <p className="font-bold">{l.invoicesAppearHere}</p>
-        </div>
-      </div>
+      {/* 🌟 New Extracted Payment History Component */}
+      <PaymentHistory cafeId={cafeId} activeLang={activeLang} dir={dir} />
 
       {showWarningModal && pendingPlanId && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
