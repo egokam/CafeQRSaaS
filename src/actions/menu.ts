@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
-import { unstable_cache, revalidatePath } from "next/cache";
+import { unstable_cache, revalidatePath, unstable_noStore as noStore } from "next/cache";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -96,21 +96,23 @@ async function buildServerPricedOrderItems(cafeId: string, items: OrderInputItem
 }
 
 export const getCachedCafeMenu = unstable_cache(
-  async (cafeSlug: string, tableNumber: string) => {
+  async (cafeSlug: string, tableId: string) => { // 🌟 تم التغيير من tableNumber إلى tableId
     try {
+      // 🌟 جلب بيانات المقهى بما فيها الإحداثيات الجغرافية
       const { data: cafe } = await supabaseAdmin
         .from("cafes")
-        .select("id, name")
+        .select("id, name, latitude, longitude") // 🌟 إضافة latitude و longitude
         .eq("slug", cafeSlug)
         .single();
 
       if (!cafe) return { error: "cafe_not_found" };
 
+      // 🌟 التحقق من الطاولة عبر الـ UUID (الـ tableId) وليس الرقم المتسلسل
       const { data: table } = await supabaseAdmin
         .from("tables")
         .select("id")
         .eq("cafe_id", cafe.id)
-        .eq("table_number", tableNumber)
+        .eq("id", tableId) // 🌟 تم التغيير للبحث بالـ UUID
         .single();
 
       if (!table) return { error: "table_not_found", cafe };
@@ -140,25 +142,23 @@ export const getCachedCafeMenu = unstable_cache(
 );
 
 export async function getClientActiveOrders(cafeId: string, sessionId: string) {
-  if (!cafeId || !sessionId) {
-    return { success: false, orders: [], error: "Missing cafe or session" };
+  noStore(); // 🌟 هذا يمنع الكاش ويجلب البيانات الحية للعميل في هاتفه
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('orders')
+      .select('*, tables(table_number)')
+      .eq('cafe_id', cafeId)
+      .eq('session_id', sessionId)
+      .neq('status', 'completed')
+      .neq('status', 'rejected')
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return { success: true, orders: data || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
-
-  const { data, error } = await supabaseAdmin
-    .from("orders")
-    .select("*")
-    .eq("cafe_id", cafeId)
-    .eq("session_id", sessionId)
-    .neq("status", "completed")
-    .neq("status", "rejected")
-    .neq("status", "cancelled")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return { success: false, orders: [], error: error.message };
-  }
-
-  return { success: true, orders: data || [] };
 }
 
 export async function createClientOrder(payload: {

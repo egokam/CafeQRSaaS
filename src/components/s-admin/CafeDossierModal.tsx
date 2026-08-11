@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import {
   UserCog, AlertOctagon, Trash2, XCircle, Loader2,
   ChevronDown, History, ShieldCheck, Calendar,
-  CreditCard, Lock, Save, AlertTriangle, Clock, Ban, AlertCircle, ExternalLink
+  CreditCard, Lock, Save, AlertTriangle, Clock, Ban, AlertCircle, ExternalLink, MapPin
 } from "lucide-react";
 import { getPaymentHistory } from "@/actions/payment";
 
@@ -71,6 +71,10 @@ export default function CafeDossierModal({
   const [editOwnerEmail, setEditOwnerEmail] = useState("");
   const [editOwnerPassword, setEditOwnerPassword] = useState("");
   const [isUpdatingAuth, setIsUpdatingAuth] = useState(false);
+  
+  // 🌟 Coordinates States
+  const [newLatitude, setNewLatitude] = useState("");
+  const [newLongitude, setNewLongitude] = useState("");
 
   // 🌟 Actual Payment History States
   const [receipts, setReceipts] = useState<any[]>([]);
@@ -84,6 +88,10 @@ export default function CafeDossierModal({
       setNewBillingCycle(cafe.billing_cycle || "monthly");
       setEditOwnerEmail(cafe.owner_email || "");
       setEditOwnerPassword("");
+      
+      // 🌟 Load existing coordinates
+      setNewLatitude(cafe.latitude ? cafe.latitude.toString() : "");
+      setNewLongitude(cafe.longitude ? cafe.longitude.toString() : "");
 
       // 🌟 Fetch Actual Payment History
       setIsLoadingHistory(true);
@@ -288,10 +296,37 @@ export default function CafeDossierModal({
                     </div>
                   </div>
 
+                  {/* 🌟 Coordinates Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative">
+                    <div className="relative">
+                      <label className="block text-[10px] font-mono tracking-widest text-zinc-500 mb-2 uppercase font-bold flex items-center gap-1.5"><MapPin size={10} /> Latitude</label>
+                      <input
+                        type="text"
+                        value={newLatitude}
+                        onChange={(e) => setNewLatitude(e.target.value)}
+                        className="block w-full min-w-0 appearance-none m-0 box-border bg-[#0a0a0a] border border-white/10 rounded-xl p-3.5 text-sm font-mono text-white focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-zinc-700"
+                        placeholder="e.g. 30.4277"
+                        dir="ltr"
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <label className="block text-[10px] font-mono tracking-widest text-zinc-500 mb-2 uppercase font-bold flex items-center gap-1.5"><MapPin size={10} /> Longitude</label>
+                      <input
+                        type="text"
+                        value={newLongitude}
+                        onChange={(e) => setNewLongitude(e.target.value)}
+                        className="block w-full min-w-0 appearance-none m-0 box-border bg-[#0a0a0a] border border-white/10 rounded-xl p-3.5 text-sm font-mono text-white focus:outline-none focus:border-amber-500/50 transition-colors placeholder:text-zinc-700"
+                        placeholder="e.g. -9.5981"
+                        dir="ltr"
+                      />
+                    </div>
+                  </div>
+
                 </div>
 
                 <button
-                  onClick={() => onForceSave(cafe.id, newStatusInput, newDateInput, newPlanInput, newBillingCycle)}
+                  onClick={() => onForceSave(cafe.id, newStatusInput, newDateInput, newPlanInput, newBillingCycle, newLatitude, newLongitude)}
                   className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black tracking-wide uppercase rounded-xl text-sm transition-all active:scale-95 shadow-[0_0_20px_-5px_rgba(245,158,11,0.4)] flex items-center justify-center gap-2 relative mt-2 z-[5]"
                 >
                   Save Override <Save size={16} />

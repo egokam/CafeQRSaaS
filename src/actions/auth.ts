@@ -1,5 +1,5 @@
 "use server";
-
+import { revalidatePath, unstable_noStore as noStore } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { createHmac, timingSafeEqual } from "crypto";
@@ -304,7 +304,9 @@ export async function updateCafeSettings(
   adminPin: string,
   cashierPin: string,
   maxCashiers: number,
-  kitchenParam: number 
+  kitchenParam: number,
+  latitude?: number | null,
+  longitude?: number | null
 ) {
   try {
     const updates: any = {
@@ -318,6 +320,9 @@ export async function updateCafeSettings(
     if (cashierPin && cashierPin.trim() !== "") {
       updates.cashier_pin = cashierPin;
     }
+
+    if (latitude !== undefined) updates.latitude = latitude;
+    if (longitude !== undefined) updates.longitude = longitude;
 
     const { error } = await supabaseAdmin
       .from("cafes")
@@ -472,7 +477,7 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
       throw new Error(selectError.message);
     }
 
-    if (existing) return { success: true };
+    if (existing) return { success: true, tableId: existing.id };
 
     const { data: cafe } = await supabaseAdmin
       .from("cafes")
@@ -491,27 +496,28 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
       }
     }
 
-    const { error: insertError } = await supabaseAdmin
+    const { data: newTable, error: insertError } = await supabaseAdmin
       .from("tables")
-      .insert([{ cafe_id: cafeId, table_number: tableNumber }]);
+      .insert([{ cafe_id: cafeId, table_number: tableNumber }])
+      .select("id")
+      .single();
 
-    if (insertError) {
+    if (insertError || !newTable) {
       console.error("Supabase Insert Error ❌:", insertError);
-      throw new Error(insertError.message);
+      throw new Error(insertError?.message || "فشل في إنشاء الطاولة");
     }
 
-    return { success: true };
+    return { success: true, tableId: newTable.id };
   } catch (error: any) {
     console.error("Table Error Caught 🚨:", error?.message || error);
     return { success: false, error: error?.message || "Unexpected error" };
   }
 }
 
-// 🌟 تحديث مهم: تم إضافة subscription_ends_at و subscription_status إلى الاستعلام
 export async function getAdminCafeBySlug(cafeSlug: string) {
   const { data, error } = await supabaseAdmin
     .from("cafes")
-    .select("id, name, slug, owner_email, plan_type, billing_cycle, max_cashiers, max_tables, max_menu_items, is_white_label, subscription_ends_at, subscription_status")
+    .select("id, name, slug, owner_email, plan_type, billing_cycle, max_cashiers, max_tables, max_menu_items, is_white_label, subscription_ends_at, subscription_status, latitude, longitude")
     .eq("slug", cafeSlug)
     .single();
 
@@ -572,7 +578,8 @@ export async function getAdminMonthlySales(cafeId: string) {
 export async function getCashierCafeBySlug(cafeSlug: string) {
   const { data, error } = await supabaseAdmin
     .from("cafes")
-    .select("id, plan_type, max_cashiers, is_white_label") 
+    // 🌟 تمت إضافة 'name' إلى الاستعلام هنا
+    .select("id, name, plan_type, max_cashiers, is_white_label") 
     .eq("slug", cafeSlug)
     .single();
 
@@ -582,12 +589,11 @@ export async function getCashierCafeBySlug(cafeSlug: string) {
 
   return { success: true, cafe: data };
 }
-
 export async function getCashierActiveOrders(cafeId: string) {
+  noStore(); // 🌟 هذا يمنع الكاش ويجلب البيانات الحية دائماً للكاشير
   try {
     await assertCashierCafeAccess(cafeId);
     const orders = await getActiveOrdersForCafe(cafeId);
-
     return { success: true, orders };
   } catch (error: unknown) {
     return { success: false, orders: [], error: getErrorMessage(error) };
@@ -684,6 +690,7 @@ export async function createManualCashierOrder(payload: {
 }
 
 export async function getAdminTables(cafeId: string) {
+  noStore(); // 🌟 هذا السطر السحري يجبر Next.js على جلب البيانات حية من قاعدة البيانات دائماً ويمنع الكاش
   try {
     const { data, error } = await supabaseAdmin
       .from("tables")
@@ -700,21 +707,34 @@ export async function getAdminTables(cafeId: string) {
 
 export async function adminDeleteTable(tableId: string) {
   try {
+    // 🌟 1. مسح الطلبات المرتبطة أولاً لتجنب أي قيود خفية (Foreign Key Constraints)
     const { error: ordersError } = await supabaseAdmin
       .from("orders")
       .delete()
       .eq("table_id", tableId);
 
-    if (ordersError) throw ordersError;
+    if (ordersError) {
+      console.error("🚨 Error deleting table orders:", ordersError);
+      throw ordersError;
+    }
 
+    // 🌟 2. مسح الطاولة نفسها
     const { error: tableError } = await supabaseAdmin
       .from("tables")
       .delete()
       .eq("id", tableId);
 
-    if (tableError) throw tableError;
+    if (tableError) {
+      console.error("🚨 Error deleting table:", tableError);
+      throw tableError;
+    }
+
+    // 🌟 3. مسح كاش المسارات لإجبار التحديث
+    revalidatePath('/', 'layout');
+
     return { success: true };
   } catch (error: any) {
+    console.error("🚨 Catch Block - Delete Table Error:", error);
     return { success: false, error: error?.message || "Error deleting table" };
   }
 }

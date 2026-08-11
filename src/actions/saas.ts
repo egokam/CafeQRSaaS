@@ -143,38 +143,44 @@ export async function getUltimateDashboardData(accessToken?: string) {
 }
 
 // 5. تعديل تاريخ الاشتراك يدوياً
-export async function forceUpdateCafeSub(cafeId: string, status: string, endsAt: string, planType: string, billingCycle: string = 'monthly') {
+export async function forceUpdateCafeSub(
+  cafeId: string,
+  newStatus: string,
+  isoDate: string,
+  newPlan: string,
+  newCycle: string,
+  latitude?: string | null,  // 🌟 إضافة متغير خط العرض
+  longitude?: string | null  // 🌟 إضافة متغير خط الطول
+) {
   try {
-    const isoDate = new Date(endsAt).toISOString();
+    const updates: any = {
+      subscription_status: newStatus,
+      subscription_ends_at: isoDate,
+      plan_type: newPlan,
+      billing_cycle: newCycle,
+    };
 
-    // 🌟 حساب القيود الديناميكية
-    let maxC = 1, maxT = 30, maxM = 150, isWL = false;
-    if (planType === 'gold') { maxC = 3; maxT = 100; maxM = 9999; }
-    if (planType === 'diamond') { maxC = 9999; maxT = 9999; maxM = 9999; isWL = true; }
+    // 🌟 تحويل الإحداثيات من نص (String) إلى رقم (Number) قبل حفظها في قاعدة البيانات
+    if (latitude && latitude.trim() !== "") {
+      updates.latitude = parseFloat(latitude);
+    }
+    if (longitude && longitude.trim() !== "") {
+      updates.longitude = parseFloat(longitude);
+    }
 
     const { error } = await supabaseAdmin
-      .from('cafes')
-      .update({
-        subscription_status: status,
-        subscription_ends_at: isoDate,
-        plan_type: planType,
-        billing_cycle: billingCycle,
-        max_cashiers: maxC,
-        max_tables: maxT,
-        max_menu_items: maxM,
-        is_white_label: isWL
-      })
-      .eq('id', cafeId);
+      .from("cafes")
+      .update(updates)
+      .eq("id", cafeId);
 
     if (error) {
-      console.error("Supabase Update Error:", error);
+      console.error("Supabase Force Update Error:", error);
       return false;
     }
 
-    revalidatePath('/ego-owner-9539');
     return true;
-  } catch (err) {
-    console.error("Force update catch error:", err);
+  } catch (error) {
+    console.error("Force Update Exception:", error);
     return false;
   }
 }

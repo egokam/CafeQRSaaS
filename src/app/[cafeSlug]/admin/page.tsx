@@ -60,12 +60,13 @@ const HASH_TO_TAB: Record<string, string> = {
   "#support": "support",
 };
 
-const LANGUAGES = ["en", "fr", "ar"];
+const LANGUAGES: ("en" | "fr" | "ar")[] = ["en", "fr", "ar"];
 
 export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug: string }> }) {
   const { cafeSlug } = use(params);
 
-  const [activeLang, setActiveLang] = useState("en");
+  // 🌟 Strict typing applied here to completely solve TS errors passed down to child components
+  const [activeLang, setActiveLang] = useState<"en" | "fr" | "ar">("en");
   const t = TRANSLATIONS[activeLang];
   const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
 
@@ -90,7 +91,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const [maxMenu, setMaxMenu] = useState(150);
   const [isWhiteLabel, setIsWhiteLabel] = useState(false);
   
-  // 🌟 حالات الاشتراك للتنبيهات
+  // 🌟 حالات الإحداثيات والاشتراك
+  const [cafeLatitude, setCafeLatitude] = useState<string | null>(null);
+  const [cafeLongitude, setCafeLongitude] = useState<string | null>(null);
   const [subscriptionEndsAt, setSubscriptionEndsAt] = useState<string | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>("active");
 
@@ -239,7 +242,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       if (cafeData.max_menu_items) setMaxMenu(cafeData.max_menu_items);
       if (cafeData.is_white_label !== undefined) setIsWhiteLabel(cafeData.is_white_label);
       
-      // 🌟 جلب بيانات الاشتراك
+      if (cafeData.latitude) setCafeLatitude(cafeData.latitude);
+      if (cafeData.longitude) setCafeLongitude(cafeData.longitude);
+
       if (cafeData.subscription_ends_at) setSubscriptionEndsAt(cafeData.subscription_ends_at);
       if (cafeData.subscription_status) setSubscriptionStatus(cafeData.subscription_status);
 
@@ -433,7 +438,6 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
   return (
     <>
-      {/* 🌟 شريط التنبيه بانتهاء الاشتراك مدمج في أعلى الصفحة */}
       <SubscriptionWarningBar 
         endsAt={subscriptionEndsAt} 
         status={subscriptionStatus} 
@@ -477,7 +481,9 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         {activeTab === 'qr' && <TablesTab cafeId={cafeId!} cafeSlug={cafeSlug} cafeName={cafeName} activeLang={activeLang} t={t} tablesList={tablesList} setTablesList={setTablesList} fetchTables={fetchTables} isLoadingTables={isLoadingTables} maxTables={maxTables} />}
         {activeTab === 'sales' && <SalesTab cafeId={cafeId!} activeLang={activeLang} t={t} planType={planType} monthlyOrders={monthlyOrders} monthlyIncome={monthlyIncome} isLoadingSales={isLoadingSales} fetchMonthlySales={fetchMonthlySales} setActiveTab={switchTab} />}
         {activeTab === 'devices' && <DevicesTab cafeId={cafeId!} activeLang={activeLang} t={t} devicesList={devicesList} fetchDevices={fetchDevices} isLoadingDevices={isLoadingDevices} maxCashiers={maxCashiers} />}
-        {activeTab === 'settings' && <SettingsTab cafeId={cafeId!} activeLang={activeLang} t={t} cafeName={cafeName} setCafeName={setCafeName} maxCashiers={maxCashiers} activeCashiers={activeCashiers} planType={planType} billingCycle={billingCycle} maxTables={maxTables} maxMenu={maxMenu} />}
+        
+        {activeTab === 'settings' && <SettingsTab cafeId={cafeId!} activeLang={activeLang} t={t} cafeName={cafeName} setCafeName={setCafeName} maxCashiers={maxCashiers} activeCashiers={activeCashiers} planType={planType} billingCycle={billingCycle} maxTables={maxTables} maxMenu={maxMenu} cafeLatitude={cafeLatitude} cafeLongitude={cafeLongitude} />}
+        
         {activeTab === 'billing' && <BillingTab cafeId={cafeId!} cafeName={cafeName} planType={planType} billingCycle={billingCycle} activeLang={activeLang} t={t} />}
         
         {activeTab === 'support' && (

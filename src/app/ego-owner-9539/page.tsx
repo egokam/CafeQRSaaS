@@ -99,10 +99,21 @@ export default function UltimateSuperAdminDashboard() {
 
   const handleInspect = (cafe: any) => { setInspectedCafe(cafe); };
 
-  const handleForceSave = async (cafeId: string, newStatus: string, rawDate: string, newPlan: string, newCycle: string) => {
+  // 🌟 تم إضافة newLatitude و newLongitude هنا
+  const handleForceSave = async (
+    cafeId: string, 
+    newStatus: string, 
+    rawDate: string, 
+    newPlan: string, 
+    newCycle: string, 
+    newLatitude: string, 
+    newLongitude: string
+  ) => {
     try {
       const isoDate = new Date(rawDate).toISOString();
-      const success = await forceUpdateCafeSub(cafeId, newStatus, isoDate, newPlan, newCycle);
+      
+      // 🌟 نمرر الإحداثيات إلى دالة الـ Action
+      const success = await forceUpdateCafeSub(cafeId, newStatus, isoDate, newPlan, newCycle, newLatitude, newLongitude);
 
       if (success) {
         alert(t("success.forceUpdate"));
@@ -110,7 +121,15 @@ export default function UltimateSuperAdminDashboard() {
         setData((prevData: any) => {
           const updatedCafes = prevData.cafes.map((c: any) =>
             c.id === cafeId
-              ? { ...c, subscription_status: newStatus, subscription_ends_at: isoDate, plan_type: newPlan, billing_cycle: newCycle }
+              ? { 
+                  ...c, 
+                  subscription_status: newStatus, 
+                  subscription_ends_at: isoDate, 
+                  plan_type: newPlan, 
+                  billing_cycle: newCycle,
+                  latitude: newLatitude || c.latitude, // 🌟 التحديث محلياً لتظهر الواجهة أسرع
+                  longitude: newLongitude || c.longitude // 🌟
+                }
               : c
           );
           return { ...prevData, cafes: updatedCafes };
@@ -276,17 +295,15 @@ export default function UltimateSuperAdminDashboard() {
           </div>
         </div>
 
-        {/* 🌟 جدول المشاريع المحدث (Flexbox Layout للاستجابة للموبايل) */}
+        {/* 🌟 جدول المشاريع */}
         <div className="bg-zinc-900/40 border border-white/5 rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl backdrop-blur-xl w-full flex flex-col">
           
-          {/* Header Row (Hidden on very small screens, visible on SM+) */}
           <div className={`hidden sm:flex items-center justify-between p-4 sm:p-6 border-b border-white/5 bg-zinc-950/50 font-mono text-[10px] sm:text-xs text-zinc-500 uppercase font-bold tracking-widest ${isArabic ? 'text-right' : 'text-left'}`}>
             <div className="flex-1 min-w-0 px-2">{t("table.project")}</div>
             <div className="shrink-0 w-20 sm:w-28 text-center">{t("table.plan")}</div>
             <div className={`shrink-0 w-28 sm:w-32 px-2 ${isArabic ? 'text-left' : 'text-right'}`}>{t("table.status")}</div>
           </div>
 
-          {/* Data Rows */}
           <div className="flex flex-col divide-y divide-white/5">
             {filteredCafes.length === 0 ? (
               <div className="p-12 text-center text-zinc-500 font-mono text-xs">{t("table.noData")}</div>
@@ -300,8 +317,6 @@ export default function UltimateSuperAdminDashboard() {
                   onClick={() => handleInspect(cafe)}
                   className={`flex items-center justify-between p-4 sm:p-6 hover:bg-zinc-800/40 transition-colors group cursor-pointer ${isArabic ? 'text-right' : 'text-left'}`}
                 >
-                  
-                  {/* Project Column */}
                   <div className="flex-1 min-w-0 pr-2 sm:pr-4 flex flex-col justify-center">
                     <div className="font-extrabold text-white text-sm sm:text-base flex items-center gap-1.5 sm:gap-2 mb-1">
                       <span className="truncate">{cafe.name}</span>
@@ -310,14 +325,12 @@ export default function UltimateSuperAdminDashboard() {
                     <div className="text-[10px] sm:text-[11px] font-mono text-zinc-500 truncate" dir="ltr">/{cafe.slug}</div>
                   </div>
 
-                  {/* Plan Column */}
                   <div className="shrink-0 w-20 sm:w-28 flex justify-center items-center">
                     <span className="bg-amber-400/10 text-amber-400/90 border border-amber-400/20 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg font-mono text-[9px] sm:text-xs uppercase font-bold truncate max-w-full">
                       {cafe.plan_type || 'silver'}
                     </span>
                   </div>
 
-                  {/* Status Column */}
                   <div className={`shrink-0 w-28 sm:w-32 flex items-center ${isArabic ? 'justify-start' : 'justify-end'}`}>
                     <span className={`inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl text-[8px] sm:text-[10px] font-bold tracking-wider font-mono uppercase truncate max-w-full ${st === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : st === 'pending_verification' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`} dir="ltr">
                       {st === 'active' && <ShieldCheck size={12} className="shrink-0" />}
@@ -326,7 +339,6 @@ export default function UltimateSuperAdminDashboard() {
                       <span className="truncate">{displayStatus}</span>
                     </span>
                   </div>
-                  
                 </div>
               );
             })}

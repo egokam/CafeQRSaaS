@@ -2,7 +2,8 @@
 
 import { useState, useEffect, use } from "react";
 import { supabase } from "../../../lib/supabase";
-import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag, Ban, Hourglass, Loader2, Zap } from "lucide-react";
+import * as Icons from "lucide-react";
+import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag, Ban, Hourglass, Loader2, Zap, LayoutGrid } from "lucide-react";
 import {
   cashierMarkOutOfStock,
   cashierUpdateOrderStatus,
@@ -55,9 +56,9 @@ const TRANSLATIONS: Record<string, any> = {
     printBtn: "Print",
     acceptBtn: "Accept",
     rejectBtn: "Reject",
-    preparingStatus: "Preparing in the kitchen... 👨‍🍳",
-    completeBtn: "Complete Order",
-    printTitle: "Smart QR System",
+    orderReadyBtn: "Order Ready 🔔",
+    completeBtn: "Force Complete (Fallback)",
+    printTitle: "Kitchen Receipt",
     orderNoLabel: "Order No:",
     tableNoLabel: "Table No:"
   },
@@ -101,9 +102,9 @@ const TRANSLATIONS: Record<string, any> = {
     printBtn: "Imprimer",
     acceptBtn: "Accepter",
     rejectBtn: "Refuser",
-    preparingStatus: "Préparation en cuisine... 👨‍🍳",
-    completeBtn: "Terminer la Commande",
-    printTitle: "Système QR Intelligent",
+    orderReadyBtn: "Commande Prête 🔔",
+    completeBtn: "Clôturer (Manuel)",
+    printTitle: "Ticket Cuisine",
     orderNoLabel: "N° Cmd :",
     tableNoLabel: "N° Table :"
   },
@@ -147,9 +148,9 @@ const TRANSLATIONS: Record<string, any> = {
     printBtn: "طباعة",
     acceptBtn: "قبول",
     rejectBtn: "رفض",
-    preparingStatus: "جاري التحضير في المطبخ... 👨‍🍳",
-    completeBtn: "إنهاء الطلب",
-    printTitle: "نظام QR الذكي",
+    orderReadyBtn: "الطلب جاهز 🔔",
+    completeBtn: "إنهاء يدوي (احتياطي)",
+    printTitle: "تذكرة المطبخ",
     orderNoLabel: "رقم الطلب:",
     tableNoLabel: "رقم الطاولة:"
   }
@@ -188,6 +189,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [isNotFound, setIsNotFound] = useState(false);
 
   const [products, setProducts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]); 
   const [tables, setTables] = useState<any[]>([]);
   const [showPOS, setShowPOS] = useState(false);
   const [selectedTableId, setSelectedTableId] = useState<string>("");
@@ -204,6 +206,11 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const fetchOrders = async (cId: string) => {
     const res = await getCashierActiveOrders(cId);
     if (res.success) setOrders(res.orders);
+  };
+
+  const fetchCategories = async (cId: string) => {
+    const { data } = await supabase.from('menu_categories').select('*').eq('cafe_id', cId).order('created_at', { ascending: true });
+    if (data) setCategories(data);
   };
 
   useEffect(() => {
@@ -252,6 +259,8 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
               setOrders(workspace.orders);
               if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
               setIsAuthenticated(true);
+              
+              await fetchCategories(cId);
             } else {
               sessionStorage.removeItem(`cashier_auth_${cafeSlug}`);
             }
@@ -350,6 +359,8 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       setOrders(workspace.orders);
       if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
 
+      await fetchCategories(cafeId); 
+
       setIsAuthenticated(true);
       sessionStorage.setItem(`cashier_auth_${cafeSlug}`, 'true');
       setDeviceStatus('approved');
@@ -378,11 +389,22 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   };
 
   const updateOrderStatus = async (order: any, newStatus: string) => {
+    // 🌟 التحديث اللحظي (Optimistic UI) للإحساس بالسرعة
+    if (newStatus === 'completed' || newStatus === 'rejected') {
+      setOrders(prev => prev.filter(o => o.id !== order.id));
+    } else {
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: newStatus } : o));
+    }
+
     const { success } = await cashierUpdateOrderStatus(order.id, newStatus);
+    
     if (!success) {
+      // إرجاع الطلبات من السيرفر في حال الفشل
+      if (cafeId) fetchOrders(cafeId);
       alert(t.updateError);
       return;
     }
+
     if (newStatus === 'accepted') {
       handlePrintReceipt(order);
     }
@@ -509,7 +531,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     );
   }
 
-  const posCategoriesList = ["ALL", ...Array.from(new Set(products.map(p => p.category)))];
   const cartItemsArray = Object.values(posCart);
 
   return (
@@ -540,85 +561,111 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         </header>
 
         {showPOS && (
-          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-5xl h-[88vh] rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-border">
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+            <div className="bg-background w-full h-full max-w-[1400px] max-h-[95vh] rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden border border-border">
 
-              <div className={`flex-1 flex flex-col bg-slate-50/60 p-6 overflow-hidden order-2 ${activeLang === 'ar' ? 'md:order-1' : 'md:order-2'}`}>
+              <div className={`flex-1 flex flex-col bg-slate-50/60 p-4 sm:p-6 overflow-hidden order-2 ${activeLang === 'ar' ? 'md:order-1' : 'md:order-2'}`}>
                 <div className="flex items-center justify-between pb-4 mb-4 border-b">
                   <h3 className="font-black text-xl flex items-center gap-2"><UtensilsCrossed className="text-primary" size={22} /> {t.quickMenu}</h3>
-                  <div className="flex gap-1.5 overflow-x-auto pb-1">
-                    {posCategoriesList.map(cat => (
-                      <button key={cat} onClick={() => setPosCategory(cat)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${posCategory === cat ? 'bg-foreground text-white shadow-md' : 'bg-white text-muted-foreground border hover:bg-slate-100'}`}>
-                        {cat === "ALL" ? t.all : cat}
-                      </button>
-                    ))}
+                  
+                  <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+                    <button 
+                      onClick={() => setPosCategory('ALL')} 
+                      className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 ${posCategory === 'ALL' ? 'bg-foreground text-white shadow-md' : 'bg-white text-muted-foreground border hover:bg-muted'}`}
+                    >
+                      <LayoutGrid size={16} className={posCategory === 'ALL' ? "text-primary" : "text-muted-foreground"} /> {t.all}
+                    </button>
+                    {categories.map(cat => {
+                      const IconComponent = (Icons as any)[cat.icon || 'Coffee'] || Icons.Coffee;
+                      const catName = activeLang === 'ar' ? cat.name_ar : activeLang === 'fr' ? cat.name_fr : cat.name_en;
+                      return (
+                        <button 
+                          key={cat.id} 
+                          onClick={() => setPosCategory(cat.id)} 
+                          className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 ${posCategory === cat.id ? 'bg-foreground text-white shadow-md' : 'bg-white text-muted-foreground border hover:bg-muted'}`}
+                        >
+                          <IconComponent size={16} className={posCategory === cat.id ? "text-primary" : "text-muted-foreground"} />
+                          {catName}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-3 pr-1">
-                  {products.filter(p => posCategory === 'ALL' || p.category === posCategory).map(p => (
-                    <div key={p.id} onClick={() => addToPos(p)} className="bg-white p-3.5 rounded-2xl border hover:border-primary cursor-pointer shadow-sm hover:shadow transition-all flex flex-col justify-between active:scale-95 select-none">
-                      <div className="aspect-square w-full rounded-xl bg-muted overflow-hidden mb-2">
-                        <img src={p.image_url} alt={getProductName(p)} className="w-full h-full object-cover" />
+                <div className="flex-1 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pr-2 custom-scrollbar content-start auto-rows-max">
+                  {products.filter(p => posCategory === 'ALL' || p.category_id === posCategory).map(p => (
+                    <div 
+                      key={p.id} 
+                      onClick={() => addToPos(p)} 
+                      className="bg-white rounded-2xl border border-border overflow-hidden hover:border-primary hover:shadow-md transition-all cursor-pointer flex flex-col group active:scale-95 aspect-square"
+                    >
+                      <div className="relative h-[65%] w-full bg-muted overflow-hidden shrink-0">
+                        <img src={p.image_url} alt={getProductName(p)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="bg-primary text-white rounded-full p-2 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform"><Plus size={20} /></div>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-xs truncate">{getProductName(p)}</h4>
-                        <span className="font-black text-sm text-primary mt-1 block" dir="ltr">{formatMAD(p.price)}</span>
+                      <div className="h-[35%] p-2 flex flex-col items-center justify-center text-center shrink-0">
+                        <h4 className="font-bold text-[10px] sm:text-xs line-clamp-1 w-full leading-tight">{getProductName(p)}</h4>
+                        <span className="font-black text-primary text-[11px] sm:text-sm mt-0.5 block tracking-tight" dir="ltr">{formatMAD(p.price)}</span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className={`w-full md:w-88 bg-white p-6 flex flex-col justify-between order-1 shadow-lg z-10 ${activeLang === 'ar' ? 'md:order-2 border-r' : 'md:order-1 border-l'}`}>
-                <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="font-black text-lg">{t.directTicket}</h3>
-                    <button onClick={() => setShowPOS(false)} className="p-1.5 bg-muted rounded-full hover:bg-gray-200"><X size={18} /></button>
+              <div className={`w-full md:w-[400px] lg:w-[450px] bg-white p-6 flex flex-col justify-between order-1 shadow-2xl z-10 ${activeLang === 'ar' ? 'md:order-2 border-r' : 'md:order-1 border-l'}`}>
+                <div className="flex flex-col h-full max-h-full overflow-hidden">
+                  <div className="flex justify-between items-center mb-6 shrink-0">
+                    <h3 className="font-black text-2xl">{t.directTicket}</h3>
+                    <button onClick={() => setShowPOS(false)} className="p-2 bg-muted rounded-full hover:bg-gray-200 transition-colors"><X size={20} /></button>
                   </div>
 
-                  <div className="mb-6">
-                    <label className="block text-xs font-bold text-muted-foreground mb-1.5">{t.selectTargetTable}</label>
+                  <div className="mb-6 shrink-0">
+                    <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-widest">{t.selectTargetTable}</label>
                     {tables.length === 0 ? (
-                      <div className="p-3 rounded-xl bg-amber-50 text-amber-700 text-xs font-bold border border-amber-200">{t.noTables}</div>
+                      <div className="p-4 rounded-xl bg-amber-50 text-amber-700 text-sm font-bold border border-amber-200 flex items-center gap-2"><AlertTriangle size={18}/> {t.noTables}</div>
                     ) : (
-                      <select value={selectedTableId} onChange={(e) => setSelectedTableId(e.target.value)} className={`w-full p-3 bg-muted/40 border-2 rounded-xl font-bold text-sm focus:border-primary outline-none ${activeLang === 'ar' ? 'text-right' : 'text-left'}`}>
+                      <select value={selectedTableId} onChange={(e) => setSelectedTableId(e.target.value)} className={`w-full p-4 bg-muted/40 border-2 rounded-xl font-bold text-base focus:border-primary outline-none transition-colors ${activeLang === 'ar' ? 'text-right' : 'text-left'}`}>
                         {tables.map(tb => <option key={tb.id} value={tb.id}>{t.tablePrefix} {tb.table_number.replace('table_', '')}</option>)}
                       </select>
                     )}
                   </div>
 
-                  <div className="space-y-2 max-h-[35vh] overflow-y-auto pr-1 mb-4">
+                  <div className="flex-1 overflow-y-auto pr-2 space-y-3 custom-scrollbar min-h-[200px]">
                     {cartItemsArray.length === 0 ? (
-                      <div className="py-12 text-center text-muted-foreground text-xs font-bold border-2 border-dashed rounded-2xl">{t.clickToAdd}</div>
+                      <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 space-y-4">
+                        <ShoppingBag size={48} />
+                        <span className="text-sm font-bold">{t.clickToAdd}</span>
+                      </div>
                     ) : (
                       cartItemsArray.map((item: any) => (
-                        <div key={item.id} className="flex items-center justify-between p-2.5 bg-muted/20 border rounded-xl text-xs font-bold">
-                          <div className="flex-1 truncate pr-1">{getProductName(item)}</div>
-                          <div className="flex items-center gap-2" dir="ltr">
-                            <button onClick={() => decFromPos(item.id)} className="w-6 h-6 bg-muted rounded flex items-center justify-center hover:bg-red-100 hover:text-red-600 font-black">-</button>
-                            <span className="w-4 text-center">{item.quantity}</span>
-                            <button onClick={() => addToPos(item)} className="w-6 h-6 bg-primary text-white rounded flex items-center justify-center font-black">+</button>
+                        <div key={item.id} className="flex items-center justify-between p-3 bg-white border-2 rounded-2xl shadow-sm">
+                          <div className="flex-1 truncate pr-3 font-bold text-sm">{getProductName(item)}</div>
+                          <div className="flex items-center gap-3 shrink-0" dir="ltr">
+                            <button onClick={() => decFromPos(item.id)} className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center hover:bg-red-100 hover:text-red-600 font-black text-lg transition-colors">-</button>
+                            <span className="w-4 text-center font-black">{item.quantity}</span>
+                            <button onClick={() => addToPos(item)} className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center font-black text-lg hover:bg-primary/90 transition-colors">+</button>
                           </div>
                         </div>
                       ))
                     )}
                   </div>
-                </div>
 
-                <div className="pt-4 border-t space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-sm text-muted-foreground">{t.total}</span>
-                    <span className="text-2xl font-black text-primary" dir="ltr">{formatMAD(cartItemsArray.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0))}</span>
+                  <div className="pt-6 border-t mt-4 shrink-0 bg-white">
+                    <div className="flex justify-between items-center mb-6">
+                      <span className="font-extrabold text-muted-foreground uppercase tracking-widest text-sm">{t.total}</span>
+                      <span className="text-3xl font-black text-primary" dir="ltr">{formatMAD(cartItemsArray.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0))}</span>
+                    </div>
+
+                    <button
+                      onClick={handleCreateManualOrder}
+                      disabled={isSubmittingPos || cartItemsArray.length === 0 || !selectedTableId}
+                      className="w-full py-5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-2xl font-black text-lg shadow-xl shadow-emerald-950/20 flex items-center justify-center gap-3 transition-all active:scale-95"
+                    >
+                      {isSubmittingPos ? <Loader2 className="animate-spin" size={24} /> : <><ChefHat size={24}/> {t.confirmSend}</>}
+                    </button>
                   </div>
-
-                  <button
-                    onClick={handleCreateManualOrder}
-                    disabled={isSubmittingPos || cartItemsArray.length === 0 || !selectedTableId}
-                    className="w-full py-4 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-2xl font-black text-base shadow-lg shadow-emerald-950/20 flex items-center justify-center gap-2 transition-all active:scale-95"
-                  >
-                    {isSubmittingPos ? t.sending : t.confirmSend}
-                  </button>
                 </div>
               </div>
 
@@ -626,7 +673,8 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1">
+        {/* 🌟 تمت إضافة items-start هنا لمنع التمدد العمودي للبطاقات */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 items-start">
           {orders.length === 0 ? (
             <div className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed p-10 mt-auto mb-auto">
               <ShoppingBag className="mx-auto text-muted-foreground/30 mb-3" size={48} />
@@ -642,7 +690,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <span className="text-xl font-black text-primary" dir="ltr">{formatMAD(order.total_amount)}</span>
-                  <button onClick={() => handlePrintReceipt(order)} className="flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-xl text-sm font-bold"><Printer size={16} /> {t.printBtn}</button>
+                  <button onClick={() => handlePrintReceipt(order)} className="flex items-center gap-1.5 bg-muted px-3 py-1.5 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors"><Printer size={16} /> {t.printBtn}</button>
                 </div>
               </div>
 
@@ -653,7 +701,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                       <span className="bg-primary text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold text-sm" dir="ltr">x{item.quantity}</span>
                       <span className="font-bold">{getProductName(item)}</span>
                     </div>
-                    <button onClick={() => markOutOfStock(item.id, getProductName(item))} className="text-red-500 bg-red-50 p-2 rounded-lg hover:bg-red-500 hover:text-white"><AlertOctagon size={18} /></button>
+                    <button onClick={() => markOutOfStock(item.id, getProductName(item))} className="text-red-500 bg-red-50 p-2 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><AlertOctagon size={18} /></button>
                   </div>
                 ))}
               </div>
@@ -667,15 +715,14 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 )}
 
                 {order.status === 'accepted' && (
-                  <div className="col-span-2 bg-blue-50 text-blue-700 py-4 rounded-xl font-bold flex justify-center items-center gap-2 border border-blue-200 select-none">
-                    <Clock className="animate-spin text-blue-500" size={18} />
-                    <span>{t.preparingStatus}</span>
-                  </div>
+                  <button onClick={() => updateOrderStatus(order, 'ready')} className="col-span-2 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-xl font-black text-base flex justify-center items-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transition-all">
+                    <ChefHat size={22} /> {t.orderReadyBtn}
+                  </button>
                 )}
 
                 {order.status === 'ready' && (
-                  <button onClick={() => updateOrderStatus(order, 'completed')} className="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-base flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all">
-                    <Check size={22} /> {t.completeBtn}
+                  <button onClick={() => updateOrderStatus(order, 'completed')} className="col-span-2 bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl font-black text-sm flex justify-center items-center gap-2 shadow-lg shadow-emerald-900/20 active:scale-95 transition-all opacity-80">
+                    <Check size={18} /> {t.completeBtn}
                   </button>
                 )}
               </div>
@@ -683,7 +730,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           ))}
         </div>
 
-        {/* 🌟 تذييل المنصة (White-label Control) */}
         {!cafeDataObj?.is_white_label && (
           <div className="mt-auto pt-12 pb-2 flex flex-col items-center justify-center opacity-40 select-none">
             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -699,7 +745,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         <div className="print-only hidden font-mono text-black bg-white w-full max-w-[300px] mx-auto p-4 text-sm" dir={dir}>
           <div className="text-center pb-4 border-b-2 border-dashed border-gray-400 mb-4">
             <h2 className="text-2xl font-extrabold mb-1">{cafeDataObj?.name || "Cafe"}</h2>
-            <p className="text-xs">{t.printTitle}</p>
+            <p className="text-xs bg-black text-white py-1 uppercase tracking-widest">{t.printTitle}</p>
           </div>
           <div className="mb-4 text-xs space-y-1 font-bold">
             <p>{t.tableNoLabel} {printOrder.tables?.table_number?.replace('table_', '') || t.directPosBadge}</p>
@@ -721,7 +767,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
             <p className="text-xl font-extrabold" dir="ltr">{formatMAD(printOrder.total_amount)}</p>
           </div>
           
-          {/* 🌟 تذييل الطباعة (White-label Control) */}
           {!cafeDataObj?.is_white_label && (
             <div className="text-center mt-6 pt-4 border-t-2 border-dashed border-gray-400">
               <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Powered by CafeQR</p>

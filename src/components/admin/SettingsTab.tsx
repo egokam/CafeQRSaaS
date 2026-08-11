@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MonitorSmartphone, PackageSearch, QrCode, CreditCard, Shield } from "lucide-react";
+import { MonitorSmartphone, PackageSearch, QrCode, CreditCard, Shield, MapPin, Loader2 } from "lucide-react";
 import { updateCafeSettings } from "../../actions/auth";
 
 export default function SettingsTab({
@@ -15,16 +15,46 @@ export default function SettingsTab({
   planType,
   billingCycle,
   maxTables,
-  maxMenu
+  maxMenu,
+  cafeLatitude, // 🌟 استلام الإحداثيات الحالية إن وجدت
+  cafeLongitude
 }: any) {
   const [newAdminPin, setNewAdminPin] = useState("");
   const [newCashierPin, setNewCashierPin] = useState("");
   const [isChecking, setIsChecking] = useState(false);
+  
+  // 🌟 حالات الموقع الجغرافي
+  const [lat, setLat] = useState<string>(cafeLatitude || "");
+  const [lng, setLng] = useState<string>(cafeLongitude || "");
+  const [isLocating, setIsLocating] = useState(false);
 
   // Helper لتحويل القيم الكبيرة إلى رمز ما لا نهاية
   const formatLimit = (val: number | string) => {
     const num = typeof val === 'string' ? parseInt(val, 10) : val;
     return num >= 9999 ? "♾️" : num;
+  };
+
+  // 🌟 دالة جلب الموقع الحالي تلقائياً
+  const handleGetLocation = () => {
+    setIsLocating(true);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLat(position.coords.latitude.toString());
+          setLng(position.coords.longitude.toString());
+          setIsLocating(false);
+        },
+        (error) => {
+          console.error("Error getting location", error);
+          alert(activeLang === 'ar' ? "فشل في تحديد الموقع. يرجى تفعيل الـ GPS." : "Failed to get location. Enable GPS.");
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true }
+      );
+    } else {
+      alert("Geolocation is not supported by this browser.");
+      setIsLocating(false);
+    }
   };
 
   const handleUpdateSettings = async (e: React.FormEvent) => {
@@ -37,15 +67,17 @@ export default function SettingsTab({
       newAdminPin,
       newCashierPin,
       Number(maxCashiers),
-      0
+      0,
+      lat ? Number(lat) : null,
+      lng ? Number(lng) : null
     );
     setIsChecking(false);
     if (success) {
-      alert(t.settingsSaved);
+      alert(t.settingsSaved || "تم الحفظ بنجاح");
       setNewAdminPin("");
       setNewCashierPin("");
     } else {
-      alert(t.settingsSaveError);
+      alert(t.settingsSaveError || "حدث خطأ أثناء الحفظ");
     }
   };
 
@@ -139,6 +171,50 @@ export default function SettingsTab({
                 dir="ltr"
               />
             </div>
+          </div>
+
+          {/* 🌟 قسم الإحداثيات الجغرافية (Geolocation) */}
+          <div className="pt-6 border-t border-border/50">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex-1 grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold mb-2">{activeLang === 'ar' ? 'خط العرض (Latitude)' : 'Latitude'}</label>
+                  <input
+                    type="text"
+                    value={lat}
+                    onChange={(e) => setLat(e.target.value)}
+                    className="w-full border border-border rounded-xl p-3 bg-muted/30 font-mono text-sm text-left"
+                    placeholder="e.g. 30.427755"
+                    dir="ltr"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold mb-2">{activeLang === 'ar' ? 'خط الطول (Longitude)' : 'Longitude'}</label>
+                  <input
+                    type="text"
+                    value={lng}
+                    onChange={(e) => setLng(e.target.value)}
+                    className="w-full border border-border rounded-xl p-3 bg-muted/30 font-mono text-sm text-left"
+                    placeholder="e.g. -9.598107"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={isLocating}
+                className="bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20 px-6 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors disabled:opacity-50 h-full sm:h-auto whitespace-nowrap"
+              >
+                {isLocating ? <Loader2 size={18} className="animate-spin" /> : <MapPin size={18} />}
+                {activeLang === 'ar' ? 'جلب موقعي الحالي' : 'Get My Location'}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground font-bold mt-3">
+              {activeLang === 'ar' 
+                ? 'ملاحظة: تُستخدم هذه الإحداثيات لمنع الزبائن من الطلب إذا كانوا خارج المقهى. يرجى التواجد داخل المقهى عند الضغط على "جلب موقعي".' 
+                : 'Note: Used to prevent out-of-range orders. Please be physically inside the cafe when getting your location.'}
+            </p>
           </div>
 
           <button

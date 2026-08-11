@@ -57,14 +57,13 @@ const getSafeUUID = () => {
   });
 };
 
-export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug: string, tableNumber: string }> }) {
-  const { cafeSlug, tableNumber } = use(params);
+export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug: string, tableId: string }> }) {
+  const { cafeSlug, tableId: urlTableId } = use(params);
   const { items, totalItems, totalPrice, clearCart } = useCart();
 
   const [activeLang, setActiveLang] = useState("en");
   const t = TRANSLATIONS[activeLang];
   
-  // 🌟 متغيرات الأقسام الديناميكية
   const [categories, setCategories] = useState<any[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState("all");
 
@@ -115,7 +114,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           return;
         }
 
-        const menuData = await getCachedCafeMenu(cafeSlug, tableNumber);
+        const menuData = await getCachedCafeMenu(cafeSlug, urlTableId);
 
         if (menuData.error === 'cafe_not_found') {
           setIsCafeNotFound(true);
@@ -135,7 +134,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           setTableId(menuData.table.id);
           setProducts(menuData.products);
 
-          // 🌟 جلب الأقسام الديناميكية الخاصة بهذا المقهى
           const { data: cats } = await supabase
             .from('menu_categories')
             .select('*')
@@ -164,7 +162,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     };
 
     fetchRealData();
-  }, [cafeSlug, tableNumber]);
+  }, [cafeSlug, urlTableId]);
 
   useEffect(() => {
     const sessionId = localStorage.getItem('cafe_lux_client_session');
@@ -172,7 +170,20 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
     const channel = supabase.channel(`client-orders-${sessionId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` },
-        () => { fetchUserOrders(sessionId); }).subscribe();
+        (payload) => {
+          const updatedOrder = payload.new;
+          
+          setActiveOrders(prevOrders => {
+            if (['completed', 'rejected', 'cancelled'].includes(updatedOrder.status)) {
+              const newOrders = prevOrders.filter(o => o.id !== updatedOrder.id);
+              if (newOrders.length === 0) setShowOrdersModal(false);
+              return newOrders;
+            }
+            
+            return prevOrders.map(o => o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o);
+          });
+        }
+      ).subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [isTableNotFound, isCafeNotFound, isSuspended]);
@@ -223,16 +234,27 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   const handleCancelOrder = async (orderId: string) => {
     if (!confirm(activeLang === 'ar' ? "هل أنت متأكد من الإلغاء؟" : "Are you sure?")) return;
+    
+    // 🌟 استخراج الجلسة قبل فتح كتلة try لكي تكون متاحة لكتلة catch أيضاً
+    const sessionId = localStorage.getItem('cafe_lux_client_session');
+    
+    if (!sessionId || !cafeData?.id) {
+      alert("Missing session or cafe data");
+      return;
+    }
+
     try {
-      const sessionId = localStorage.getItem('cafe_lux_client_session');
-      if (!sessionId || !cafeData?.id) throw new Error("Missing session");
+      // التحديث اللحظي للمسح لكي لا ينتظر العميل
+      setActiveOrders(prev => prev.filter(o => o.id !== orderId));
+      if (activeOrders.length <= 1) setShowOrdersModal(false);
 
       const res = await cancelClientOrder(orderId, cafeData.id, sessionId);
       if (!res.success) throw new Error(res.error);
-
-      setActiveOrders(prev => prev.filter(o => o.id !== orderId));
-      if (activeOrders.length <= 1) setShowOrdersModal(false);
-    } catch (error) { alert("خطأ في الإلغاء."); }
+    } catch (error) { 
+      alert("خطأ في الإلغاء.");
+      // استرجاع البيانات إذا فشل السيرفر
+      fetchUserOrders(sessionId, cafeData.id); 
+    }
   };
 
   if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center font-bold text-foreground">جاري التحميل...</div>;
@@ -285,7 +307,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   return (
     <div className="min-h-screen bg-background pb-32" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
 
-      {/* 🌟 نافذة الطلبات الحالية */}
       {showOrdersModal && (
         <div className="fixed inset-0 z-50 bg-background overflow-y-auto p-6 flex flex-col">
           <div className="flex justify-between items-center mb-8">
@@ -300,7 +321,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
               <p className="text-center text-muted-foreground mt-10 font-bold">{t.emptyOrders}</p>
             ) : (
               activeOrders.map(order => (
-                <div key={order.id} className="bg-white p-5 rounded-2xl border border-border shadow-sm flex flex-col gap-4">
+                <div key={order.id} className={`bg-white p-5 rounded-2xl border-2 shadow-sm flex flex-col gap-4 transition-colors ${order.status === 'ready' ? 'border-green-400 bg-green-50/50' : 'border-border'}`}>
                   <div className="flex justify-between items-start">
                     <div>
                       <span className="text-xs font-bold text-muted-foreground">{t.orderNum}: #{order.id.split('-')[0]}</span>
@@ -308,8 +329,8 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
                     </div>
                     <div className="flex flex-col items-end gap-1">
                       {order.status === 'pending' && <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Clock size={12} /> {t.reviewing}</span>}
-                      {order.status === 'accepted' && <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">{t.preparing}</span>}
-                      {order.status === 'ready' && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><CheckCircle size={12} /> {t.ready}</span>}
+                      {order.status === 'accepted' && <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 animate-pulse"><Coffee size={12} /> {t.preparing}</span>}
+                      {order.status === 'ready' && <span className="bg-green-500 text-white px-3 py-1.5 rounded-full text-xs font-black flex items-center gap-1 shadow-md animate-bounce"><CheckCircle size={14} /> {t.ready}</span>}
                     </div>
                   </div>
 
@@ -337,7 +358,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         </div>
       )}
 
-      {/* 🌟 الهيدر */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-border/50">
         <div className="flex flex-col">
           <h1 className="text-2xl font-black text-foreground tracking-tight uppercase">{displayTitle}</h1>
@@ -353,7 +373,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           {activeOrders.length > 0 && (
             <button onClick={() => setShowOrdersModal(true)} className="relative p-2 text-foreground bg-muted rounded-full hover:bg-gray-200 transition-colors">
               <Receipt size={20} />
-              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full animate-pulse">
                 {activeOrders.length}
               </span>
             </button>
@@ -361,7 +381,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         </div>
       </header>
 
-      {/* 🌟 الأقسام الديناميكية */}
       <div className="px-5 py-6 overflow-x-auto custom-scrollbar flex gap-3 bg-muted/20">
         <button 
           onClick={() => setActiveCategoryId('all')} 
@@ -389,7 +408,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
       <main className="px-6 mt-6 space-y-3">
         <div className="flex flex-col gap-3">
           {(() => {
-            // 🌟 تصفية المنتجات بناءً على الـ category_id
             const filteredProducts = activeCategoryId === 'all' 
               ? products 
               : products.filter(p => p.category_id === activeCategoryId);

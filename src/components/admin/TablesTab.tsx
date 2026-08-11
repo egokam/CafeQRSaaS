@@ -30,14 +30,18 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
 
     setIsGeneratingQr(true); setQrReady(false);
     const formattedTableNumber = `table_${tableNum}`;
-    const { success, error } = await adminCheckOrAddTable(cafeId, formattedTableNumber);
-    if (success) {
+    
+    // 🌟 نستقبل الآن `tableId` (الـ UUID المشفر) الراجع من قاعدة البيانات
+    const { success, error, tableId } = await adminCheckOrAddTable(cafeId, formattedTableNumber);
+    
+    if (success && tableId) {
       const baseUrl = window.location.origin;
-      setQrUrl(`${baseUrl}/${cafeSlug}/${formattedTableNumber}`);
+      // 🌟 تم تغيير الرابط ليحتوي على الـ UUID بدلاً من رقم الطاولة
+      setQrUrl(`${baseUrl}/${cafeSlug}/${tableId}`);
       setQrReady(true);
       fetchTables(cafeId);
     } else {
-      alert(error || t.qrError);
+      alert(error || t.qrError || "فشل في جلب المعرف الفريد للطاولة.");
     }
     setIsGeneratingQr(false);
   };
