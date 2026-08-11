@@ -83,12 +83,28 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   const displayTitle = cafeData?.name ? cafeData.name : (activeLang === 'ar' ? "مقهى النخبة" : activeLang === 'fr' ? "Café Élite" : "Elite Cafe");
 
+  // 🌟 نظام الاستعلام المباشر للزبون لضمان التحديث اللحظي للطلب
   const fetchUserOrders = async (sessionId: string, targetCafeId = cafeData?.id) => {
     if (!targetCafeId) return;
-    const res = await getClientActiveOrders(targetCafeId, sessionId);
-    if (res.success) setActiveOrders(res.orders);
-  };
+    
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, tables(table_number)')
+      .eq('cafe_id', targetCafeId)
+      .eq('session_id', sessionId)
+      .neq('status', 'completed')
+      .neq('status', 'rejected')
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false });
 
+    if (data) {
+      setActiveOrders(data);
+      // إغلاق النافذة تلقائياً إذا اختفت كل الطلبات
+      if (data.length === 0) {
+        setShowOrdersModal(false);
+      }
+    }
+  };
   useEffect(() => {
     const fetchRealData = async () => {
       try {
@@ -164,29 +180,20 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     fetchRealData();
   }, [cafeSlug, urlTableId]);
 
+  // 🌟 نظام الاستعلام الصامت الفائق (Silent Polling)
+  // تم الاستغناء عن WebSockets واستبدالها بنظام يعمل كل 5 ثوانٍ فقط عندما يكون لدى الزبون طلب نشط
   useEffect(() => {
     const sessionId = localStorage.getItem('cafe_lux_client_session');
-    if (!sessionId || isTableNotFound || isCafeNotFound || isSuspended) return;
+    
+    // يشتغل فقط إذا كان الزبون يمتلك طلبات قيد الانتظار في الشاشة
+    if (!sessionId || !cafeData?.id || activeOrders.length === 0) return;
 
-    const channel = supabase.channel(`client-orders-${sessionId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders', filter: `session_id=eq.${sessionId}` },
-        (payload) => {
-          const updatedOrder = payload.new;
-          
-          setActiveOrders(prevOrders => {
-            if (['completed', 'rejected', 'cancelled'].includes(updatedOrder.status)) {
-              const newOrders = prevOrders.filter(o => o.id !== updatedOrder.id);
-              if (newOrders.length === 0) setShowOrdersModal(false);
-              return newOrders;
-            }
-            
-            return prevOrders.map(o => o.id === updatedOrder.id ? { ...o, ...updatedOrder } : o);
-          });
-        }
-      ).subscribe();
+    const pollingInterval = setInterval(() => {
+      fetchUserOrders(sessionId, cafeData.id);
+    }, 5000); // تحديث صامت ومضمون كل 5 ثوانٍ
 
-    return () => { supabase.removeChannel(channel); };
-  }, [isTableNotFound, isCafeNotFound, isSuspended]);
+    return () => clearInterval(pollingInterval);
+  }, [activeOrders.length, cafeData?.id]);
 
   useEffect(() => {
     if (isSuspended || isCafeNotFound || isTableNotFound) return;
@@ -222,6 +229,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
       if (!res.success || !res.order) throw new Error(res.error);
 
+      // إضافة الطلب محلياً ستؤدي لزيادة activeOrders.length مما يشغل نظام الاستعلام الصامت (Polling) تلقائياً
       setActiveOrders(prev => [res.order, ...prev]);
       setShowOrdersModal(true);
       clearCart();
@@ -235,25 +243,25 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const handleCancelOrder = async (orderId: string) => {
     if (!confirm(activeLang === 'ar' ? "هل أنت متأكد من الإلغاء؟" : "Are you sure?")) return;
     
-    // 🌟 استخراج الجلسة قبل فتح كتلة try لكي تكون متاحة لكتلة catch أيضاً
     const sessionId = localStorage.getItem('cafe_lux_client_session');
-    
     if (!sessionId || !cafeData?.id) {
       alert("Missing session or cafe data");
       return;
     }
 
     try {
-      // التحديث اللحظي للمسح لكي لا ينتظر العميل
-      setActiveOrders(prev => prev.filter(o => o.id !== orderId));
-      if (activeOrders.length <= 1) setShowOrdersModal(false);
+      // إخفاء الطلب فوراً من الشاشة لعدم انتظار السيرفر (Optimistic UI) للإحساس بالسرعة
+      setActiveOrders(prev => {
+        const newOrders = prev.filter(o => o.id !== orderId);
+        if (newOrders.length === 0) setShowOrdersModal(false);
+        return newOrders;
+      });
 
       const res = await cancelClientOrder(orderId, cafeData.id, sessionId);
       if (!res.success) throw new Error(res.error);
     } catch (error) { 
       alert("خطأ في الإلغاء.");
-      // استرجاع البيانات إذا فشل السيرفر
-      fetchUserOrders(sessionId, cafeData.id); 
+      fetchUserOrders(sessionId, cafeData.id); // استرجاع البيانات إذا فشل السيرفر
     }
   };
 

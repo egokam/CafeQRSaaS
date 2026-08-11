@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import * as Icons from "lucide-react";
 import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag, Ban, Hourglass, Loader2, Zap, LayoutGrid } from "lucide-react";
@@ -17,142 +17,13 @@ import { checkCafeSubscription } from "../../../actions/saas";
 
 const TRANSLATIONS: Record<string, any> = {
   en: {
-    loading: "Loading...",
-    notFoundTitle: "404 - Cafe Not Found",
-    suspendedTitle: "Cashier System Suspended 🚫",
-    suspendedSub: "The cafe's subscription has expired. Please renew to resume operations.",
-    sessionFullTitle: "Session Full",
-    sessionFullSub: "This cafe has reached its maximum allowed cashier screens.",
-    pendingTitle: "Device Pending Approval ⏳",
-    pendingSub: "Your device has been registered. Please wait for the admin to approve it.",
-    blockedTitle: "Device Blocked ⛔",
-    blockedSub: "This device is no longer authorized to access the cashier system.",
-    retryBtn: "Retry 🔄",
-    cashierZone: "Cashier Zone",
-    enterPin: "Enter PIN to receive orders",
-    loginBtn: "Login",
-    tempBan: "Temporarily blocked. Please wait a minute.",
-    wrongPin: "Invalid PIN ❌",
-    updateError: "Error updating status.",
-    confirmDisable: "Confirm out of stock for",
-    disabledSuccess: "marked out of stock.",
-    manualPosFail: "Failed to create manual order.",
-    posTerminal: "Live POS Terminal",
-    mainTitle: "Cashier & Order Management 💳",
-    directOrderBtn: "Direct POS Order",
-    quickMenu: "Quick Menu",
-    all: "All",
-    directTicket: "Direct Order Ticket",
-    selectTargetTable: "Select Target Table:",
-    noTables: "No registered tables!",
-    tablePrefix: "Table",
-    clickToAdd: "Click on a product to add it to the ticket",
-    total: "Total:",
-    sending: "Sending...",
-    confirmSend: "Confirm & Send to Kitchen ⚡",
-    noOrdersTitle: "No active orders currently.",
-    noOrdersSub: "Scan QR or click [+ Direct POS Order] above to create a new order",
-    directPosBadge: "Direct (POS)",
-    printBtn: "Print",
-    acceptBtn: "Accept",
-    rejectBtn: "Reject",
-    orderReadyBtn: "Order Ready 🔔",
-    completeBtn: "Force Complete (Fallback)",
-    printTitle: "Kitchen Receipt",
-    orderNoLabel: "Order No:",
-    tableNoLabel: "Table No:"
+    loading: "Loading...", notFoundTitle: "404 - Cafe Not Found", suspendedTitle: "Cashier System Suspended 🚫", suspendedSub: "The cafe's subscription has expired. Please renew to resume operations.", sessionFullTitle: "Session Full", sessionFullSub: "This cafe has reached its maximum allowed cashier screens.", pendingTitle: "Device Pending Approval ⏳", pendingSub: "Your device has been registered. Please wait for the admin to approve it.", blockedTitle: "Device Blocked ⛔", blockedSub: "This device is no longer authorized to access the cashier system.", retryBtn: "Retry 🔄", cashierZone: "Cashier Zone", enterPin: "Enter PIN to receive orders", loginBtn: "Login", tempBan: "Temporarily blocked. Please wait a minute.", wrongPin: "Invalid PIN ❌", updateError: "Error updating status.", confirmDisable: "Confirm out of stock for", disabledSuccess: "marked out of stock.", manualPosFail: "Failed to create manual order.", posTerminal: "Live POS Terminal", mainTitle: "Cashier & Order Management 💳", directOrderBtn: "Direct POS Order", quickMenu: "Quick Menu", all: "All", directTicket: "Direct Order Ticket", selectTargetTable: "Select Target Table:", noTables: "No registered tables!", tablePrefix: "Table", clickToAdd: "Click on a product to add it to the ticket", total: "Total:", sending: "Sending...", confirmSend: "Confirm & Send to Kitchen ⚡", noOrdersTitle: "No active orders currently.", noOrdersSub: "Scan QR or click [+ Direct POS Order] above to create a new order", directPosBadge: "Direct (POS)", printBtn: "Print", acceptBtn: "Accept", rejectBtn: "Reject", orderReadyBtn: "Order Ready 🔔", completeBtn: "Force Complete (Fallback)", printTitle: "Kitchen Receipt", orderNoLabel: "Order No:", tableNoLabel: "Table No:"
   },
   fr: {
-    loading: "Chargement...",
-    notFoundTitle: "404 - Café Introuvable",
-    suspendedTitle: "Système de Caisse Suspendu 🚫",
-    suspendedSub: "L'abonnement du café a expiré. Veuillez renouveler pour reprendre les opérations.",
-    sessionFullTitle: "Session Pleine",
-    sessionFullSub: "Ce café a atteint son nombre maximum d'écrans de caisse.",
-    pendingTitle: "En Attente d'Approbation ⏳",
-    pendingSub: "Votre appareil est enregistré. Veuillez attendre l'approbation de l'administrateur.",
-    blockedTitle: "Appareil Bloqué ⛔",
-    blockedSub: "Cet appareil n'est plus autorisé à accéder au système de caisse.",
-    retryBtn: "Réessayer 🔄",
-    cashierZone: "Espace Caisse",
-    enterPin: "Entrez le code PIN pour recevoir les commandes",
-    loginBtn: "Connexion",
-    tempBan: "Bloqué temporairement. Veuillez patienter une minute.",
-    wrongPin: "Code PIN invalide ❌",
-    updateError: "Erreur de mise à jour.",
-    confirmDisable: "Confirmer la rupture de stock pour",
-    disabledSuccess: "marqué en rupture de stock.",
-    manualPosFail: "Échec de la création de la commande manuelle.",
-    posTerminal: "Terminal de Caisse",
-    mainTitle: "Caisse & Gestion des Commandes 💳",
-    directOrderBtn: "Nouvelle Commande (POS)",
-    quickMenu: "Menu Rapide",
-    all: "Tout",
-    directTicket: "Ticket de Commande",
-    selectTargetTable: "Sélectionner la table cible :",
-    noTables: "Aucune table enregistrée !",
-    tablePrefix: "Table",
-    clickToAdd: "Cliquez sur un produit pour l'ajouter au ticket",
-    total: "Total :",
-    sending: "Envoi...",
-    confirmSend: "Confirmer & Envoyer en Cuisine ⚡",
-    noOrdersTitle: "Aucune commande active pour le moment.",
-    noOrdersSub: "Scannez le QR ou cliquez sur [+ Nouvelle Commande] pour créer une commande",
-    directPosBadge: "Direct (Caisse)",
-    printBtn: "Imprimer",
-    acceptBtn: "Accepter",
-    rejectBtn: "Refuser",
-    orderReadyBtn: "Commande Prête 🔔",
-    completeBtn: "Clôturer (Manuel)",
-    printTitle: "Ticket Cuisine",
-    orderNoLabel: "N° Cmd :",
-    tableNoLabel: "N° Table :"
+    loading: "Chargement...", notFoundTitle: "404 - Café Introuvable", suspendedTitle: "Système de Caisse Suspendu 🚫", suspendedSub: "L'abonnement du café a expiré. Veuillez renouveler pour reprendre les opérations.", sessionFullTitle: "Session Pleine", sessionFullSub: "Ce café a atteint son nombre maximum d'écrans de caisse.", pendingTitle: "En Attente d'Approbation ⏳", pendingSub: "Votre appareil est enregistré. Veuillez attendre l'approbation de l'administrateur.", blockedTitle: "Appareil Bloqué ⛔", blockedSub: "Cet appareil n'est plus autorisé à accéder au système de caisse.", retryBtn: "Réessayer 🔄", cashierZone: "Espace Caisse", enterPin: "Entrez le code PIN pour recevoir les commandes", loginBtn: "Connexion", tempBan: "Bloqué temporairement. Veuillez patienter une minute.", wrongPin: "Code PIN invalide ❌", updateError: "Erreur de mise à jour.", confirmDisable: "Confirmer la rupture de stock pour", disabledSuccess: "marqué en rupture de stock.", manualPosFail: "Échec de la création de la commande manuelle.", posTerminal: "Terminal de Caisse", mainTitle: "Caisse & Gestion des Commandes 💳", directOrderBtn: "Nouvelle Commande (POS)", quickMenu: "Menu Rapide", all: "Tout", directTicket: "Ticket de Commande", selectTargetTable: "Sélectionner la table cible :", noTables: "Aucune table enregistrée !", tablePrefix: "Table", clickToAdd: "Cliquez sur un produit pour l'ajouter au ticket", total: "Total :", sending: "Envoi...", confirmSend: "Confirmer & Envoyer en Cuisine ⚡", noOrdersTitle: "Aucune commande active pour le moment.", noOrdersSub: "Scannez le QR ou cliquez sur [+ Nouvelle Commande] pour créer une commande", directPosBadge: "Direct (Caisse)", printBtn: "Imprimer", acceptBtn: "Accepter", rejectBtn: "Refuser", orderReadyBtn: "Commande Prête 🔔", completeBtn: "Clôturer (Manuel)", printTitle: "Ticket Cuisine", orderNoLabel: "N° Cmd :", tableNoLabel: "N° Table :"
   },
   ar: {
-    loading: "جاري التحميل...",
-    notFoundTitle: "404 - المقهى غير موجود",
-    suspendedTitle: "نظام الكاشير متوقف مؤقتاً 🚫",
-    suspendedSub: "انتهت صلاحية اشتراك المقهى. يرجى التجديد لاستئناف العمل.",
-    sessionFullTitle: "الجلسة ممتلئة",
-    sessionFullSub: "وصل هذا المقهى للحد الأقصى من شاشات الكاشير المسموحة.",
-    pendingTitle: "الجهاز قيد المراجعة ⏳",
-    pendingSub: "تم إرسال طلب تسجيل هذا الجهاز إلى الإدارة. يرجى انتظار الموافقة.",
-    blockedTitle: "تم حظر هذا الجهاز ⛔",
-    blockedSub: "لا يمكنك استخدام نظام الكاشير من هذا الجهاز بعد الآن.",
-    retryBtn: "إعادة المحاولة 🔄",
-    cashierZone: "منطقة الكاشير",
-    enterPin: "أدخل الرمز السري لاستقبال الطلبات",
-    loginBtn: "دخول",
-    tempBan: "تم حظرك مؤقتاً. يرجى الانتظار دقيقة.",
-    wrongPin: "الرمز غير صحيح ❌",
-    updateError: "خطأ أثناء التحديث.",
-    confirmDisable: "تأكيد إيقاف",
-    disabledSuccess: "تم إيقاف",
-    manualPosFail: "فشل إنشاء الطلب اليدوي.",
-    posTerminal: "Live POS Terminal",
-    mainTitle: "شاشة الكاشير وإدارة الطلبات 💳",
-    directOrderBtn: "تسجيل طلب مباشر (POS)",
-    quickMenu: "المنيو السريع",
-    all: "الجميع",
-    directTicket: "تذكرة الطلب المباشر",
-    selectTargetTable: "اختر الطاولة المستهدفة:",
-    noTables: "لا توجد طاولات مسجلة!",
-    tablePrefix: "طاولة",
-    clickToAdd: "اضغط على منتج لإضافته للتذكرة",
-    total: "الإجمالي:",
-    sending: "جاري الإرسال...",
-    confirmSend: "تأكيد وإرسال للمطبخ ⚡",
-    noOrdersTitle: "لا توجد طلبات نشطة حالياً.",
-    noOrdersSub: "امسح الـ QR أو اضغط على [+ تسجيل طلب مباشر] فوق لإنشاء طلب جديد",
-    directPosBadge: "مباشر (POS)",
-    printBtn: "طباعة",
-    acceptBtn: "قبول",
-    rejectBtn: "رفض",
-    orderReadyBtn: "الطلب جاهز 🔔",
-    completeBtn: "إنهاء يدوي (احتياطي)",
-    printTitle: "تذكرة المطبخ",
-    orderNoLabel: "رقم الطلب:",
-    tableNoLabel: "رقم الطاولة:"
+    loading: "جاري التحميل...", notFoundTitle: "404 - المقهى غير موجود", suspendedTitle: "نظام الكاشير متوقف مؤقتاً 🚫", suspendedSub: "انتهت صلاحية اشتراك المقهى. يرجى التجديد لاستئناف العمل.", sessionFullTitle: "الجلسة ممتلئة", sessionFullSub: "وصل هذا المقهى للحد الأقصى من شاشات الكاشير المسموحة.", pendingTitle: "الجهاز قيد المراجعة ⏳", pendingSub: "تم إرسال طلب تسجيل هذا الجهاز إلى الإدارة. يرجى انتظار الموافقة.", blockedTitle: "تم حظر هذا الجهاز ⛔", blockedSub: "لا يمكنك استخدام نظام الكاشير من هذا الجهاز بعد الآن.", retryBtn: "إعادة المحاولة 🔄", cashierZone: "منطقة الكاشير", enterPin: "أدخل الرمز السري لاستقبال الطلبات", loginBtn: "دخول", tempBan: "تم حظرك مؤقتاً. يرجى الانتظار دقيقة.", wrongPin: "الرمز غير صحيح ❌", updateError: "خطأ أثناء التحديث.", confirmDisable: "تأكيد إيقاف", disabledSuccess: "تم إيقاف", manualPosFail: "فشل إنشاء الطلب اليدوي.", posTerminal: "Live POS Terminal", mainTitle: "شاشة الكاشير وإدارة الطلبات 💳", directOrderBtn: "تسجيل طلب مباشر (POS)", quickMenu: "المنيو السريع", all: "الجميع", directTicket: "تذكرة الطلب المباشر", selectTargetTable: "اختر الطاولة المستهدفة:", noTables: "لا توجد طاولات مسجلة!", tablePrefix: "طاولة", clickToAdd: "اضغط على منتج لإضافته للتذكرة", total: "الإجمالي:", sending: "جاري الإرسال...", confirmSend: "تأكيد وإرسال للمطبخ ⚡", noOrdersTitle: "لا توجد طلبات نشطة حالياً.", noOrdersSub: "امسح الـ QR أو اضغط على [+ تسجيل طلب مباشر] فوق لإنشاء طلب جديد", directPosBadge: "مباشر (POS)", printBtn: "طباعة", acceptBtn: "قبول", rejectBtn: "رفض", orderReadyBtn: "الطلب جاهز 🔔", completeBtn: "إنهاء يدوي (احتياطي)", printTitle: "تذكرة المطبخ", orderNoLabel: "رقم الطلب:", tableNoLabel: "رقم الطاولة:"
   }
 };
 
@@ -181,6 +52,8 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [isSuspended, setIsSuspended] = useState(false);
 
   const [orders, setOrders] = useState<any[]>([]);
+  const knownOrderIds = useRef<Set<string>>(new Set()); 
+
   const [cafeId, setCafeId] = useState<string | null>(null);
   const [cafeDataObj, setCafeDataObj] = useState<any>(null);
 
@@ -203,9 +76,33 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     return item.name_en || item.name_ar;
   };
 
+  // 🌟 نظام الاستعلام المباشر من قاعدة البيانات لقتل كاش Next.js نهائياً
   const fetchOrders = async (cId: string) => {
-    const res = await getCashierActiveOrders(cId);
-    if (res.success) setOrders(res.orders);
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*, tables(table_number)')
+      .eq('cafe_id', cId)
+      .neq('status', 'completed')
+      .neq('status', 'rejected')
+      .neq('status', 'cancelled')
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      let hasNewOrder = false;
+      
+      setOrders(data);
+
+      data.forEach((o: any) => {
+        if (!knownOrderIds.current.has(o.id) && o.status === 'pending') {
+          hasNewOrder = true;
+        }
+        knownOrderIds.current.add(o.id);
+      });
+
+      if (hasNewOrder) {
+        new Audio('/bell.mp3').play().catch(() => { });
+      }
+    }
   };
 
   const fetchCategories = async (cId: string) => {
@@ -257,6 +154,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
               setProducts(workspace.products);
               setTables(workspace.tables);
               setOrders(workspace.orders);
+              
+              workspace.orders.forEach((o: any) => knownOrderIds.current.add(o.id));
+
               if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
               setIsAuthenticated(true);
               
@@ -276,18 +176,18 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   }, [cafeSlug]);
 
   useEffect(() => {
-    if (!isAuthenticated || !cafeId || !deviceId) return;
+    if (!isAuthenticated || !cafeId) return;
 
     fetchOrders(cafeId);
+    const ordersInterval = setInterval(() => {
+      fetchOrders(cafeId);
+    }, 5000);
 
-    const ordersChannel = supabase.channel(`live-orders-${cafeId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `cafe_id=eq.${cafeId}` }, (payload: any) => {
-        fetchOrders(cafeId);
-        if (payload.eventType === 'INSERT' || (payload.new && payload.new.status === 'ready')) {
-          new Audio('/bell.mp3').play().catch(() => { });
-        }
-      })
-      .subscribe();
+    return () => clearInterval(ordersInterval);
+  }, [isAuthenticated, cafeId]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !cafeId || !deviceId) return;
 
     const deviceChannel = supabase.channel(`device_${deviceId}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pos_devices', filter: `device_id=eq.${deviceId}` }, (payload: any) => {
@@ -298,27 +198,21 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           setIsAuthenticated(false);
           setDeviceStatus('pending');
         }
-      })
-      .subscribe();
+      }).subscribe();
 
-    const slotChannel = supabase.channel(`cashier_slots_${cafeId}`, {
-      config: { presence: { key: deviceId } }
-    });
+    const slotChannel = supabase.channel(`cashier_slots_${cafeId}`, { config: { presence: { key: deviceId } } });
 
     slotChannel.on('presence', { event: 'sync' }, () => {
       const presenceState = slotChannel.presenceState();
       const maxAllowed = Number(cafeDataObj?.max_cashiers) || 1;
-
       const activeSessions: { key: string, onlineAt: number }[] = [];
       Object.entries(presenceState).forEach(([key, presences]: [string, any]) => {
         if (key.startsWith('dev_') && presences.length > 0 && presences[0].online_at) {
           activeSessions.push({ key, onlineAt: new Date(presences[0].online_at).getTime() });
         }
       });
-
       activeSessions.sort((a, b) => a.onlineAt - b.onlineAt);
       const allowedKeys = activeSessions.slice(0, maxAllowed).map(s => s.key);
-
       if (!allowedKeys.includes(deviceId)) {
         setIsSessionFull(true);
         setIsAuthenticated(false);
@@ -326,13 +220,10 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     });
 
     slotChannel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await slotChannel.track({ online_at: new Date().toISOString() });
-      }
+      if (status === 'SUBSCRIBED') await slotChannel.track({ online_at: new Date().toISOString() });
     });
 
     return () => {
-      supabase.removeChannel(ordersChannel);
       supabase.removeChannel(deviceChannel);
       supabase.removeChannel(slotChannel);
     };
@@ -350,13 +241,12 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
     if (res.success) {
       const workspace = await getCashierWorkspace(cafeId);
-      if (!workspace.success) {
-        alert(t.updateError);
-        return;
-      }
+      if (!workspace.success) { alert(t.updateError); return; }
+      
       setProducts(workspace.products);
       setTables(workspace.tables);
       setOrders(workspace.orders);
+      workspace.orders.forEach((o: any) => knownOrderIds.current.add(o.id));
       if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
 
       await fetchCategories(cafeId); 
@@ -366,7 +256,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       setDeviceStatus('approved');
       setAttempts(0);
       setPinInput("");
-      new Audio('/bell.mp3').play().catch(() => { });
     } else if (res.status === 'pending') {
       setDeviceStatus('pending');
     } else if (res.status === 'blocked') {
@@ -389,7 +278,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   };
 
   const updateOrderStatus = async (order: any, newStatus: string) => {
-    // 🌟 التحديث اللحظي (Optimistic UI) للإحساس بالسرعة
     if (newStatus === 'completed' || newStatus === 'rejected') {
       setOrders(prev => prev.filter(o => o.id !== order.id));
     } else {
@@ -399,7 +287,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     const { success } = await cashierUpdateOrderStatus(order.id, newStatus);
     
     if (!success) {
-      // إرجاع الطلبات من السيرفر في حال الفشل
       if (cafeId) fetchOrders(cafeId);
       alert(t.updateError);
       return;
@@ -453,7 +340,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
       if (!res.success || !res.order) throw new Error(res.error);
 
-      new Audio('/bell.mp3').play().catch(() => { });
       handlePrintReceipt(res.order);
 
       setPosCart({});
@@ -673,7 +559,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           </div>
         )}
 
-        {/* 🌟 تمت إضافة items-start هنا لمنع التمدد العمودي للبطاقات */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 flex-1 items-start">
           {orders.length === 0 ? (
             <div className="col-span-full text-center py-20 bg-white rounded-[2.5rem] border border-dashed p-10 mt-auto mb-auto">
