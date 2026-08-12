@@ -1,17 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Edit, Trash2, AlertCircle, Settings2, Loader2, Edit2 } from "lucide-react";
-import * as Icons from "lucide-react"; // استيراد جميع الأيقونات
+import { X, Edit, Trash2, AlertCircle, Settings2, Loader2 } from "lucide-react";
+import * as Icons from "lucide-react"; 
 import { supabase } from "../../lib/supabase";
 import { adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../actions/auth";
-import { getCategories, addCategory, updateCategory, deleteCategory } from "../../actions/menu";
+import { getCategories, addCategory, deleteCategory } from "../../actions/menu";
 
-// مكتبة الأيقونات المتاحة للأقسام
-const AVAILABLE_ICONS = [
-  "Coffee", "CakeSlice", "CupSoda", "Croissant", "Pizza", "Sandwich", 
-  "Soup", "Utensils", "UtensilsCrossed", "IceCream", "Beer", "Wine", 
-  "GlassWater", "Apple", "Carrot", "Beef", "Fish", "ChefHat", "Flame", "Leaf"
+// القائمة الثابتة للأقسام المستخرجة من الصورة
+const DEFAULT_CATEGORIES = [
+  { id: 'cat_patisserie', name_en: 'Patisserie', name_fr: 'Pâtisserie', name_ar: 'حلويات ومعجنات', icon: 'Croissant' },
+  { id: 'cat_hot_drinks', name_en: 'Hot Drinks', name_fr: 'Boissons Chaudes', name_ar: 'مشروبات ساخنة', icon: 'Coffee' },
+  { id: 'cat_tea', name_en: 'Tea', name_fr: 'Thé', name_ar: 'شاي', icon: 'CupSoda' },
+  { id: 'cat_cold_drinks', name_en: 'Cold Drinks', name_fr: 'Boissons Froides', name_ar: 'مشروبات باردة', icon: 'CupSoda' },
+  { id: 'cat_soft_drinks', name_en: 'Soft Drinks', name_fr: 'Boissons Gazeuses', name_ar: 'مشروبات غازية', icon: 'GlassWater' },
+  { id: 'cat_juices', name_en: 'Juices', name_fr: 'Jus', name_ar: 'عصائر', icon: 'GlassWater' },
+  { id: 'cat_milkshakes', name_en: 'Milkshakes', name_fr: 'Milkshakes', name_ar: 'ميلك شيك', icon: 'CupSoda' },
+  { id: 'cat_smoothies', name_en: 'Smoothies', name_fr: 'Smoothies', name_ar: 'سموثي', icon: 'GlassWater' },
+  { id: 'cat_breakfasts', name_en: 'Breakfasts', name_fr: 'Petits Déjeuners', name_ar: 'فطور', icon: 'Coffee' },
+  { id: 'cat_sandwiches', name_en: 'Sandwiches', name_fr: 'Sandwiches', name_ar: 'ساندويتشات', icon: 'Sandwich' },
+  { id: 'cat_paninis', name_en: 'Paninis', name_fr: 'Paninis', name_ar: 'بانيني', icon: 'Sandwich' },
+  { id: 'cat_tacos', name_en: 'Tacos', name_fr: 'Tacos', name_ar: 'طاكوس', icon: 'Sandwich' },
+  { id: 'cat_burgers', name_en: 'Burgers', name_fr: 'Burgers', name_ar: 'برجر', icon: 'Sandwich' },
+  { id: 'cat_pizzas', name_en: 'Pizzas', name_fr: 'Pizzas', name_ar: 'بيتزا', icon: 'Pizza' },
+  { id: 'cat_fried_chicken', name_en: 'Fried Chicken', name_fr: 'Poulet Frit', name_ar: 'دجاج مقلي', icon: 'Utensils' },
+  { id: 'cat_salads', name_en: 'Salads', name_fr: 'Salades', name_ar: 'سلطات', icon: 'Leaf' },
+  { id: 'cat_plats', name_en: 'Plates', name_fr: 'Plats', name_ar: 'أطباق', icon: 'Utensils' },
+  { id: 'cat_desserts', name_en: 'Desserts', name_fr: 'Desserts', name_ar: 'تحلية', icon: 'CakeSlice' }
 ];
 
 const compressImageBeforeUpload = (file: File): Promise<File> => {
@@ -61,8 +76,7 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoadingCats, setIsLoadingCats] = useState(true);
   const [showCatModal, setShowCatModal] = useState(false);
-  const [catForm, setCatForm] = useState({ id: "", name_ar: "", name_en: "", name_fr: "", icon: "Coffee" });
-  const [isSubmittingCat, setIsSubmittingCat] = useState(false);
+  const [isTogglingCat, setIsTogglingCat] = useState<string | null>(null);
 
   const currentCount = products.length;
   const isDiamond = maxMenu >= 9999;
@@ -115,7 +129,6 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
         }
       }
 
-      // إضافة category: "none" كإجراء احتياطي لتفادي قيد NOT NULL في حال لم يتم تنفيذ أمر SQL
       const productData: any = { 
         name_ar: name, 
         name_en: nameEn, 
@@ -168,24 +181,21 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSaveCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmittingCat(true);
-    if (catForm.id) {
-      await updateCategory(catForm.id, catForm.name_ar, catForm.name_en, catForm.name_fr, catForm.icon);
-    } else {
-      await addCategory(cafeId, catForm.name_ar, catForm.name_en, catForm.name_fr, catForm.icon);
+  const handleToggleCategory = async (defCat: any, dbId: string | undefined) => {
+    setIsTogglingCat(defCat.id);
+    try {
+      if (dbId) {
+        await deleteCategory(dbId);
+      } else {
+        await addCategory(cafeId, defCat.name_ar, defCat.name_en, defCat.name_fr, defCat.icon);
+      }
+      await fetchCategoriesData();
+      fetchProducts(cafeId);
+    } catch (error) {
+      console.error("Error toggling category:", error);
+    } finally {
+      setIsTogglingCat(null);
     }
-    await fetchCategoriesData();
-    setCatForm({ id: "", name_ar: "", name_en: "", name_fr: "", icon: "Coffee" });
-    setIsSubmittingCat(false);
-  };
-
-  const handleDeleteCategory = async (id: string) => {
-    if (!confirm(activeLang === 'ar' ? "تأكيد حذف القسم؟" : "Delete category?")) return;
-    await deleteCategory(id);
-    fetchCategoriesData();
-    fetchProducts(cafeId);
   };
 
   const getCategoryName = (catId: string) => {
@@ -288,93 +298,52 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
         </div>
       </div>
 
-      {/* نافذة الأقسام المحسنة بالكامل */}
       {showCatModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[2rem] w-full max-w-4xl shadow-2xl relative overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-[600px]">
+          <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl relative overflow-hidden flex flex-col h-[90vh] md:h-[600px]">
             
-            <button onClick={() => setShowCatModal(false)} className={`absolute top-4 ${activeLang === 'ar' ? 'left-4' : 'right-4'} z-10 bg-white shadow-md text-zinc-500 hover:text-zinc-900 p-2 rounded-full transition-colors`}>
-              <X size={20} />
-            </button>
-
-            {/* الجزء الأيمن/الأيسر: نموذج الإضافة */}
-            <div className="w-full md:w-1/2 p-6 sm:p-8 bg-zinc-50 flex flex-col h-full overflow-y-auto custom-scrollbar border-b md:border-b-0 md:border-x border-zinc-200">
-              <h3 className="text-2xl font-black mb-6 text-zinc-900 flex items-center gap-2">
-                <Settings2 className="text-primary" /> {activeLang === 'ar' ? 'إعدادات الأقسام' : 'Category Settings'}
+            <div className="p-6 border-b border-zinc-200 flex justify-between items-center bg-zinc-50">
+              <h3 className="text-xl font-black text-zinc-900 flex items-center gap-2">
+                <Settings2 className="text-primary" /> {activeLang === 'ar' ? 'إدارة الأقسام' : 'Manage Categories'}
               </h3>
-              
-              <form onSubmit={handleSaveCategory} className="space-y-5 flex-1">
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-zinc-600 block">{activeLang === 'ar' ? 'أسماء القسم باللغات' : 'Category Names'}</label>
-                  <input required placeholder="العربية (AR)" value={catForm.name_ar} onChange={e => setCatForm({...catForm, name_ar: e.target.value})} className="w-full border border-zinc-200 p-3 rounded-xl text-sm font-bold bg-white focus:border-primary outline-none transition-colors" />
-                  <input required placeholder="English (EN)" value={catForm.name_en} onChange={e => setCatForm({...catForm, name_en: e.target.value})} className="w-full border border-zinc-200 p-3 rounded-xl text-sm font-bold bg-white focus:border-primary outline-none transition-colors" />
-                  <input required placeholder="Français (FR)" value={catForm.name_fr} onChange={e => setCatForm({...catForm, name_fr: e.target.value})} className="w-full border border-zinc-200 p-3 rounded-xl text-sm font-bold bg-white focus:border-primary outline-none transition-colors" />
-                </div>
-
-                <div className="space-y-3">
-                  <label className="text-sm font-bold text-zinc-600 block">{activeLang === 'ar' ? 'اختر أيقونة' : 'Choose an Icon'}</label>
-                  <div className="grid grid-cols-5 gap-2 bg-white p-3 rounded-xl border border-zinc-200 h-[200px] overflow-y-auto custom-scrollbar">
-                    {AVAILABLE_ICONS.map(iconName => (
-                      <button 
-                        key={iconName} 
-                        type="button"
-                        onClick={() => setCatForm({...catForm, icon: iconName})}
-                        className={`aspect-square rounded-lg flex items-center justify-center transition-all ${catForm.icon === iconName ? 'bg-primary text-white scale-110 shadow-md' : 'bg-zinc-50 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'}`}
-                        title={iconName}
-                      >
-                        {renderIcon(iconName)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-auto">
-                  <button disabled={isSubmittingCat} type="submit" className="w-full bg-zinc-900 text-white font-bold py-4 rounded-xl flex justify-center items-center gap-2 hover:bg-zinc-800 transition-colors shadow-lg active:scale-[0.98]">
-                    {isSubmittingCat ? <Loader2 size={20} className="animate-spin" /> : catForm.id ? (activeLang === 'ar' ? "حفظ التعديلات" : "Save Changes") : (activeLang === 'ar' ? "إضافة القسم" : "Add Category")}
-                  </button>
-                  {catForm.id && (
-                    <button type="button" onClick={() => setCatForm({ id: "", name_ar: "", name_en: "", name_fr: "", icon: "Coffee" })} className="w-full mt-2 bg-zinc-200 text-zinc-700 font-bold py-3 rounded-xl hover:bg-zinc-300 transition-colors">
-                      {activeLang === 'ar' ? 'إلغاء التعديل' : 'Cancel Edit'}
-                    </button>
-                  )}
-                </div>
-              </form>
+              <button onClick={() => setShowCatModal(false)} className="bg-white shadow-sm border border-zinc-200 text-zinc-500 hover:text-zinc-900 p-2 rounded-full transition-colors">
+                <X size={20} />
+              </button>
             </div>
 
-            {/* الجزء الأيسر/الأيمن: قائمة الأقسام */}
-            <div className="w-full md:w-1/2 p-6 sm:p-8 bg-white flex flex-col h-full overflow-hidden">
-              <h4 className="text-lg font-bold mb-4 text-zinc-900 border-b pb-4">
-                {activeLang === 'ar' ? 'الأقسام المسجلة' : 'Registered Categories'}
-              </h4>
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
-                {isLoadingCats ? (
-                  <div className="flex justify-center p-6"><Loader2 size={28} className="animate-spin text-zinc-400" /></div>
-                ) : categories.length === 0 ? (
-                  <p className="text-center text-zinc-400 text-sm font-bold p-6 border border-dashed rounded-xl bg-zinc-50">
-                    {activeLang === 'ar' ? 'لا توجد أقسام مسجلة.' : 'No categories found.'}
-                  </p>
-                ) : (
-                  categories.map(cat => (
-                    <div key={cat.id} className="flex justify-between items-center p-4 border border-zinc-200 rounded-2xl hover:border-primary/50 transition-colors group bg-white shadow-sm">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          {renderIcon(cat.icon)}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-black text-zinc-900">{cat.name_ar}</span>
-                          <span className="text-xs font-bold text-zinc-400">{cat.name_en} • {cat.name_fr}</span>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => setCatForm(cat)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg"><Edit2 size={16}/></button>
-                        <button onClick={() => handleDeleteCategory(cat.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg"><Trash2 size={16}/></button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            <div className="flex-1 overflow-y-auto p-6 bg-white custom-scrollbar">
+              {isLoadingCats ? (
+                <div className="flex justify-center items-center h-full"><Loader2 size={32} className="animate-spin text-zinc-400" /></div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {DEFAULT_CATEGORIES.map(defCat => {
+                    const dbCategory = categories.find(c => c.name_en === defCat.name_en);
+                    const isActive = !!dbCategory;
+                    const isProcessing = isTogglingCat === defCat.id;
 
+                    return (
+                      <div key={defCat.id} className={`flex items-center justify-between p-4 border rounded-2xl transition-colors ${isActive ? 'border-primary/50 bg-primary/5' : 'border-zinc-200 bg-white hover:border-zinc-300'}`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${isActive ? 'bg-primary text-white shadow-md' : 'bg-zinc-100 text-zinc-400'}`}>
+                            {renderIcon(defCat.icon)}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className={`font-black text-sm ${isActive ? 'text-zinc-900' : 'text-zinc-600'}`}>{activeLang === 'ar' ? defCat.name_ar : activeLang === 'fr' ? defCat.name_fr : defCat.name_en}</span>
+                            <span className="text-[10px] font-bold text-zinc-400">{defCat.name_en}</span>
+                          </div>
+                        </div>
+                        
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" checked={isActive} onChange={() => handleToggleCategory(defCat, dbCategory?.id)} disabled={isProcessing} />
+                          <div className="w-11 h-6 bg-zinc-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                          {isProcessing && <Loader2 size={16} className="absolute -left-6 animate-spin text-primary" />}
+                        </label>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
