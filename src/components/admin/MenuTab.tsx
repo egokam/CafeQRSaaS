@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Edit, Trash2, AlertCircle, Settings2, Loader2 } from "lucide-react";
+import { X, Edit, Trash2, AlertCircle, Settings2, Loader2, Image as ImageIcon, Link as LinkIcon } from "lucide-react";
 import * as Icons from "lucide-react"; 
 import { supabase } from "../../lib/supabase";
 import { adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../actions/auth";
 import { getCategories, addCategory, deleteCategory } from "../../actions/menu";
 
-// القائمة الثابتة للأقسام المستخرجة من الصورة
+// القائمة الثابتة للأقسام
 const DEFAULT_CATEGORIES = [
   { id: 'cat_patisserie', name_en: 'Patisserie', name_fr: 'Pâtisserie', name_ar: 'حلويات ومعجنات', icon: 'Croissant' },
   { id: 'cat_hot_drinks', name_en: 'Hot Drinks', name_fr: 'Boissons Chaudes', name_ar: 'مشروبات ساخنة', icon: 'Coffee' },
@@ -70,7 +70,14 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  
+  // 🌟 حالات الصور الجديدة
+  const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrlInput, setImageUrlInput] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isValidImage, setIsValidImage] = useState(false);
+
   const [isUploading, setIsUploading] = useState(false);
 
   const [categories, setCategories] = useState<any[]>([]);
@@ -95,13 +102,43 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   };
 
   const resetForm = () => {
-    setEditingId(null); setName(""); setNameEn(""); setNameFr(""); setDescription(""); setPrice(""); setCategoryId(""); setImageFile(null);
+    setEditingId(null); setName(""); setNameEn(""); setNameFr(""); setDescription(""); setPrice(""); setCategoryId(""); 
+    setImageFile(null); setImageUrlInput(""); setPreviewUrl(null); setIsValidImage(false); setImageMode('upload');
+  };
+
+  // 🌟 التعامل مع تغيير نوع الصورة (رفع من الجهاز)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setIsValidImage(true);
+    } else {
+      setImageFile(null);
+      setPreviewUrl(null);
+      setIsValidImage(false);
+    }
+  };
+
+  // 🌟 التعامل مع تغيير نوع الصورة (رابط)
+  const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setImageUrlInput(url);
+    setPreviewUrl(url);
+    setIsValidImage(false); // سيتم تغييره لـ true إذا نجح وسم <img> في تحميله
   };
 
   const handleAddOrUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cafeId || !name || !price || !categoryId || (!imageFile && !editingId)) {
+    
+    // التحقق الأساسي
+    if (!cafeId || !name || !price || !categoryId) {
       return alert(t.fillFields || "يرجى تعبئة الحقول الأساسية واختيار القسم.");
+    }
+
+    // التحقق من صحة الصورة (يجب أن يكون هناك صورة صالحة للجديد، أو منتج معدل)
+    if (!editingId && !isValidImage) {
+      return alert(activeLang === 'ar' ? "يرجى إضافة صورة صالحة للمنتج أولاً." : "Please add a valid product image first.");
     }
     
     if (!editingId && isLimitReached) {
@@ -112,7 +149,9 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
     setIsUploading(true);
     try {
       let finalImageUrl = undefined;
-      if (imageFile) {
+
+      // أ) إذا كان الوضع "رفع صورة" وهناك ملف
+      if (imageMode === 'upload' && imageFile) {
         const optimizedFile = await compressImageBeforeUpload(imageFile);
         const fileName = `${Date.now()}-${Math.random()}.webp`;
         const { error: uploadError } = await supabase.storage.from('products').upload(fileName, optimizedFile);
@@ -120,9 +159,23 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
         const { data: publicUrlData } = supabase.storage.from('products').getPublicUrl(fileName);
         finalImageUrl = publicUrlData.publicUrl;
 
+        // مسح الصورة القديمة إذا كان هناك تعديل وكانت مرفوعة مسبقاً
         if (editingId) {
           const oldProduct = products.find((p: any) => p.id === editingId);
-          if (oldProduct && oldProduct.image_url) {
+          if (oldProduct && oldProduct.image_url && oldProduct.image_url.includes('supabase.co')) {
+            const oldFileName = oldProduct.image_url.split('/').pop();
+            if (oldFileName) await supabase.storage.from('products').remove([oldFileName]);
+          }
+        }
+      } 
+      // ب) إذا كان الوضع "رابط جاهز"
+      else if (imageMode === 'url' && imageUrlInput && isValidImage) {
+        finalImageUrl = imageUrlInput;
+
+        // مسح الصورة القديمة من التخزين (إذا كان مسارها القديم مرفوعاً وعدّلناه إلى رابط خارجي)
+        if (editingId) {
+          const oldProduct = products.find((p: any) => p.id === editingId);
+          if (oldProduct && oldProduct.image_url && oldProduct.image_url.includes('supabase.co')) {
             const oldFileName = oldProduct.image_url.split('/').pop();
             if (oldFileName) await supabase.storage.from('products').remove([oldFileName]);
           }
@@ -160,7 +213,7 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   const handleDelete = async (id: string, imageUrl: string) => {
     if (!confirm(t.confirmDelete)) return;
     try {
-      if (imageUrl) {
+      if (imageUrl && imageUrl.includes('supabase.co')) {
         const fileName = imageUrl.split('/').pop();
         if (fileName) await supabase.storage.from('products').remove([fileName]);
       }
@@ -177,7 +230,22 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
     setDescription(product.description_ar || ""); 
     setPrice(product.price.toString()); 
     setCategoryId(product.category_id || "");
-    setImageFile(null);
+    
+    // إعداد الصورة في التعديل
+    if (product.image_url) {
+      if (product.image_url.includes('supabase.co')) {
+        setImageMode('upload');
+        setImageFile(null);
+        setImageUrlInput("");
+      } else {
+        setImageMode('url');
+        setImageUrlInput(product.image_url);
+        setImageFile(null);
+      }
+      setPreviewUrl(product.image_url);
+      setIsValidImage(true);
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -212,7 +280,7 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" dir={dir}>
       <div className="lg:col-span-1 bg-white p-6 rounded-3xl shadow-sm border border-border h-fit relative">
-        {editingId && <button onClick={resetForm} className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'} text-muted-foreground hover:text-red-500`}><X size={24} /></button>}
+        {editingId && <button onClick={resetForm} className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'} text-muted-foreground hover:text-red-500 transition-colors bg-red-50 p-1.5 rounded-full`}><X size={20} /></button>}
         
         <div className="flex justify-between items-center mb-6 border-b pb-4">
           <h2 className="text-xl font-bold">{editingId ? t.editProduct : t.addProduct}</h2>
@@ -236,18 +304,21 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
           </div>
         )}
 
-        <form onSubmit={handleAddOrUpdateProduct} className="space-y-4">
-          <div><label className="block text-sm font-bold mb-2">{t.nameAr}</label><input required type="text" value={name} onChange={(e) => setName(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} /></div>
+        <form onSubmit={handleAddOrUpdateProduct} className="space-y-5">
+          <div className="space-y-1.5"><label className="block text-sm font-bold">{t.nameAr}</label><input required type="text" value={name} onChange={(e) => setName(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 focus:bg-white transition-colors ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} /></div>
+          
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-bold mb-2">EN</label><input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} /></div>
-            <div><label className="block text-sm font-bold mb-2">FR</label><input type="text" value={nameFr} onChange={(e) => setNameFr(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} /></div>
+            <div className="space-y-1.5"><label className="block text-sm font-bold">EN</label><input type="text" value={nameEn} onChange={(e) => setNameEn(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 focus:bg-white transition-colors ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} /></div>
+            <div className="space-y-1.5"><label className="block text-sm font-bold">FR</label><input type="text" value={nameFr} onChange={(e) => setNameFr(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 focus:bg-white transition-colors ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} /></div>
           </div>
-          <div><label className="block text-sm font-bold mb-2">{t.descLabel}</label><textarea required value={description} onChange={(e) => setDescription(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} rows={2} /></div>
+          
+          <div className="space-y-1.5"><label className="block text-sm font-bold">{t.descLabel}</label><textarea required value={description} onChange={(e) => setDescription(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 focus:bg-white transition-colors ${activeLang === 'ar' ? 'text-right' : 'text-left'}`} rows={2} /></div>
+          
           <div className="grid grid-cols-2 gap-4">
-            <div><label className="block text-sm font-bold mb-2">{t.priceLabel}</label><input required type="number" step="0.5" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30" dir="ltr" /></div>
-            <div>
-              <label className="block text-sm font-bold mb-2">{t.categoryLabel}</label>
-              <select required value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 ${activeLang === 'ar' ? 'text-right' : 'text-left'}`}>
+            <div className="space-y-1.5"><label className="block text-sm font-bold">{t.priceLabel}</label><input required type="number" step="0.5" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border border-border rounded-xl p-3 bg-muted/30 focus:bg-white transition-colors" dir="ltr" /></div>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-bold">{t.categoryLabel}</label>
+              <select required value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={`w-full border border-border rounded-xl p-3 bg-muted/30 focus:bg-white transition-colors ${activeLang === 'ar' ? 'text-right' : 'text-left'}`}>
                 <option value="" disabled>{activeLang === 'ar' ? 'اختر القسم...' : 'Select Category...'}</option>
                 {categories.map(cat => (
                   <option key={cat.id} value={cat.id}>{activeLang === 'ar' ? cat.name_ar : activeLang === 'fr' ? cat.name_fr : cat.name_en}</option>
@@ -255,14 +326,63 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
               </select>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-bold mb-2">{t.imageLabel}</label>
-            <div className={`border-2 border-dashed rounded-xl p-4 text-center relative ${!editingId && isLimitReached ? 'border-gray-300 bg-gray-50' : 'border-primary/50 cursor-pointer'}`}>
-              <input required={!editingId} disabled={!editingId && isLimitReached} type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className={`absolute inset-0 w-full h-full opacity-0 ${!editingId && isLimitReached ? 'hidden' : 'cursor-pointer'}`} />
-              <div className={`font-bold ${!editingId && isLimitReached ? 'text-gray-400' : 'text-primary'}`}>{imageFile ? imageFile.name : editingId ? t.changeImage : t.chooseImage}</div>
+          
+          {/* 🌟 نظام الصور الجديد (Upload vs URL) + المعاينة */}
+          <div className="space-y-3 bg-zinc-50 border border-zinc-200 p-4 rounded-2xl">
+            <label className="block text-sm font-bold text-zinc-800">{activeLang === 'ar' ? 'صورة المنتج' : 'Product Image'}</label>
+            
+            <div className="flex bg-zinc-200/50 p-1 rounded-xl">
+              <button type="button" onClick={() => { setImageMode('upload'); setPreviewUrl(imageFile ? URL.createObjectURL(imageFile) : (editingId ? previewUrl : null)); setIsValidImage(!!imageFile || !!editingId); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold rounded-lg transition-all ${imageMode === 'upload' ? 'bg-white shadow-sm text-primary' : 'text-zinc-500'}`}>
+                <ImageIcon size={14} /> {activeLang === 'ar' ? 'رفع من الجهاز' : 'Upload File'}
+              </button>
+              <button type="button" onClick={() => { setImageMode('url'); setPreviewUrl(imageUrlInput || null); setIsValidImage(false); }} className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold rounded-lg transition-all ${imageMode === 'url' ? 'bg-white shadow-sm text-primary' : 'text-zinc-500'}`}>
+                <LinkIcon size={14} /> {activeLang === 'ar' ? 'رابط جاهز' : 'Image URL'}
+              </button>
             </div>
+
+            {imageMode === 'upload' ? (
+              <div className={`border-2 border-dashed rounded-xl p-4 text-center relative transition-colors ${!editingId && isLimitReached ? 'border-zinc-300 bg-zinc-100' : 'border-primary/40 hover:bg-primary/5 cursor-pointer bg-white'}`}>
+                <input disabled={!editingId && isLimitReached} type="file" accept="image/*" onChange={handleFileChange} className={`absolute inset-0 w-full h-full opacity-0 ${!editingId && isLimitReached ? 'hidden' : 'cursor-pointer'}`} />
+                <div className={`font-bold text-xs ${!editingId && isLimitReached ? 'text-zinc-400' : 'text-primary'}`}>{imageFile ? imageFile.name : editingId ? (activeLang === 'ar' ? 'تغيير الصورة المرفوعة' : 'Change uploaded image') : (activeLang === 'ar' ? 'اضغط لاختيار صورة' : 'Click to choose image')}</div>
+              </div>
+            ) : (
+              <input type="url" placeholder="https://images.unsplash.com/..." value={imageUrlInput} onChange={handleUrlChange} className="w-full border border-zinc-200 rounded-xl p-3 text-sm focus:border-primary outline-none transition-colors text-left" dir="ltr" />
+            )}
+
+            {/* صندوق المعاينة الفورية */}
+            {previewUrl && (
+              <div className="relative w-full h-40 rounded-xl overflow-hidden border border-zinc-200 bg-zinc-100 flex items-center justify-center mt-2 group">
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className={`w-full h-full object-cover transition-opacity duration-300 ${isValidImage ? 'opacity-100' : 'opacity-0'}`}
+                  onLoad={() => setIsValidImage(true)}
+                  onError={() => {
+                    if (imageMode === 'url' && imageUrlInput) setIsValidImage(false);
+                  }}
+                />
+                
+                {/* رسالة الخطأ إذا كان الرابط لا يعمل */}
+                {!isValidImage && imageMode === 'url' && imageUrlInput && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-red-500 bg-red-50/90 backdrop-blur-sm">
+                    <AlertCircle size={28} className="mb-2" />
+                    <span className="text-xs font-bold text-center px-4 leading-relaxed">
+                      {activeLang === 'ar' ? 'الرابط غير صالح أو الصورة محمية.' : 'Invalid link or image is protected.'} <br/> 
+                      {activeLang === 'ar' ? 'تأكد من نسخه بشكل صحيح.' : 'Make sure to copy it correctly.'}
+                    </span>
+                  </div>
+                )}
+                
+                {isValidImage && (
+                  <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded font-bold backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    {activeLang === 'ar' ? 'معاينة الصورة' : 'Image Preview'}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <button disabled={isUploading || (!editingId && isLimitReached)} type="submit" className={`w-full text-white py-4 rounded-xl font-bold shadow-lg transition-colors flex justify-center items-center gap-2 ${!editingId && isLimitReached ? 'bg-gray-400 cursor-not-allowed' : editingId ? 'bg-blue-500 hover:bg-blue-600' : 'bg-primary hover:bg-primary/90'}`}>
+
+          <button disabled={isUploading || (!editingId && isLimitReached) || (!editingId && !isValidImage)} type="submit" className={`w-full text-white py-4 rounded-xl font-bold shadow-lg transition-transform active:scale-[0.98] flex justify-center items-center gap-2 ${isUploading || (!editingId && isLimitReached) || (!editingId && !isValidImage) ? 'bg-zinc-400 cursor-not-allowed shadow-none' : editingId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-primary hover:bg-primary/90'}`}>
             {isUploading ? <Loader2 className="animate-spin" size={20} /> : editingId ? t.saveEdit : (!editingId && isLimitReached ? "Locked 🔒" : t.publishProduct)}
           </button>
         </form>
@@ -281,7 +401,14 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {products.map((product: any) => (
             <div key={product.id} className="flex gap-4 border border-border/50 p-3 rounded-2xl items-center bg-muted/10">
-              <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-muted"><img src={product.image_url} alt={product.name_ar} className="w-full h-full object-cover" /></div>
+              <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-muted relative group">
+                <img src={product.image_url} alt={product.name_ar} className="w-full h-full object-cover" />
+                {product.image_url.includes('unsplash') && (
+                  <div className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-md backdrop-blur-sm" title="Unsplash Link">
+                    <LinkIcon size={10} />
+                  </div>
+                )}
+              </div>
               <div className="flex-1">
                 <h3 className="font-bold text-sm">{activeLang === 'en' && product.name_en ? product.name_en : activeLang === 'fr' && product.name_fr ? product.name_fr : product.name_ar}</h3>
                 <div className="flex items-center gap-2 mt-1">
@@ -290,8 +417,8 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
                 </div>
               </div>
               <div className="flex gap-2">
-                <button onClick={() => handleEditClick(product)} className="w-10 h-10 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center hover:bg-blue-500 hover:text-white transition-colors"><Edit size={18} /></button>
-                <button onClick={() => handleDelete(product.id, product.image_url)} className="w-10 h-10 bg-red-50 text-red-500 rounded-full flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"><Trash2 size={18} /></button>
+                <button onClick={() => handleEditClick(product)} className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"><Edit size={18} /></button>
+                <button onClick={() => handleDelete(product.id, product.image_url)} className="w-10 h-10 bg-red-50 text-red-600 rounded-full flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors"><Trash2 size={18} /></button>
               </div>
             </div>
           ))}
