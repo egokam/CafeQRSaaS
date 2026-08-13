@@ -1,54 +1,78 @@
 "use client";
 
+import { ImageOff, Plus } from "lucide-react";
 import { useCart } from "../store/useCart";
-import { Plus } from "lucide-react";
 
-export default function MenuCard({ product, lang }: { product: any, lang: string }) {
+type MenuCardProduct = {
+  id: string;
+  name_ar?: string | null;
+  name_en?: string | null;
+  name_fr?: string | null;
+  description_ar?: string | null;
+  description_en?: string | null;
+  description_fr?: string | null;
+  image_url?: string | null;
+  price: number | string;
+  [key: string]: unknown;
+};
+
+export default function MenuCard({ product, lang }: { product: MenuCardProduct, lang: string }) {
   const addItem = useCart((state) => state.addItem);
-  
-  const name = lang === 'en' && product.name_en ? product.name_en : 
-               lang === 'fr' && product.name_fr ? product.name_fr : 
-               product.name_ar;
+
+  const name = lang === "en" && product.name_en ? product.name_en :
+               lang === "fr" && product.name_fr ? product.name_fr :
+               product.name_ar || "Item";
+
+  const description = lang === "en" && product.description_en ? product.description_en :
+                      lang === "fr" && product.description_fr ? product.description_fr :
+                      product.description_ar || product.description_en || product.description_fr;
+
+  const cartProduct = {
+    ...product,
+    image_url: product.image_url || "",
+    name_ar: product.name_ar || name,
+    price: Number(product.price),
+    quantity: 1,
+  };
 
   return (
-    <div className="flex justify-between items-center bg-white border border-border p-3 rounded-[1.5rem] shadow-sm gap-4">
-      
-      {/* قسم الصورة والزر */}
-      <div className="relative shrink-0">
-        <div className="w-24 h-24 rounded-2xl overflow-hidden bg-muted">
-          {product.image_url ? (
-            <img 
-              src={product.image_url} 
-              alt={name} 
-              className="w-full h-full object-cover" 
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs font-bold">لا توجد صورة</div>
-          )}
-        </div>
-        
-        {/* زر الإضافة الداكن */}
+    <article className="group flex min-h-36 w-full items-center gap-4 rounded-[2rem] border border-gray-200 bg-white p-3 shadow-[0_2px_14px_rgba(0,0,0,0.08)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(0,0,0,0.10)]" dir="ltr">
+      <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-[1.35rem] bg-gray-100">
+        {product.image_url ? (
+          <img
+            src={product.image_url}
+            alt={name}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-gray-300">
+            <ImageOff size={28} />
+          </div>
+        )}
+
         <button
-          onClick={() => addItem(product)}
-          className="absolute -bottom-2 -left-2 bg-foreground text-primary w-10 h-10 flex items-center justify-center rounded-xl shadow-md hover:scale-105 active:scale-95 transition-transform"
+          onClick={() => addItem(cartProduct)}
+          className="absolute bottom-1.5 left-1.5 flex h-11 w-11 items-center justify-center rounded-xl bg-[#0a0a0a] text-[#9b7565] shadow-[0_8px_18px_rgba(0,0,0,0.35)] transition-transform hover:scale-105 active:scale-95"
+          aria-label={`Add ${name}`}
         >
-          <Plus size={22} strokeWidth={3} />
+          <Plus size={25} strokeWidth={2.8} />
         </button>
       </div>
 
-      {/* قسم النصوص والسعر */}
-      <div className="flex-1 flex flex-col items-end text-right">
-        <h3 className="font-extrabold text-foreground text-lg uppercase tracking-tight">{name}</h3>
-        {product.description_ar && (
-          <p className="text-xs text-muted-foreground mt-1 font-medium line-clamp-2">
-            {product.description_ar}
+      <div className="flex min-w-0 flex-1 flex-col items-end pr-2 text-right" dir={lang === "ar" ? "rtl" : "ltr"}>
+        <h3 className="max-w-full truncate text-xl font-black uppercase tracking-normal text-black">
+          {name}
+        </h3>
+        {description && (
+          <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-gray-500">
+            {description}
           </p>
         )}
-        <p className="font-extrabold text-primary mt-3 text-lg flex items-center gap-1">
-          <span className="text-xs font-bold text-muted-foreground">MAD</span> {product.price}
+        <p className="mt-4 flex items-baseline gap-2 text-xl font-black text-black">
+          <span className="text-xs font-black uppercase text-gray-500">MAD</span>
+          <span>{product.price}</span>
         </p>
       </div>
-      
-    </div>
+    </article>
   );
 }

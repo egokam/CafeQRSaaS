@@ -247,10 +247,10 @@ export async function getCategories(cafeId: string) {
   return { success: !error, data: data || [], error: error?.message };
 }
 
-export async function addCategory(cafeId: string, name_ar: string, name_en: string, name_fr: string, icon: string) {
+export async function addCategory(cafeId: string, name_ar: string, name_en: string, name_fr: string, icon: string, subcategories: string[] = []) {
   const { data, error } = await supabaseAdmin
     .from('menu_categories')
-    .insert([{ cafe_id: cafeId, name_ar, name_en, name_fr, icon }])
+    .insert([{ cafe_id: cafeId, name_ar, name_en, name_fr, icon, subcategories }])
     .select()
     .single();
   
@@ -258,10 +258,10 @@ export async function addCategory(cafeId: string, name_ar: string, name_en: stri
   return { success: !error, data, error: error?.message };
 }
 
-export async function updateCategory(id: string, name_ar: string, name_en: string, name_fr: string, icon: string) {
+export async function updateCategory(id: string, name_ar: string, name_en: string, name_fr: string, icon: string, subcategories: string[] = []) {
   const { error } = await supabaseAdmin
     .from('menu_categories')
-    .update({ name_ar, name_en, name_fr, icon })
+    .update({ name_ar, name_en, name_fr, icon, subcategories })
     .eq('id', id);
     
   if (!error) revalidatePath('/', 'layout');

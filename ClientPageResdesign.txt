@@ -1,0 +1,27 @@
+when the client opens the page, he sees A clear sidebar that extends by clicking 3 lines button to see names and logos, or gets small to show just the logos, highlighting the selected one:
+
+ 
+ sidebar contains these categories:
+      -Home "contains trending selling items"
+      -Promotions
+      -burgers
+      -Sandwiches
+      -Tacos
+      -Panini
+      -salads
+      -Packs
+      -Plats
+      -Breakfasts
+      -Pizzas 
+      -Hot Coffee
+      -tea
+      -Cold Coffee
+      -Soft drinks
+      -juices
+      -Milkshakes
+      -Patissery
+      -Desserts
+      -Smoothies
+
+and btw the admin should select the categories to show like we already did,
+lets start doing this and we will proceed on work progressively
