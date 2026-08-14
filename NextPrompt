@@ -1,0 +1,39 @@
+wait wait, sorry i want to redesign it to be like the image, so i'll need these components instead: 
+
+     - Image 1.jpg is the home page that contains:
+         -Topbar: Cafe Name and a hardcoded description
+         -Searchbar with a strong engine that search for categories, subcategories and products all.
+         -Cart.
+         -Navbar: shows all categories: breakfast, burger, pizzas ....
+         -SubNavbar: shows subcategories of the selected category on previous Navbar.
+         -Product Cards: that are styled as showen in the image 1.jpg
+    all that designed exactly as the image 1.jpg shows, every  one isolated on it component under components/client/.
+    
+    - Image 2.jpg its the component that we will create in: components/client/ProductPage.tsx, it is the popup that is showed when a product card clicked, it lets background image blurred as showen, and it shows:
+        -overview: product image, Title and description, and it is extendable like apple iphone styles by dragging it up. "it shows a little of blurr down there that assists that the scrolling is possible"
+    
+    - Image 3.jpg is showing what client sees after scrolling down, its the extended view that contains these extra elements:
+         -modifiers of the product, so the client can costumize his order.
+         - and a tail down there, that shows updated price of the product with add to cart button, when the client finishes costumization and clicked add to cart, this product page gets closed.
+
+
+ components to create:
+    -components/
+       -client/
+           -Topbar.tsx
+           -Searchbar.tsx
+           -Cart.tsx
+           -Navbar.tsx
+           -SubNavbar.tsx
+           -ProductCard.tsx
+
+           -ProductPage.tsx
+           -ProductPage/
+               -overview.tsx
+               -Modifiers.tsx
+               -Tail.tsx
+
+
+
+
+    all that was for mobile, we will work on tablet/pc versions later.

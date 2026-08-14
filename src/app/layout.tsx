@@ -88,7 +88,7 @@ export default async function RootLayout({
               font-family: system-ui, -apple-system, sans-serif;
               padding: 2rem;
             }
-            /* إخفاء المحتوى الأساسي تماماً لتجنب أي تسريب في الكود */
+            /* Hiding main content to prevent leaks when JS is disabled */
             #root-content {
               display: none !important;
             }
@@ -103,9 +103,11 @@ export default async function RootLayout({
             </p>
           </div>
         </noscript>
-        <NextIntlClientProvider messages={messages} locale={locale}>
-          {children}
-        </NextIntlClientProvider>
+        <div id="root-content" className="flex flex-col flex-1 w-full">
+          <NextIntlClientProvider messages={messages} locale={locale}>
+            {children}
+          </NextIntlClientProvider>
+        </div>
       </body>
     </html>
   );
