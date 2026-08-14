@@ -7,7 +7,6 @@ import { supabase } from "../../../lib/supabase";
 import { checkCafeSubscription } from "../../../actions/saas";
 import { cancelClientOrder, createClientOrder, getCachedCafeMenu } from "../../../actions/menu";
 
-// استيراد المكونات الجديدة
 import Topbar from "../../../components/client/Topbar";
 import Searchbar from "../../../components/client/Searchbar";
 import CartButton from "../../../components/client/Cart";
@@ -160,7 +159,7 @@ const TRANSLATIONS: Record<Lang, Translation> = {
   },
 };
 
-export const formatMAD = (price: number) => `${Number(price).toFixed(0)}`; // تم تعديلها لتطابق التصميم (رقم صحيح)
+export const formatMAD = (price: number) => `${Number(price).toFixed(0)}`;
 
 const getSafeUUID = () => {
   if (typeof window !== "undefined" && window.crypto && window.crypto.randomUUID) {
@@ -181,7 +180,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const t = TRANSLATIONS[activeLang];
   const dir = activeLang === "ar" ? "rtl" : "ltr";
 
-  // States
   const [categories, setCategories] = useState<Category[]>([]);
   const [activeCategoryId, setActiveCategoryId] = useState("all");
   const [activeSubCategory, setActiveSubCategory] = useState("all");
@@ -322,7 +320,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   if (isSuspended) return <div className="flex min-h-screen items-center justify-center bg-white font-bold text-black">{t.suspended}</div>;
   if (isCafeNotFound || isTableNotFound) return <div className="flex min-h-screen items-center justify-center bg-white font-bold text-black">{t.cafeError}</div>;
 
-  // 1. Filter by Search Query First
   const searchedProducts = products.filter((p) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -334,12 +331,10 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     );
   });
 
-  // 2. Filter by Category
   const productsInActiveCategory = activeCategoryId === "all"
     ? searchedProducts
     : searchedProducts.filter((p) => p.category_id === activeCategoryId);
 
-  // 3. Extract SubCategories for the UI
   const uniqueSubCategories = Array.from(
     new Set(
       productsInActiveCategory
@@ -348,7 +343,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     )
   );
 
-  // 4. Final Filter by SubCategory
   const finalFilteredProducts = activeSubCategory === "all"
     ? productsInActiveCategory
     : productsInActiveCategory.filter((p) => p.sub_category === activeSubCategory);
@@ -357,7 +351,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const headerBadgeCount = cartCount > 0 ? cartCount : activeOrders.length;
 
   return (
-    <div className="flex h-[100dvh] flex-col overflow-hidden bg-white text-black" dir={dir}>
+    <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white text-black" dir={dir}>
       
       {/* Product Details Modal Overlay */}
       {selectedProduct && (
@@ -407,9 +401,13 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         </div>
       )}
 
-      {/* Fixed Top Area */}
-      <div className="shrink-0 flex flex-col bg-white">
+      {/* الـ Topbar ثابت ومنفصل عن منطقة التمرير */}
+      <div className="relative z-50 shrink-0 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
         <Topbar cafeName={displayTitle} subtitle={subtitle} />
+      </div>
+
+      {/* منطقة التمرير الرئيسية تحتوي على باقي العناصر وتسمح لها بالتداخل التتابعي تحت الـ Topbar */}
+      <main className="flex-1 w-full overflow-y-auto pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         
         <div className="flex px-5 gap-3 mt-4 mb-1 items-center">
           <Searchbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
@@ -440,11 +438,9 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
             />
           </div>
         )}
-      </div>
 
-      {/* Scrollable Main Content - Product Grid */}
-      <main className={`flex-1 overflow-y-auto px-5 pt-2 pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
-        <div className="grid grid-cols-2 gap-4 pb-10">
+        {/* Product Grid */}
+        <div className="grid grid-cols-2 gap-4 px-5 pb-10 pt-2">
           {finalFilteredProducts.length === 0 ? (
             <div className="col-span-2 mt-10 flex flex-col items-center justify-center rounded-3xl p-6 opacity-50">
               <Coffee size={40} className="mb-3 text-gray-400" />
