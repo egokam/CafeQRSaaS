@@ -451,7 +451,12 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
       {/* الـ Topbar ثابت ومنفصل عن منطقة التمرير */}
       <div className="relative z-50 shrink-0 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-        <Topbar cafeName={displayTitle} subtitle={subtitle} />
+        <Topbar
+          cafeName={displayTitle}
+          subtitle={subtitle}
+          activeLang={activeLang}
+          onSelectLang={handleLanguageSelect}
+        />
       </div>
 
       {/* منطقة التمرير الرئيسية تحتوي على باقي العناصر وتسمح لها بالتداخل التتابعي تحت الـ Topbar */}
