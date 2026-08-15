@@ -14,6 +14,7 @@ import Navbar from "../../../components/client/Navbar";
 import SubNavbar from "../../../components/client/SubNavbar";
 import ProductCard from "../../../components/client/ProductCard";
 import ProductPage from "../../../components/client/ProductPage";
+import LanguagePopup from "../../../components/client/LanguagePopup";
 
 export type Lang = "en" | "fr" | "ar";
 
@@ -49,7 +50,6 @@ export type Category = {
   name_fr?: string | null;
 };
 
-// --- أنواع التعديلات الجديدة (Modifiers Types) ---
 export type ModifierType = "single_choice" | "multiple_choice" | "incremental" | "slider";
 
 export type ModifierOption = {
@@ -71,7 +71,6 @@ export type ModifierGroup = {
   max_selections: number;
   options: ModifierOption[];
 };
-// --------------------------------------------------
 
 export type Product = {
   id: string;
@@ -85,7 +84,7 @@ export type Product = {
   description_fr?: string | null;
   image_url?: string | null;
   price: number;
-  modifier_groups?: ModifierGroup[]; // تم إضافة مصفوفة مجموعات التعديل هنا
+  modifier_groups?: ModifierGroup[];
   [key: string]: unknown;
 };
 
@@ -202,11 +201,13 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const { items, totalItems, totalPrice, clearCart } = useCart();
 
   const [activeLang, setActiveLang] = useState<Lang>("en");
+  const [showLangPopup, setShowLangPopup] = useState(false);
+
   const t = TRANSLATIONS[activeLang];
   const dir = activeLang === "ar" ? "rtl" : "ltr";
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [activeCategoryId, setActiveCategoryId] = useState("all");
+  const [activeCategoryId, setActiveCategoryId] = useState("home");
   const [activeSubCategory, setActiveSubCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -224,8 +225,25 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const [isCafeNotFound, setIsCafeNotFound] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
 
+  // 🌟 استدعاء الـ subtitle المترجم بناءً على اللغة
   const displayTitle = cafeData?.name || "octOber";
-  const subtitle = "Order your favourite food";
+  const subtitle = t.subtitle;
+
+  // فحص وإعداد لغة العميل عند أول تحميل
+  useEffect(() => {
+    const savedLang = localStorage.getItem("cafeqr_client_lang");
+    if (savedLang && (savedLang === "ar" || savedLang === "fr" || savedLang === "en")) {
+      setActiveLang(savedLang as Lang);
+    } else {
+      setShowLangPopup(true);
+    }
+  }, []);
+
+  const handleLanguageSelect = (lang: "ar" | "fr" | "en") => {
+    setActiveLang(lang);
+    localStorage.setItem("cafeqr_client_lang", lang);
+    setShowLangPopup(false);
+  };
 
   useEffect(() => {
     setActiveSubCategory("all");
@@ -356,7 +374,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     );
   });
 
-  const productsInActiveCategory = activeCategoryId === "all"
+  const productsInActiveCategory = activeCategoryId === "home"
     ? searchedProducts
     : searchedProducts.filter((p) => p.category_id === activeCategoryId);
 
@@ -377,13 +395,18 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   return (
     <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white text-black" dir={dir}>
-      
+
+      {/* Language Popup Overlay */}
+      {showLangPopup && (
+        <LanguagePopup onSelect={handleLanguageSelect} />
+      )}
+
       {/* Product Details Modal Overlay */}
       {selectedProduct && (
-        <ProductPage 
-          product={selectedProduct} 
-          activeLang={activeLang} 
-          onClose={() => setSelectedProduct(null)} 
+        <ProductPage
+          product={selectedProduct}
+          activeLang={activeLang}
+          onClose={() => setSelectedProduct(null)}
         />
       )}
 
@@ -433,33 +456,36 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
       {/* منطقة التمرير الرئيسية تحتوي على باقي العناصر وتسمح لها بالتداخل التتابعي تحت الـ Topbar */}
       <main className="flex-1 w-full overflow-y-auto pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-        
+
         <div className="flex px-5 gap-3 mt-4 mb-1 items-center">
-          <Searchbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-          <CartButton 
-            cartItemCount={headerBadgeCount} 
+          {/* 🌟 تمرير اللغة إلى الـ Searchbar */}
+          <Searchbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} activeLang={activeLang} />
+          <CartButton
+            cartItemCount={headerBadgeCount}
             onClick={() => {
               if (activeOrders.length > 0 || cartCount > 0) setShowOrdersModal(true);
-            }} 
+            }}
           />
         </div>
 
         <div className="mb-1.5">
-          <Navbar 
-            categories={categories} 
-            activeCategoryId={activeCategoryId} 
-            setActiveCategoryId={setActiveCategoryId} 
-            activeLang={activeLang} 
+          {/* 🌟 تمرير اللغة إلى الـ Navbar */}
+          <Navbar
+            categories={categories}
+            activeCategoryId={activeCategoryId}
+            setActiveCategoryId={setActiveCategoryId}
+            activeLang={activeLang}
           />
         </div>
-        
+
         {uniqueSubCategories.length > 0 && (
           <div className="mb-2">
-            <SubNavbar 
-              subCategories={uniqueSubCategories} 
-              activeSubCategory={activeSubCategory} 
-              setActiveSubCategory={setActiveSubCategory} 
-              t={t} 
+            {/* 🌟 تمرير اللغة إلى الـ SubNavbar */}
+            <SubNavbar
+              subCategories={uniqueSubCategories}
+              activeSubCategory={activeSubCategory}
+              setActiveSubCategory={setActiveSubCategory}
+              t={t}
             />
           </div>
         )}
@@ -473,11 +499,11 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
             </div>
           ) : (
             finalFilteredProducts.map((product) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                activeLang={activeLang} 
-                onClick={() => setSelectedProduct(product)} 
+              <ProductCard
+                key={product.id}
+                product={product}
+                activeLang={activeLang}
+                onClick={() => setSelectedProduct(product)}
               />
             ))
           )}
@@ -497,9 +523,9 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
       {cartCount > 0 && (
         <div className="fixed bottom-0 inset-x-0 z-30 bg-white/90 p-4 pb-6 shadow-[0_-12px_40px_rgba(0,0,0,0.1)] backdrop-blur-md">
           <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
-            <button 
-              onClick={handleCheckout} 
-              disabled={isSubmitting} 
+            <button
+              onClick={handleCheckout}
+              disabled={isSubmitting}
               className={`h-14 flex-1 rounded-2xl bg-black text-lg font-black text-white shadow-lg transition-transform ${isSubmitting ? "opacity-70" : "active:scale-[0.98]"}`}
             >
               {isSubmitting ? t.sending : t.confirmOrder}

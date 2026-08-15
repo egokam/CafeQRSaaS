@@ -1,6 +1,7 @@
 "use client";
 
 import type { Category, Lang } from "@/app/[cafeSlug]/[tableId]/page";
+import { Home } from "lucide-react";
 
 interface NavbarProps {
   categories: Category[];
@@ -8,6 +9,12 @@ interface NavbarProps {
   setActiveCategoryId: (id: string) => void;
   activeLang: Lang;
 }
+
+const TRANSLATIONS = {
+  en: { home: "Home" },
+  fr: { home: "Accueil" },
+  ar: { home: "الرئيسية" }
+};
 
 const getCategoryIconName = (nameEn: string) => {
   const mapping: Record<string, string> = {
@@ -43,16 +50,40 @@ export default function Navbar({
   setActiveCategoryId,
   activeLang,
 }: NavbarProps) {
+  const isAr = activeLang === "ar";
+  const dir = isAr ? "rtl" : "ltr";
+
   const getCategoryName = (cat: Category) => {
-    if (activeLang === "ar" && cat.name_ar) return cat.name_ar;
+    if (isAr && cat.name_ar) return cat.name_ar;
     if (activeLang === "fr" && cat.name_fr) return cat.name_fr;
     return cat.name_en || cat.name_fr || cat.name_ar || "";
   };
 
   return (
-    <div className="w-full mask-fade-x">
+    <div className="w-full mask-fade-x" dir={dir}>
       <div className="w-full overflow-x-auto px-5 py-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="flex gap-4">
+          
+          <button
+            onClick={() => setActiveCategoryId("home")}
+            className="flex shrink-0 flex-col items-center gap-1"
+          >
+            <div
+              className={`flex h-[4.0rem] w-[4.0rem] items-center justify-center rounded-[1.5rem] transition-colors ${
+                activeCategoryId === "home" ? "bg-blue-600 shadow-md" : "bg-[#18181b] shadow-sm"
+              }`}
+            >
+              <Home className="h-7 w-7 text-white drop-shadow-md" strokeWidth={2} />
+            </div>
+            <span
+              className={`text-[11px] transition-colors ${
+                activeCategoryId === "home" ? "font-black text-blue-600" : "font-bold text-gray-800"
+              }`}
+            >
+              {TRANSLATIONS[activeLang].home}
+            </span>
+          </button>
+
           {categories.map((cat) => {
             const isActive = activeCategoryId === cat.id;
             const catName = getCategoryName(cat);
@@ -62,11 +93,12 @@ export default function Navbar({
               <button
                 key={cat.id}
                 onClick={() => setActiveCategoryId(cat.id)}
-                className="flex shrink-0 flex-col items-center gap-0.2"
+                className="flex shrink-0 flex-col items-center gap-1"
               >
                 <div
-                  className={`flex h-[4.0rem] w-[4.0rem] items-center justify-center rounded-[1.5rem] transition-colors ${isActive ? "bg-blue-600 shadow-md" : "bg-[#18181b] shadow-sm"
-                    }`}
+                  className={`flex h-[4.0rem] w-[4.0rem] items-center justify-center rounded-[1.5rem] transition-colors ${
+                    isActive ? "bg-blue-600 shadow-md" : "bg-[#18181b] shadow-sm"
+                  }`}
                 >
                   <img
                     src={`/icons/${iconFilename}`}
@@ -78,8 +110,9 @@ export default function Navbar({
                   />
                 </div>
                 <span
-                  className={`text-[11px] transition-colors ${isActive ? "font-black text-blue-600" : "font-bold text-gray-800"
-                    }`}
+                  className={`text-[11px] transition-colors ${
+                    isActive ? "font-black text-blue-600" : "font-bold text-gray-800"
+                  }`}
                 >
                   {catName}
                 </span>

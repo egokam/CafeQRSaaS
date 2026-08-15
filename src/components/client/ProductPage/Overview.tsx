@@ -12,15 +12,15 @@ export default function Overview({ product, activeLang }: OverviewProps) {
   const dir = activeLang === "ar" ? "rtl" : "ltr";
 
   const getProductName = (p: Product) => {
-    if (activeLang === "ar" && p.name_ar) return p.name_ar;
-    if (activeLang === "fr" && p.name_fr) return p.name_fr;
-    return p.name_en || p.name_fr || p.name_ar || "";
+    if (activeLang === "ar") return p.name_ar || p.name_en || p.name_fr || "";
+    if (activeLang === "fr") return p.name_fr || p.name_en || p.name_ar || "";
+    return p.name_en || p.name_ar || p.name_fr || "";
   };
 
   const getProductDescription = (p: Product) => {
-    if (activeLang === "ar" && p.description_ar) return p.description_ar;
-    if (activeLang === "fr" && p.description_fr) return p.description_fr;
-    return p.description_en || p.description_fr || p.description_ar || "";
+    if (activeLang === "ar") return p.description_ar || p.description_en || p.description_fr || "";
+    if (activeLang === "fr") return p.description_fr || p.description_en || p.description_ar || "";
+    return p.description_en || p.description_ar || p.description_fr || "";
   };
 
   const name = getProductName(product);

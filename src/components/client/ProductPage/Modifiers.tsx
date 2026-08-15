@@ -2,12 +2,19 @@
 
 import { Minus, Plus, Check } from "lucide-react";
 
+const TRANSLATIONS = {
+  en: { portion: "Portion", required: "Required" },
+  fr: { portion: "Portion", required: "Requis" },
+  ar: { portion: "الكمية", required: "إجباري" }
+};
+
 interface ModifiersProps {
   quantity: number;
   setQuantity: React.Dispatch<React.SetStateAction<number>>;
-  modifiers: any[]; // تم التعديل لتجنب أخطاء الأنواع
+  modifiers: any[]; 
   selections: Record<string, number>;
   setSelections: React.Dispatch<React.SetStateAction<Record<string, number>>>;
+  activeLang: "en" | "fr" | "ar"; // 🌟 إضافة خاصية اللغة
 }
 
 export default function Modifiers({
@@ -16,8 +23,11 @@ export default function Modifiers({
   modifiers,
   selections,
   setSelections,
+  activeLang,
 }: ModifiersProps) {
   
+  const t = TRANSLATIONS[activeLang];
+
   const handleDecreaseQuantity = () => {
     if (quantity > 1) setQuantity((q) => q - 1);
   };
@@ -30,7 +40,6 @@ export default function Modifiers({
     setSelections((prev) => {
       const newState = { ...prev };
       const currentGroup = modifiers.find((m) => m.id === groupId);
-      // 🌟 التعديل هنا: قراءة المصفوفة بالاسمين
       const options = currentGroup?.modifier_options || currentGroup?.options || [];
       options.forEach((opt: any) => delete newState[opt.id]);
       newState[optionId] = 1;
@@ -65,19 +74,22 @@ export default function Modifiers({
     });
   };
 
+  // 🌟 استخراج الاسم بدقة حسب اللغة
   const getTranslatedName = (item: { name_ar?: string | null; name_en?: string | null; name_fr?: string | null }) => {
-    return item.name_ar || item.name_en || item.name_fr || "";
+    if (activeLang === 'ar') return item.name_ar || item.name_en || item.name_fr || "";
+    if (activeLang === 'fr') return item.name_fr || item.name_en || item.name_ar || "";
+    return item.name_en || item.name_ar || item.name_fr || "";
   };
 
-  // حماية إضافية في حالة عدم وجود إضافات
   if (!modifiers || modifiers.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-8 px-6 pb-6">
       
       <div className="flex flex-col items-center">
-        <h3 className="mb-2 text-[14px] font-black text-black self-start">Portion</h3>
-        <div className="flex items-center gap-3 self-start">
+        <h3 className="mb-2 text-[14px] font-black text-black self-start">{t.portion}</h3>
+        {/* نثبت الاتجاه ltr لأزرار الزيادة والنقصان لتبقى منطقية */}
+        <div className="flex items-center gap-3 self-start" dir="ltr">
           <button
             onClick={handleDecreaseQuantity}
             className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#001BFF] text-white active:scale-95 transition-transform"
@@ -97,8 +109,7 @@ export default function Modifiers({
       </div>
 
       {modifiers.map((group) => {
-        const groupName = getTranslatedName(group);
-        // 🌟 التعديل الأساسي هنا: المتغير الذكي للخيارات
+        const groupName = getTranslatedName(group as any);
         const options = group.modifier_options || group.options || [];
         const selectedCount = options.reduce((count: number, opt: any) => count + (selections[opt.id] ? 1 : 0), 0);
 
@@ -106,7 +117,7 @@ export default function Modifiers({
           <div key={group.id} className="flex flex-col">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-[17px] font-black text-black">{groupName}</h3>
-              {group.min_selections > 0 && <span className="text-[10px] font-bold text-red-500 uppercase">Required</span>}
+              {group.min_selections > 0 && <span className="text-[10px] font-bold text-red-500 uppercase">{t.required}</span>}
             </div>
 
             {group.type === "single_choice" && (
@@ -130,7 +141,7 @@ export default function Modifiers({
                         <h3 className="text-[16px] font-bold text-black">{getTranslatedName(option)}</h3>
                       </div>
                       {Number(option.price_adjustment) > 0 && (
-                        <span className="text-[14px] font-black text-black">
+                        <span className="text-[14px] font-black text-black" dir="ltr">
                           +{Number(option.price_adjustment)} <span className="text-[10px]">MAD</span>
                         </span>
                       )}
@@ -163,7 +174,7 @@ export default function Modifiers({
                         <h3 className="text-[16px] font-bold text-black">{getTranslatedName(option)}</h3>
                       </div>
                       {Number(option.price_adjustment) > 0 && (
-                        <span className="text-[14px] font-black text-black">
+                        <span className="text-[14px] font-black text-black" dir="ltr">
                           +{Number(option.price_adjustment)} <span className="text-[10px]">MAD</span>
                         </span>
                       )}
@@ -182,12 +193,12 @@ export default function Modifiers({
                       <div className="flex flex-col">
                         <h3 className="text-[16px] font-bold text-black">{getTranslatedName(option)}</h3>
                         {Number(option.price_adjustment) > 0 && (
-                          <span className="text-[14px] font-black text-gray-500">
+                          <span className="text-[14px] font-black text-gray-500" dir="ltr">
                             +{Number(option.price_adjustment)} MAD
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3" dir="ltr">
                         <button
                           onClick={() => handleIncremental(option.id, -1, group.max_selections)}
                           disabled={qty === 0}
@@ -211,7 +222,7 @@ export default function Modifiers({
             )}
 
             {group.type === "slider" && options.length > 0 && (
-              <div className="flex w-full flex-col pt-2">
+              <div className="flex w-full flex-col pt-2" dir="ltr">
                 <div className="relative flex h-1 w-full items-center rounded-full bg-gray-200">
                   {(() => {
                     const selectedIndex = Math.max(0, options.findIndex((opt: any) => !!selections[opt.id]));

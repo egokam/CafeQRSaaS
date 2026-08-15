@@ -28,9 +28,9 @@ export default function SubNavbar({
         >
           {t.all}
         </button>
-        {subCategories.map((subCategory, index) => (
+        {subCategories.map((subCategory) => (
           <button
-            key={index}
+            key={subCategory}
             onClick={() => setActiveSubCategory(subCategory)}
             className={`rounded-full border border-black/30 px-7 py-2.5 text-[15px] font-black transition-all ${
               activeSubCategory === subCategory

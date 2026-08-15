@@ -40,7 +40,6 @@ export default function ProductPage({ product, activeLang, onClose }: ProductPag
 
     Object.entries(selections).forEach(([optionId, qty]) => {
       groups.forEach((group: any) => {
-        // قراءة المصفوفة بالاسم الصحيح القادم من قاعدة البيانات
         const optionsArray = group.modifier_options || group.options || [];
         const option = optionsArray.find((opt: any) => opt.id === optionId);
         if (option) {
@@ -57,12 +56,10 @@ export default function ProductPage({ product, activeLang, onClose }: ProductPag
   const finalPrice = unitPrice * quantity;
 
   const handleAddToCart = () => {
-    // 🌟 1. استخراج الأسماء الأساسية للمنتج بجميع اللغات
     const baseNameAr = product.name_ar || product.name_en || "";
     const baseNameEn = product.name_en || product.name_ar || "";
     const baseNameFr = product.name_fr || product.name_en || product.name_ar || "";
 
-    // 🌟 2. دالة ذكية تبني نص الإضافات بناءً على اللغة الممررة لها
     const getModifiersText = (lang: string) => {
       const names: string[] = [];
       const groups = product.modifier_groups || [];
@@ -92,7 +89,6 @@ export default function ProductPage({ product, activeLang, onClose }: ProductPag
     
     const cartItemId = selectionsHash ? `${product.id}-${selectionsHash}` : product.id;
 
-    // 🌟 3. إرسال الترجمات الدقيقة كلٌ في حقلها ليتمكن الكاشير من التبديل بينها بحرية
     addItem({
       id: cartItemId,
       product_id: product.id,
@@ -120,12 +116,14 @@ export default function ProductPage({ product, activeLang, onClose }: ProductPag
 
   return (
     <div
-      className={`fixed inset-0 z-[200] flex flex-col justify-end bg-black/40 backdrop-blur-md transition-opacity duration-300 ease-in-out ${isVisible ? "opacity-100" : "opacity-0"
-        }`}
+      className={`fixed inset-0 z-[200] flex flex-col justify-end bg-black/40 backdrop-blur-md transition-opacity duration-300 ease-in-out ${
+        isVisible ? "opacity-100" : "opacity-0"
+      }`}
     >
       <div
-        className={`relative flex w-full flex-col overflow-hidden rounded-t-[2.5rem] bg-white shadow-2xl transition-all duration-300 ease-in-out ${isVisible ? "translate-y-0" : "translate-y-full"
-          } ${isExpanded ? "h-[calc(100dvh-20px)]" : "h-[550px]"}`}
+        className={`relative flex w-full flex-col overflow-hidden rounded-t-[2.5rem] bg-white shadow-2xl transition-all duration-300 ease-in-out ${
+          isVisible ? "translate-y-0" : "translate-y-full"
+        } ${isExpanded ? "h-[calc(100dvh-20px)]" : "h-[550px]"}`}
       >
 
         <div className="absolute inset-x-0 top-0 z-20 flex flex-col pointer-events-none">
@@ -146,12 +144,14 @@ export default function ProductPage({ product, activeLang, onClose }: ProductPag
         >
           <Overview product={product} activeLang={activeLang} />
 
+          {/* 🌟 تمرير activeLang هنا لحل مشكلة TypeScript وتفعيل الترجمة */}
           <Modifiers
             quantity={quantity}
             setQuantity={setQuantity}
             modifiers={product.modifier_groups || []}
             selections={selections}
             setSelections={setSelections}
+            activeLang={activeLang}
           />
 
           <Tail finalPrice={finalPrice} onAddToCart={handleAddToCart} />
