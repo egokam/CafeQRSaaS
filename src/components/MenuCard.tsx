@@ -1,7 +1,7 @@
 "use client";
 
 import { ImageOff, Plus } from "lucide-react";
-import { useCart } from "../store/useCart";
+import { useCart, type CartItem } from "../store/useCart";
 
 type MenuCardProduct = {
   id: string;
@@ -27,12 +27,17 @@ export default function MenuCard({ product, lang }: { product: MenuCardProduct, 
                       lang === "fr" && product.description_fr ? product.description_fr :
                       product.description_ar || product.description_en || product.description_fr;
 
-  const cartProduct = {
-    ...product,
-    image_url: product.image_url || "",
-    name_ar: product.name_ar || name,
+  // البناء الدقيق المطابق لـ CartItem لتجنب أي أخطاء وقت التشغيل
+  const cartProduct: CartItem = {
+    id: product.id, 
+    product_id: product.id,
+    name_ar: product.name_ar || product.name_en || product.name_fr || "Item",
+    name_en: product.name_en || undefined,
+    name_fr: product.name_fr || undefined,
     price: Number(product.price),
     quantity: 1,
+    image_url: product.image_url || "",
+    modifiers: {},
   };
 
   return (
