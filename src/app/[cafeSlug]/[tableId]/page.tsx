@@ -49,6 +49,30 @@ export type Category = {
   name_fr?: string | null;
 };
 
+// --- أنواع التعديلات الجديدة (Modifiers Types) ---
+export type ModifierType = "single_choice" | "multiple_choice" | "incremental" | "slider";
+
+export type ModifierOption = {
+  id: string;
+  modifier_group_id: string;
+  name_ar?: string | null;
+  name_en?: string | null;
+  name_fr?: string | null;
+  price_adjustment: number;
+};
+
+export type ModifierGroup = {
+  id: string;
+  name_ar?: string | null;
+  name_en?: string | null;
+  name_fr?: string | null;
+  type: ModifierType;
+  min_selections: number;
+  max_selections: number;
+  options: ModifierOption[];
+};
+// --------------------------------------------------
+
 export type Product = {
   id: string;
   category_id?: string | null;
@@ -61,6 +85,7 @@ export type Product = {
   description_fr?: string | null;
   image_url?: string | null;
   price: number;
+  modifier_groups?: ModifierGroup[]; // تم إضافة مصفوفة مجموعات التعديل هنا
   [key: string]: unknown;
 };
 

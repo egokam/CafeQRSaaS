@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { X, Edit, Trash2, AlertCircle, Settings2, Loader2, Image as ImageIcon, Link as LinkIcon, Edit2, Plus, ChevronDown, Check, LayoutGrid } from "lucide-react";
+import { X, Edit, Trash2, AlertCircle, Settings2, Loader2, Image as ImageIcon, Link as LinkIcon, Edit2, Plus, ChevronDown, Check, LayoutGrid, SlidersHorizontal, CheckSquare, CircleDot, PlusSquare, Wand2, Search } from "lucide-react";
 import * as Icons from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../actions/auth";
@@ -62,7 +62,6 @@ const compressImageBeforeUpload = (file: File): Promise<File> => {
   });
 };
 
-// 🌟 مكون القائمة المنسدلة المخصص (Custom Dropdown)
 function CustomDropdown({ value, onChange, options, placeholder, disabled, activeLang }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -141,9 +140,17 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   const [showCatModal, setShowCatModal] = useState(false);
   const [isTogglingCat, setIsTogglingCat] = useState<string | null>(null);
 
-  // 🌟 حالات تعديل القسم والتصنيفات الفرعية
   const [editingCategoryData, setEditingCategoryData] = useState<any>(null);
   const [newSubCat, setNewSubCat] = useState("");
+
+  // حالات البحث
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // حالات الإضافات (Modifiers)
+  const [availableModifiers, setAvailableModifiers] = useState<any[]>([]);
+  const [selectedModifiers, setSelectedModifiers] = useState<string[]>([]);
+  const [showModifiersModal, setShowModifiersModal] = useState(false);
+  const [isLoadingModifiers, setIsLoadingModifiers] = useState(false);
 
   const currentCount = products.length;
   const isDiamond = maxMenu >= 9999;
@@ -151,10 +158,12 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   const usagePercent = isDiamond ? 0 : Math.min(100, (currentCount / maxMenu) * 100);
 
   useEffect(() => {
-    if (cafeId) fetchCategoriesData();
+    if (cafeId) {
+      fetchCategoriesData();
+      fetchAvailableModifiers();
+    }
   }, [cafeId]);
 
-  // 🌟 عند تغيير القسم الرئيسي، نقوم بتصفير التصنيف الفرعي المختار
   useEffect(() => {
     setSubCategory("");
   }, [categoryId]);
@@ -166,9 +175,20 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
     setIsLoadingCats(false);
   };
 
+  const fetchAvailableModifiers = async () => {
+    setIsLoadingModifiers(true);
+    const { data } = await supabase
+      .from('modifier_groups')
+      .select('*')
+      .eq('cafe_id', cafeId);
+    if (data) setAvailableModifiers(data);
+    setIsLoadingModifiers(false);
+  };
+
   const resetForm = () => {
     setEditingId(null); setName(""); setNameEn(""); setNameFr(""); setDescription(""); setPrice(""); setCategoryId("");
     setSubCategory(""); setImageFile(null); setImageUrlInput(""); setPreviewUrl(null); setIsValidImage(false); setImageMode('upload');
+    setSelectedModifiers([]);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,27 +202,19 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
     }
   };
 
-  // 🌟 التعامل مع تغيير نوع الصورة (رابط) مع التصحيح التلقائي لروابط Unsplash
   const handleUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let url = e.target.value.trim();
-
-    // تصحيح تلقائي لروابط صفحات Unsplash
     if (url.startsWith('https://unsplash.com/photos/')) {
-      // استخراج المعرف الفريد للصورة من الرابط
       const parts = url.split('/');
       const idPart = parts[parts.length - 1];
-      // معرف الصورة يكون غالباً الجزء الأخير قبل أي بارامترات
       const photoId = idPart.split('?')[0].split('-').pop();
-
       if (photoId) {
-        // تحويله إلى رابط Source API المباشر
         url = `https://source.unsplash.com/${photoId}/800x800`;
       }
     }
-
     setImageUrlInput(url);
     setPreviewUrl(url);
-    setIsValidImage(false); // سيتم تغييره لـ true إذا نجح وسم <img> في تحميله
+    setIsValidImage(false);
   };
 
   const handleAddOrUpdateProduct = async (e: React.FormEvent) => {
@@ -246,7 +258,8 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
         name_ar: name, name_en: nameEn, name_fr: nameFr, description_ar: description,
         price: parseFloat(price), category_id: categoryId,
         sub_category: subCategory.trim() !== "" ? subCategory.trim() : null,
-        category: "none"
+        category: "none",
+        modifier_ids: selectedModifiers
       };
 
       if (finalImageUrl) productData.image_url = finalImageUrl;
@@ -280,9 +293,17 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
   };
 
   const handleEditClick = (product: any) => {
-    setEditingId(product.id); setName(product.name_ar || ""); setNameEn(product.name_en || ""); setNameFr(product.name_fr || "");
-    setDescription(product.description_ar || ""); setPrice(product.price.toString());
-    setCategoryId(product.category_id || ""); setSubCategory(product.sub_category || "");
+    setEditingId(product.id); 
+    setName(product.name_ar || ""); 
+    setNameEn(product.name_en || ""); 
+    setNameFr(product.name_fr || "");
+    setDescription(product.description_ar || ""); 
+    setPrice(product.price.toString());
+    setCategoryId(product.category_id || ""); 
+    setSubCategory(product.sub_category || "");
+    
+    // 🌟 التعديل هنا: قراءة الإضافات من product_modifiers
+    setSelectedModifiers(product.product_modifiers?.map((pm: any) => pm.modifier_group_id) || []);
 
     if (product.image_url) {
       if (product.image_url.includes('supabase.co')) {
@@ -301,7 +322,6 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
       if (dbId) {
         await deleteCategory(dbId);
       } else {
-        // نمرر مصفوفة فارغة للتصنيفات الفرعية عند الإضافة لأول مرة
         await addCategory(cafeId, defCat.name_ar, defCat.name_en, defCat.name_fr, defCat.icon, []);
       }
       await fetchCategoriesData();
@@ -313,7 +333,6 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
     }
   };
 
-  // 🌟 دالة تحديث القسم بالكامل (الاسم والـ Subcategories)
   const handleSaveCategoryEdit = async () => {
     if (!editingCategoryData) return;
     setIsTogglingCat('saving_edit');
@@ -341,9 +360,35 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
     return activeLang === 'ar' ? cat.name_ar : activeLang === 'fr' ? cat.name_fr : cat.name_en;
   };
 
-  // 🌟 استخراج بيانات القسم المحدد في الفورم لمعرفة التصنيفات الفرعية المتاحة له
+  const toggleModifierSelection = (modifierId: string) => {
+    setSelectedModifiers(prev => 
+      prev.includes(modifierId) ? prev.filter(id => id !== modifierId) : [...prev, modifierId]
+    );
+  };
+
+  const getModifierIcon = (type: string) => {
+    switch (type) {
+      case 'single_choice': return <CircleDot size={18} className="text-blue-500" />;
+      case 'multiple_choice': return <CheckSquare size={18} className="text-green-500" />;
+      case 'incremental': return <PlusSquare size={18} className="text-orange-500" />;
+      case 'slider': return <SlidersHorizontal size={18} className="text-red-500" />;
+      default: return <Settings2 size={18} className="text-zinc-500" />;
+    }
+  };
+
   const selectedCategoryData = categories.find(c => c.id === categoryId);
   const availableSubCategories = selectedCategoryData?.subcategories || [];
+
+  // فلترة المنتجات بناءً على البحث
+  const filteredProducts = products.filter((p: any) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (p.name_ar && p.name_ar.toLowerCase().includes(q)) ||
+      (p.name_en && p.name_en.toLowerCase().includes(q)) ||
+      (p.name_fr && p.name_fr.toLowerCase().includes(q))
+    );
+  });
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" dir={dir}>
@@ -385,7 +430,6 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="space-y-1.5"><label className="block text-sm font-bold text-zinc-700">{t.priceLabel}</label><input required type="number" step="0.5" value={price} onChange={(e) => setPrice(e.target.value)} className="w-full border border-border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all" dir="ltr" /></div>
 
-            {/* 🌟 القوائم المنسدلة المخصصة (Custom Dropdowns) */}
             <div className="space-y-1.5">
               <label className="block text-sm font-bold text-zinc-700">{t.categoryLabel}</label>
               <CustomDropdown
@@ -413,6 +457,29 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
                   label: sub
                 }))}
               />
+            </div>
+
+            <div className="col-span-1 sm:col-span-3 space-y-1.5 mt-1">
+              <label className="block text-sm font-bold text-zinc-700">{activeLang === 'ar' ? 'الإضافات والتعديلات' : 'Modifiers'}</label>
+              <div className="flex flex-wrap gap-2 items-center min-h-[46px] border border-border rounded-xl p-2 bg-zinc-50/50">
+                  {selectedModifiers.length === 0 && (
+                      <span className="text-sm text-zinc-400 px-2 font-medium">{activeLang === 'ar' ? 'لم يتم تعيين أي إضافات' : 'No modifiers assigned'}</span>
+                  )}
+                  {selectedModifiers.map(id => {
+                      const mod = availableModifiers.find(m => m.id === id);
+                      if (!mod) return null;
+                      return (
+                          <span key={id} className="text-xs font-bold bg-white border border-border shadow-sm text-zinc-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                              {getModifierIcon(mod.type)}
+                              {activeLang === 'ar' ? mod.name_ar : mod.name_en}
+                              <button type="button" onClick={() => setSelectedModifiers(prev => prev.filter(m => m !== id))} className="ml-1 text-zinc-400 hover:text-red-500 transition-colors"><X size={12}/></button>
+                          </span>
+                      );
+                  })}
+                  <button type="button" onClick={() => setShowModifiersModal(true)} className="ml-auto flex items-center gap-1.5 text-xs font-bold bg-primary/10 text-primary hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors">
+                      <Wand2 size={14} /> {activeLang === 'ar' ? 'تعيين' : 'Assign'}
+                  </button>
+              </div>
             </div>
           </div>
 
@@ -471,53 +538,80 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
       </div>
 
       <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-border">
-        <div className="flex items-center justify-between mb-4 border-b pb-4">
-          <h2 className="text-xl font-bold">{t.currentProducts}</h2>
-          <div className="text-sm font-bold text-muted-foreground flex items-center gap-2" dir="ltr">{currentCount} / {isDiamond ? "♾️" : maxMenu}</div>
+        {/* 🌟 إضافة مربع البحث ضمن ترويسة قائمة المنتجات */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 border-b pb-4 gap-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold">{t.currentProducts}</h2>
+            <div className="text-sm font-bold text-muted-foreground flex items-center gap-2" dir="ltr">{currentCount} / {isDiamond ? "♾️" : maxMenu}</div>
+          </div>
+          
+          <div className="relative w-full sm:w-72 shrink-0">
+            <Search size={16} className={`absolute top-1/2 -translate-y-1/2 text-muted-foreground ${activeLang === 'ar' ? 'right-3' : 'left-3'}`} />
+            <input
+              type="text"
+              placeholder={activeLang === 'ar' ? 'بحث عن منتج...' : 'Search products...'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={`w-full border border-border rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 transition-all ${activeLang === 'ar' ? 'pr-10 pl-4' : 'pl-10 pr-4'}`}
+            />
+          </div>
         </div>
+
         {!isDiamond && (
           <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-6">
             <div className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? 'bg-red-500' : 'bg-primary'}`} style={{ width: `${usagePercent}%` }} />
           </div>
         )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {products.map((product: any) => (
-            <div key={product.id} className="flex gap-4 border border-border/50 p-3 rounded-2xl items-center bg-muted/10">
-              <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-muted relative group">
-                <img src={product.image_url || ''} alt={product.name_ar} className="w-full h-full object-cover" />
-                {product.image_url?.includes('unsplash') && (
-                  <div className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-md backdrop-blur-sm" title="Unsplash Link">
-                    <LinkIcon size={10} />
-                  </div>
-                )}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-sm">{activeLang === 'en' && product.name_en ? product.name_en : activeLang === 'fr' && product.name_fr ? product.name_fr : product.name_ar}</h3>
-                <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  <span className="text-[10px] font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded-md truncate max-w-[80px]">
-                    {getCategoryName(product.category_id)}
-                  </span>
-                  {product.sub_category && (
-                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
-                      {product.sub_category}
-                    </span>
+          {filteredProducts.length === 0 ? (
+            <div className="col-span-full py-10 text-center text-muted-foreground font-medium text-sm">
+              {activeLang === 'ar' ? 'لم يتم العثور على أي منتج يطابق بحثك.' : 'No products match your search.'}
+            </div>
+          ) : (
+            filteredProducts.map((product: any) => (
+              <div key={product.id} className="flex gap-4 border border-border/50 p-3 rounded-2xl items-center bg-muted/10">
+                {/* 🌟 إصلاح خطأ وسم الصورة (empty src attribute) هنا */}
+                <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden bg-muted relative group flex items-center justify-center">
+                  {product.image_url ? (
+                    <img src={product.image_url} alt={product.name_ar || 'Product'} className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageIcon size={24} className="text-zinc-400 opacity-50" />
                   )}
-                  <p className="text-sm text-primary font-bold w-full mt-1" dir="ltr">{product.price} MAD</p>
+                  {product.image_url?.includes('unsplash') && (
+                    <div className="absolute top-1 right-1 bg-black/60 text-white p-1 rounded-md backdrop-blur-sm" title="Unsplash Link">
+                      <LinkIcon size={10} />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1">
+                  <h3 className="font-bold text-sm">{activeLang === 'en' && product.name_en ? product.name_en : activeLang === 'fr' && product.name_fr ? product.name_fr : product.name_ar}</h3>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    <span className="text-[10px] font-bold bg-muted text-muted-foreground px-2 py-0.5 rounded-md truncate max-w-[80px]">
+                      {getCategoryName(product.category_id)}
+                    </span>
+                    {product.sub_category && (
+                      <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-md">
+                        {product.sub_category}
+                      </span>
+                    )}
+                    <p className="text-sm text-primary font-bold w-full mt-1" dir="ltr">{product.price} MAD</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => handleEditClick(product)} className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"><Edit size={18} /></button>
+                  <button onClick={() => handleDelete(product.id, product.image_url)} className="w-10 h-10 bg-red-50 text-red-600 rounded-full flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors"><Trash2 size={18} /></button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => handleEditClick(product)} className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"><Edit size={18} /></button>
-                <button onClick={() => handleDelete(product.id, product.image_url)} className="w-10 h-10 bg-red-50 text-red-600 rounded-full flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors"><Trash2 size={18} /></button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
       {showCatModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-[2rem] w-full max-w-2xl shadow-2xl relative overflow-hidden flex flex-col h-[90vh] md:h-[650px]">
-
             <div className="p-6 border-b border-zinc-200 flex justify-between items-center bg-zinc-50 shrink-0">
               <h3 className="text-xl font-black text-zinc-900 flex items-center gap-2">
                 <Settings2 className="text-primary" />
@@ -532,7 +626,6 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
               {isLoadingCats ? (
                 <div className="flex justify-center items-center h-full"><Loader2 size={32} className="animate-spin text-zinc-400" /></div>
               ) : editingCategoryData ? (
-                // 🌟 واجهة تعديل القسم والتصنيفات الفرعية
                 <div className="space-y-6 max-w-lg mx-auto animate-in slide-in-from-right-4 duration-300">
                   <div className="space-y-3">
                     <label className="text-sm font-bold text-zinc-700 block">{activeLang === 'ar' ? 'اسم القسم (لغات متعددة)' : 'Category Name (Multi-lang)'}</label>
@@ -641,7 +734,6 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
                         </div>
 
                         <div className="flex items-center gap-3">
-                          {/* 🌟 زر التعديل يظهر فقط للأقسام المفعلة */}
                           {isActive && !isProcessing && (
                             <button
                               onClick={() => setEditingCategoryData(dbCategory)}
@@ -665,6 +757,67 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
           </div>
         </div>
       )}
+
+      {/* 🌟 نافذة تعيين الإضافات (Modifiers Modal) */}
+      {showModifiersModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] w-full max-w-lg shadow-2xl relative overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="p-6 border-b border-zinc-200 flex justify-between items-center bg-zinc-50 shrink-0">
+              <h3 className="text-xl font-black text-zinc-900 flex items-center gap-2">
+                <Wand2 className="text-primary" />
+                {activeLang === 'ar' ? 'تعيين الإضافات والتعديلات' : 'Assign Modifiers'}
+              </h3>
+              <button onClick={() => setShowModifiersModal(false)} className="bg-white shadow-sm border border-zinc-200 text-zinc-500 hover:text-zinc-900 p-2 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 bg-white custom-scrollbar space-y-4">
+              {isLoadingModifiers ? (
+                <div className="flex justify-center items-center py-10"><Loader2 size={32} className="animate-spin text-zinc-400" /></div>
+              ) : availableModifiers.length === 0 ? (
+                <div className="text-center py-10 text-zinc-500 font-medium text-sm">
+                  {activeLang === 'ar' ? 'لا توجد أي إضافات معدة مسبقاً. قم بإضافتها من قسم الإضافات أولاً.' : 'No modifiers created yet.'}
+                </div>
+              ) : (
+                availableModifiers.map((mod: any) => {
+                  const isSelected = selectedModifiers.includes(mod.id);
+                  return (
+                    <div 
+                      key={mod.id} 
+                      onClick={() => toggleModifierSelection(mod.id)}
+                      className={`flex items-center justify-between p-4 border rounded-2xl cursor-pointer transition-colors ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 bg-white'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? 'bg-primary text-white' : 'bg-zinc-100 text-zinc-500'}`}>
+                          {getModifierIcon(mod.type)}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className={`font-bold text-sm ${isSelected ? 'text-primary' : 'text-zinc-900'}`}>
+                            {activeLang === 'ar' ? mod.name_ar : mod.name_en}
+                          </span>
+                          <span className="text-xs font-bold text-zinc-400 uppercase mt-0.5">
+                            {mod.type.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </div>
+                      <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${isSelected ? 'bg-primary border-primary text-white' : 'border-zinc-300'}`}>
+                        {isSelected && <Check size={14} strokeWidth={4} />}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            <div className="p-4 border-t border-zinc-200 bg-zinc-50">
+              <button onClick={() => setShowModifiersModal(false)} className="w-full bg-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-transform active:scale-[0.98]">
+                {activeLang === 'ar' ? 'تأكيد وحفظ التعيين' : 'Confirm Selection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

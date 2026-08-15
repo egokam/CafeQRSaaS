@@ -101,9 +101,11 @@ function normalizeOrderItems(items: unknown) {
   if (!Array.isArray(items)) return [];
 
   return items
-    .map((item: OrderInputItem) => ({
-      id: String(item?.id || ""),
+    .map((item: any) => ({
+      // الاعتماد على product_id الحقيقي للبحث في قاعدة البيانات، وإلا العودة لـ id
+      id: String(item?.product_id || item?.id || ""),
       quantity: Math.max(1, Math.min(99, Number(item?.quantity || 1))),
+      modifiers: typeof item?.modifiers === 'object' && item.modifiers !== null ? item.modifiers : {},
     }))
     .filter((item) => item.id);
 }
@@ -217,7 +219,7 @@ export async function signUpNewCafe(
       slug: cafeSlug,
       owner_email: email,
       owner_auth_id: authData.user.id,
-      plan_type: "silver", 
+      plan_type: "silver",
       billing_cycle: "monthly",
       subscription_status: "pending_verification",
       max_cashiers: 1,
@@ -316,7 +318,7 @@ export async function updateCafeSettings(
     if (adminPin && adminPin.trim() !== "") {
       updates.admin_pin = adminPin;
     }
-    
+
     if (cashierPin && cashierPin.trim() !== "") {
       updates.cashier_pin = cashierPin;
     }
@@ -362,8 +364,33 @@ export async function adminAddProduct(productData: any) {
       }
     }
 
-    const { error } = await supabaseAdmin.from("products").insert([productData]);
-    if (error) throw error;
+    // استخراج الإضافات وحذفها من الكائن الأساسي
+    const modifierIds = Array.isArray(productData.modifier_ids) ? productData.modifier_ids : [];
+    delete productData.modifier_ids;
+
+    // إضافة المنتج وجلب المعرّف الخاص به
+    const { data: insertedProduct, error: productError } = await supabaseAdmin
+      .from("products")
+      .insert([productData])
+      .select("id")
+      .single();
+
+    if (productError || !insertedProduct) throw productError || new Error("Failed to insert product");
+
+    // إدراج الروابط في جدول product_modifiers إذا تم تحديد إضافات
+    if (modifierIds.length > 0) {
+      const modifierInserts = modifierIds.map((modId: string, index: number) => ({
+        product_id: insertedProduct.id,
+        modifier_group_id: modId,
+        position_order: index
+      }));
+
+      const { error: modError } = await supabaseAdmin
+        .from("product_modifiers")
+        .insert(modifierInserts);
+
+      if (modError) throw modError;
+    }
 
     return { success: true };
   } catch (error: any) {
@@ -382,8 +409,44 @@ export async function adminUpdateProduct(id: string, productData: Record<string,
 
     if (fetchError || !product) throw fetchError || new Error("Product not found");
 
-    const { error } = await supabaseAdmin.from("products").update(productData).eq("id", id);
-    if (error) throw error;
+    // التحقق من وجود الإضافات في الطلب واستخراجها
+    const hasModifiersUpdate = 'modifier_ids' in productData;
+    const modifierIds = Array.isArray(productData.modifier_ids) ? productData.modifier_ids : [];
+    delete productData.modifier_ids;
+
+    // تحديث البيانات الأساسية للمنتج
+    const { error: updateError } = await supabaseAdmin
+      .from("products")
+      .update(productData)
+      .eq("id", id);
+
+    if (updateError) throw updateError;
+
+    // تحديث روابط الإضافات في حال تم إرسالها
+    if (hasModifiersUpdate) {
+      // حذف الروابط القديمة
+      const { error: delError } = await supabaseAdmin
+        .from("product_modifiers")
+        .delete()
+        .eq("product_id", id);
+
+      if (delError) throw delError;
+
+      // إدراج الروابط الجديدة
+      if (modifierIds.length > 0) {
+        const modifierInserts = modifierIds.map((modId: string, index: number) => ({
+          product_id: id,
+          modifier_group_id: modId,
+          position_order: index
+        }));
+
+        const { error: modError } = await supabaseAdmin
+          .from("product_modifiers")
+          .insert(modifierInserts);
+
+        if (modError) throw modError;
+      }
+    }
 
     return { success: true };
   } catch (error: any) {
@@ -464,7 +527,7 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
       const payload = JSON.parse(atob(token.split('.')[1]));
       console.log("🚨 TRUTH SERUM - Server is currently acting as:", payload.role);
     }
-    
+
     const { data: existing, error: selectError } = await supabaseAdmin
       .from("tables")
       .select("id")
@@ -579,7 +642,7 @@ export async function getCashierCafeBySlug(cafeSlug: string) {
   const { data, error } = await supabaseAdmin
     .from("cafes")
     // 🌟 تمت إضافة 'name' إلى الاستعلام هنا
-    .select("id, name, plan_type, max_cashiers, is_white_label") 
+    .select("id, name, plan_type, max_cashiers, is_white_label")
     .eq("slug", cafeSlug)
     .single();
 
@@ -740,9 +803,9 @@ export async function adminDeleteTable(tableId: string) {
 }
 
 export async function loginCashierWithDevice(
-  cafeSlug: string, 
-  pin: string, 
-  deviceId: string, 
+  cafeSlug: string,
+  pin: string,
+  deviceId: string,
   deviceName: string
 ) {
   const { data: cafe, error: cafeError } = await supabaseAdmin
@@ -792,7 +855,7 @@ export async function loginCashierWithDevice(
 
   if (device.status === 'approved') {
     await supabaseAdmin.from("pos_devices").update({ last_active: new Date().toISOString() }).eq("id", device.id);
-    
+
     await setRoleCookie("cashier", cafe.id);
     return { success: true, cafeId: cafe.id };
   }
@@ -835,9 +898,9 @@ export async function updateDeviceStatus(cafeId: string, deviceId: string, newSt
         .eq("status", "approved");
 
       if (count !== null && count >= maxAllowed) {
-        return { 
-          success: false, 
-          error: `لقد استهلكت جميع الأجهزة المتاحة (${maxAllowed}). قم بالترقية أو حظر جهاز قديم أولاً.` 
+        return {
+          success: false,
+          error: `لقد استهلكت جميع الأجهزة المتاحة (${maxAllowed}). قم بالترقية أو حظر جهاز قديم أولاً.`
         };
       }
     }

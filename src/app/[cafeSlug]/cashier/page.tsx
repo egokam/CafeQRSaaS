@@ -70,13 +70,24 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [posCategory, setPosCategory] = useState<string>("ALL");
   const [isSubmittingPos, setIsSubmittingPos] = useState(false);
 
-  const getProductName = (item: any) => {
-    if (activeLang === "ar") return item.name_ar;
-    if (activeLang === "fr") return item.name_fr || item.name_en || item.name_ar;
-    return item.name_en || item.name_ar;
+  // 🌟 استخراج البيانات والتحليل الذكي لاسم المنتج والإضافات
+  const parseProductData = (item: any) => {
+    let fullName = "";
+    if (activeLang === "ar") fullName = item.name_ar || "";
+    else if (activeLang === "fr") fullName = item.name_fr || item.name_en || item.name_ar || "";
+    else fullName = item.name_en || item.name_ar || "";
+
+    const splitIndex = fullName.indexOf(" (+ ");
+    if (splitIndex !== -1) {
+      const baseName = fullName.substring(0, splitIndex).trim();
+      const modsStr = fullName.substring(splitIndex + 4, fullName.length - 1); 
+      const modsList = modsStr.split(/،\s*|,\s*/).filter(Boolean);
+      return { baseName, modsList, fullName };
+    }
+    
+    return { baseName: fullName, modsList: [], fullName };
   };
 
-  // 🌟 نظام الاستعلام المباشر من قاعدة البيانات لقتل كاش Next.js نهائياً
   const fetchOrders = async (cId: string) => {
     const { data, error } = await supabase
       .from('orders')
@@ -486,13 +497,13 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                       className="bg-white rounded-2xl border border-border overflow-hidden hover:border-primary hover:shadow-md transition-all cursor-pointer flex flex-col group active:scale-95 aspect-square"
                     >
                       <div className="relative h-[65%] w-full bg-muted overflow-hidden shrink-0">
-                        <img src={p.image_url} alt={getProductName(p)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                        <img src={p.image_url} alt={parseProductData(p).baseName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                         <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                           <div className="bg-primary text-white rounded-full p-2 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform"><Plus size={20} /></div>
                         </div>
                       </div>
                       <div className="h-[35%] p-2 flex flex-col items-center justify-center text-center shrink-0">
-                        <h4 className="font-bold text-[10px] sm:text-xs line-clamp-1 w-full leading-tight">{getProductName(p)}</h4>
+                        <h4 className="font-bold text-[10px] sm:text-xs line-clamp-1 w-full leading-tight">{parseProductData(p).baseName}</h4>
                         <span className="font-black text-primary text-[11px] sm:text-sm mt-0.5 block tracking-tight" dir="ltr">{formatMAD(p.price)}</span>
                       </div>
                     </div>
@@ -525,16 +536,19 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                         <span className="text-sm font-bold">{t.clickToAdd}</span>
                       </div>
                     ) : (
-                      cartItemsArray.map((item: any) => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-white border-2 rounded-2xl shadow-sm">
-                          <div className="flex-1 truncate pr-3 font-bold text-sm">{getProductName(item)}</div>
-                          <div className="flex items-center gap-3 shrink-0" dir="ltr">
-                            <button onClick={() => decFromPos(item.id)} className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center hover:bg-red-100 hover:text-red-600 font-black text-lg transition-colors">-</button>
-                            <span className="w-4 text-center font-black">{item.quantity}</span>
-                            <button onClick={() => addToPos(item)} className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center font-black text-lg hover:bg-primary/90 transition-colors">+</button>
+                      cartItemsArray.map((item: any) => {
+                        const { baseName } = parseProductData(item);
+                        return (
+                          <div key={item.id} className="flex items-center justify-between p-3 bg-white border-2 rounded-2xl shadow-sm">
+                            <div className="flex-1 truncate pr-3 font-bold text-sm">{baseName}</div>
+                            <div className="flex items-center gap-3 shrink-0" dir="ltr">
+                              <button onClick={() => decFromPos(item.id)} className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center hover:bg-red-100 hover:text-red-600 font-black text-lg transition-colors">-</button>
+                              <span className="w-4 text-center font-black">{item.quantity}</span>
+                              <button onClick={() => addToPos(item)} className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center font-black text-lg hover:bg-primary/90 transition-colors">+</button>
+                            </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
 
@@ -579,16 +593,35 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 </div>
               </div>
 
-              <div className="space-y-2 mb-8 min-h-[120px]">
-                {order.items.map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-center bg-muted/30 p-2.5 rounded-xl border">
-                    <div className="flex items-center gap-3">
-                      <span className="bg-primary text-white w-7 h-7 flex items-center justify-center rounded-lg font-bold text-sm" dir="ltr">x{item.quantity}</span>
-                      <span className="font-bold">{getProductName(item)}</span>
+              {/* 🌟 تصميم جديد كلياً لعنصر الطلب لإظهار الإضافات كشـارات (Badges) */}
+              <div className="space-y-3 mb-8 min-h-[120px]">
+                {order.items.map((item: any, idx: number) => {
+                  const { baseName, modsList } = parseProductData(item);
+                  return (
+                    <div key={idx} className="flex flex-col bg-muted/20 p-3 rounded-xl border border-border/50">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="flex items-start gap-3">
+                          <span className="bg-primary text-white w-7 h-7 shrink-0 flex items-center justify-center rounded-lg font-bold text-sm mt-0.5" dir="ltr">x{item.quantity}</span>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-base text-foreground leading-tight mt-1">{baseName}</span>
+                            {modsList.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                {modsList.map((mod, i) => (
+                                  <span key={i} className="text-[10px] bg-white border border-border shadow-sm px-2 py-0.5 rounded-md text-muted-foreground font-bold leading-tight">
+                                    {mod}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <button onClick={() => markOutOfStock(item.product_id || item.id, baseName)} className="text-red-500 bg-red-50 p-2 rounded-lg hover:bg-red-500 hover:text-white transition-colors shrink-0 mt-0.5">
+                          <AlertOctagon size={18} />
+                        </button>
+                      </div>
                     </div>
-                    <button onClick={() => markOutOfStock(item.id, getProductName(item))} className="text-red-500 bg-red-50 p-2 rounded-lg hover:bg-red-500 hover:text-white transition-colors"><AlertOctagon size={18} /></button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <div className="grid grid-cols-2 gap-3 mt-auto">
@@ -626,6 +659,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
       </div>
 
+      {/* 🌟 تحديث قالب الطباعة لترتيب الإضافات بشكل احترافي على الورق */}
       {printOrder && (
         <div className="print-only hidden font-mono text-black bg-white w-full max-w-[300px] mx-auto p-4 text-sm" dir={dir}>
           <div className="text-center pb-4 border-b-2 border-dashed border-gray-400 mb-4">
@@ -639,12 +673,22 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           <div className="border-b-2 border-dashed border-gray-400 pb-4 mb-4">
             <table className="w-full text-sm">
               <tbody>
-                {printOrder.items.map((item: any, i: number) => (
-                  <tr key={i}>
-                    <td className="py-1 font-bold">{getProductName(item)}</td>
-                    <td className={`font-extrabold ${activeLang === 'ar' ? 'text-left' : 'text-right'}`}>x{item.quantity}</td>
-                  </tr>
-                ))}
+                {printOrder.items.map((item: any, i: number) => {
+                  const { baseName, modsList } = parseProductData(item);
+                  return (
+                    <tr key={i} className="border-b border-gray-200/50 last:border-0">
+                      <td className="py-2 pr-2">
+                        <div className="font-bold text-sm leading-tight">{baseName}</div>
+                        {modsList.length > 0 && (
+                          <div className="text-[10px] text-gray-600 mt-1 leading-tight font-medium">
+                            {modsList.map((m: string) => `+ ${m}`).join('  ')}
+                          </div>
+                        )}
+                      </td>
+                      <td className={`font-extrabold text-base align-top py-2 ${activeLang === 'ar' ? 'text-left' : 'text-right'}`}>x{item.quantity}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

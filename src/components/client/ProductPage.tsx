@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Product, Lang } from "@/app/[cafeSlug]/[tableId]/page";
 import { useCart } from "@/store/useCart";
+import { ArrowLeft } from "lucide-react";
 
-// سنقوم بإنشاء هذه المكونات في الخطوات القادمة
 import Overview from "@/components/client/ProductPage/Overview";
 import Modifiers from "@/components/client/ProductPage/Modifiers";
 import Tail from "@/components/client/ProductPage/Tail";
@@ -17,75 +17,143 @@ interface ProductPageProps {
 
 export default function ProductPage({ product, activeLang, onClose }: ProductPageProps) {
   const { addItem } = useCart();
-  
-  // States لإدارة تفضيلات العميل
+
   const [quantity, setQuantity] = useState(1);
-  const [spicyLevel, setSpicyLevel] = useState(0); // 0: Mild, 1: Medium, 2: Hot
-  const [selectedExtras, setSelectedExtras] = useState<string[]>([]);
+  const [selections, setSelections] = useState<Record<string, number>>({});
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
-  // بيانات وهمية للإضافات مطابقة للتصميم
-  const EXTRAS = [
-    { id: "onion", name: "Onion", price: 0 },
-    { id: "cheese", name: "Extra Cheese", price: 5 },
-    { id: "fries", name: "Extra Fries", price: 10 },
-  ];
+  useEffect(() => {
+    requestAnimationFrame(() => setIsVisible(true));
+  }, []);
 
-  // حساب إجمالي سعر الإضافات المحددة
-  const extrasTotal = selectedExtras.reduce((sum, extraId) => {
-    const extra = EXTRAS.find(e => e.id === extraId);
-    return sum + (extra?.price || 0);
-  }, 0);
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(() => {
+      onClose();
+    }, 300);
+  };
 
-  // السعر النهائي = (السعر الأساسي + سعر الإضافات) × الكمية
-  const finalPrice = (Number(product.price) + extrasTotal) * quantity;
+  const calculateExtrasTotal = () => {
+    let total = 0;
+    const groups = product.modifier_groups || [];
+
+    Object.entries(selections).forEach(([optionId, qty]) => {
+      groups.forEach((group: any) => {
+        // قراءة المصفوفة بالاسم الصحيح القادم من قاعدة البيانات
+        const optionsArray = group.modifier_options || group.options || [];
+        const option = optionsArray.find((opt: any) => opt.id === optionId);
+        if (option) {
+          total += Number(option.price_adjustment) * qty;
+        }
+      });
+    });
+
+    return total;
+  };
+
+  const extrasTotal = calculateExtrasTotal();
+  const unitPrice = Number(product.price) + extrasTotal;
+  const finalPrice = unitPrice * quantity;
 
   const handleAddToCart = () => {
     const productName =
-      activeLang === "ar" && product.name_ar
-        ? product.name_ar
-        : activeLang === "fr" && product.name_fr
-        ? product.name_fr
-        : product.name_en || product.name_fr || product.name_ar || "";
+      activeLang === "ar" && product.name_ar ? product.name_ar
+        : activeLang === "fr" && product.name_fr ? product.name_fr
+          : product.name_en || product.name_fr || product.name_ar || "";
 
-    // إضافة التعديلات إلى اسم المنتج ليراها المطبخ
-    const extrasText = selectedExtras.length > 0 
-      ? ` (+ ${selectedExtras.map(id => EXTRAS.find(e => e.id === id)?.name).join(", ")})` 
-      : "";
+    const getModifiersText = () => {
+      const names: string[] = [];
+      const groups = product.modifier_groups || [];
 
+      Object.entries(selections).forEach(([optionId, qty]) => {
+        groups.forEach((group: any) => {
+          const optionsArray = group.modifier_options || group.options || [];
+          const option = optionsArray.find((opt: any) => opt.id === optionId);
+          if (option) {
+            // استخراج الاسم بأي لغة متوفرة لضمان عدم إرسال نص فارغ
+            const optName = option.name_ar || option.name_en || option.name_fr || "";
+            names.push(qty > 1 ? `${optName} (x${qty})` : optName);
+          }
+        });
+      });
+      return names.length > 0 ? ` (+ ${names.join("، ")})` : "";
+    };
+
+    const modifiersText = getModifiersText();
+
+    const selectionsHash = Object.entries(selections)
+      .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+      .map(([k, v]) => `${k}:${v}`)
+      .join("-");
+
+    const cartItemId = selectionsHash ? `${product.id}-${selectionsHash}` : product.id;
+
+    // 🌟 إرسال الاسم مدمجاً مع الإضافات
     addItem({
-      id: `${product.id}-${selectedExtras.join("-")}-${spicyLevel}`,
-      name_ar: (product.name_ar || productName) + extrasText,
-      name_en: (product.name_en || productName) + extrasText,
-      name_fr: (product.name_fr || productName) + extrasText,
-      price: Number(product.price) + extrasTotal,
+      id: cartItemId,
+      product_id: product.id,
+      name_ar: (product.name_ar || productName) + modifiersText,
+      name_en: (product.name_en || productName) + modifiersText,
+      name_fr: (product.name_fr || productName) + modifiersText,
+      price: unitPrice,
       quantity: quantity,
       image_url: product.image_url || "",
+      modifiers: selections,
     } as any);
 
-    onClose();
+    handleClose();
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollTop = e.currentTarget.scrollTop;
+
+    if (scrollTop > 10 && !isExpanded) {
+      setIsExpanded(true);
+    } else if (scrollTop === 0 && isExpanded) {
+      setIsExpanded(false);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex flex-col bg-black/20 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="mt-12 flex flex-1 flex-col overflow-hidden rounded-t-[2.5rem] bg-white shadow-2xl animate-in slide-in-from-bottom-full duration-300">
-        
-        {/* المحتوى القابل للتمرير */}
-        <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          <Overview product={product} activeLang={activeLang} onClose={onClose} />
-          
-          <Modifiers 
-            quantity={quantity}
-            setQuantity={setQuantity}
-            spicyLevel={spicyLevel}
-            setSpicyLevel={setSpicyLevel}
-            selectedExtras={selectedExtras}
-            setSelectedExtras={setSelectedExtras}
-            availableExtras={EXTRAS}
-          />
+    <div
+      className={`fixed inset-0 z-[200] flex flex-col justify-end bg-black/40 backdrop-blur-md transition-opacity duration-300 ease-in-out ${isVisible ? "opacity-100" : "opacity-0"
+        }`}
+    >
+      <div
+        className={`relative flex w-full flex-col overflow-hidden rounded-t-[2.5rem] bg-white shadow-2xl transition-all duration-300 ease-in-out ${isVisible ? "translate-y-0" : "translate-y-full"
+          } ${isExpanded ? "h-[calc(100dvh-20px)]" : "h-[550px]"}`}
+      >
+
+        <div className="absolute inset-x-0 top-0 z-20 flex flex-col pointer-events-none">
+          <div className="flex items-center bg-white px-5 py-4 pointer-events-auto">
+            <button
+              onClick={handleClose}
+              className="flex items-center justify-center p-1 text-black active:scale-95 transition-transform"
+            >
+              <ArrowLeft size={28} strokeWidth={2.5} />
+            </button>
+          </div>
+          <div className="h-6 w-full bg-gradient-to-b from-white from-50% to-transparent -mt-[1px]"></div>
         </div>
 
-        {/* الشريط السفلي الثابت */}
-        <Tail finalPrice={finalPrice} onAddToCart={handleAddToCart} />
+        <div
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto pt-20 pb-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        >
+          <Overview product={product} activeLang={activeLang} />
+
+          <Modifiers
+            quantity={quantity}
+            setQuantity={setQuantity}
+            modifiers={product.modifier_groups || []}
+            selections={selections}
+            setSelections={setSelections}
+          />
+
+          <Tail finalPrice={finalPrice} onAddToCart={handleAddToCart} />
+        </div>
+
       </div>
     </div>
   );
