@@ -70,12 +70,12 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [posCategory, setPosCategory] = useState<string>("ALL");
   const [isSubmittingPos, setIsSubmittingPos] = useState(false);
 
-  // 🌟 استخراج البيانات والتحليل الذكي لاسم المنتج والإضافات
-  const parseProductData = (item: any) => {
+  // 🌟 استخراج البيانات والتحليل الذكي لاسم المنتج والإضافات بناءً على اللغة المطلوبة
+  const parseProductData = (item: any, lang: string) => {
     let fullName = "";
-    if (activeLang === "ar") fullName = item.name_ar || "";
-    else if (activeLang === "fr") fullName = item.name_fr || item.name_en || item.name_ar || "";
-    else fullName = item.name_en || item.name_ar || "";
+    if (lang === "ar") fullName = item.name_ar || item.name_en || item.name_fr || "";
+    else if (lang === "fr") fullName = item.name_fr || item.name_en || item.name_ar || "";
+    else fullName = item.name_en || item.name_ar || item.name_fr || "";
 
     const splitIndex = fullName.indexOf(" (+ ");
     if (splitIndex !== -1) {
@@ -490,24 +490,27 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 </div>
 
                 <div className="flex-1 overflow-y-auto grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pr-2 custom-scrollbar content-start auto-rows-max">
-                  {products.filter(p => posCategory === 'ALL' || p.category_id === posCategory).map(p => (
-                    <div 
-                      key={p.id} 
-                      onClick={() => addToPos(p)} 
-                      className="bg-white rounded-2xl border border-border overflow-hidden hover:border-primary hover:shadow-md transition-all cursor-pointer flex flex-col group active:scale-95 aspect-square"
-                    >
-                      <div className="relative h-[65%] w-full bg-muted overflow-hidden shrink-0">
-                        <img src={p.image_url} alt={parseProductData(p).baseName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                        <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <div className="bg-primary text-white rounded-full p-2 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform"><Plus size={20} /></div>
+                  {products.filter(p => posCategory === 'ALL' || p.category_id === posCategory).map(p => {
+                    const { baseName } = parseProductData(p, activeLang);
+                    return (
+                      <div 
+                        key={p.id} 
+                        onClick={() => addToPos(p)} 
+                        className="bg-white rounded-2xl border border-border overflow-hidden hover:border-primary hover:shadow-md transition-all cursor-pointer flex flex-col group active:scale-95 aspect-square"
+                      >
+                        <div className="relative h-[65%] w-full bg-muted overflow-hidden shrink-0">
+                          <img src={p.image_url} alt={baseName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                          <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div className="bg-primary text-white rounded-full p-2 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-transform"><Plus size={20} /></div>
+                          </div>
+                        </div>
+                        <div className="h-[35%] p-2 flex flex-col items-center justify-center text-center shrink-0">
+                          <h4 className="font-bold text-[10px] sm:text-xs line-clamp-1 w-full leading-tight">{baseName}</h4>
+                          <span className="font-black text-primary text-[11px] sm:text-sm mt-0.5 block tracking-tight" dir="ltr">{formatMAD(p.price)}</span>
                         </div>
                       </div>
-                      <div className="h-[35%] p-2 flex flex-col items-center justify-center text-center shrink-0">
-                        <h4 className="font-bold text-[10px] sm:text-xs line-clamp-1 w-full leading-tight">{parseProductData(p).baseName}</h4>
-                        <span className="font-black text-primary text-[11px] sm:text-sm mt-0.5 block tracking-tight" dir="ltr">{formatMAD(p.price)}</span>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -537,7 +540,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                       </div>
                     ) : (
                       cartItemsArray.map((item: any) => {
-                        const { baseName } = parseProductData(item);
+                        const { baseName } = parseProductData(item, activeLang);
                         return (
                           <div key={item.id} className="flex items-center justify-between p-3 bg-white border-2 rounded-2xl shadow-sm">
                             <div className="flex-1 truncate pr-3 font-bold text-sm">{baseName}</div>
@@ -593,10 +596,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 </div>
               </div>
 
-              {/* 🌟 تصميم جديد كلياً لعنصر الطلب لإظهار الإضافات كشـارات (Badges) */}
               <div className="space-y-3 mb-8 min-h-[120px]">
                 {order.items.map((item: any, idx: number) => {
-                  const { baseName, modsList } = parseProductData(item);
+                  const { baseName, modsList } = parseProductData(item, activeLang);
                   return (
                     <div key={idx} className="flex flex-col bg-muted/20 p-3 rounded-xl border border-border/50">
                       <div className="flex justify-between items-start gap-2">
@@ -659,25 +661,25 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
       </div>
 
-      {/* 🌟 تحديث قالب الطباعة لترتيب الإضافات بشكل احترافي على الورق */}
       {printOrder && (
-        <div className="print-only hidden font-mono text-black bg-white w-full max-w-[300px] mx-auto p-4 text-sm" dir={dir}>
+        <div className="print-only hidden font-mono text-black bg-white w-full max-w-[300px] mx-auto p-4 text-sm text-left" dir="ltr">
           <div className="text-center pb-4 border-b-2 border-dashed border-gray-400 mb-4">
             <h2 className="text-2xl font-extrabold mb-1">{cafeDataObj?.name || "Cafe"}</h2>
-            <p className="text-xs bg-black text-white py-1 uppercase tracking-widest">{t.printTitle}</p>
+            <p className="text-xs bg-black text-white py-1 uppercase tracking-widest">{TRANSLATIONS['en'].printTitle}</p>
           </div>
-          <div className="mb-4 text-xs space-y-1 font-bold">
-            <p>{t.tableNoLabel} {printOrder.tables?.table_number?.replace('table_', '') || t.directPosBadge}</p>
-            <p>{t.orderNoLabel} #{printOrder.id.split('-')[0]}</p>
+          <div className="mb-4 text-xs space-y-1 font-bold text-left">
+            <p>{TRANSLATIONS['en'].tableNoLabel} {printOrder.tables?.table_number?.replace('table_', '') || TRANSLATIONS['en'].directPosBadge}</p>
+            <p>{TRANSLATIONS['en'].orderNoLabel} #{printOrder.id.split('-')[0]}</p>
           </div>
           <div className="border-b-2 border-dashed border-gray-400 pb-4 mb-4">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm text-left">
               <tbody>
                 {printOrder.items.map((item: any, i: number) => {
-                  const { baseName, modsList } = parseProductData(item);
+                  // 🌟 إجبار الترجمة الإنجليزية دائمًا في إيصال المطبخ
+                  const { baseName, modsList } = parseProductData(item, "en"); 
                   return (
                     <tr key={i} className="border-b border-gray-200/50 last:border-0">
-                      <td className="py-2 pr-2">
+                      <td className="py-2 pr-2 text-left">
                         <div className="font-bold text-sm leading-tight">{baseName}</div>
                         {modsList.length > 0 && (
                           <div className="text-[10px] text-gray-600 mt-1 leading-tight font-medium">
@@ -685,7 +687,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                           </div>
                         )}
                       </td>
-                      <td className={`font-extrabold text-base align-top py-2 ${activeLang === 'ar' ? 'text-left' : 'text-right'}`}>x{item.quantity}</td>
+                      <td className="font-extrabold text-base align-top py-2 text-right">x{item.quantity}</td>
                     </tr>
                   );
                 })}

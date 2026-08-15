@@ -57,45 +57,48 @@ export default function ProductPage({ product, activeLang, onClose }: ProductPag
   const finalPrice = unitPrice * quantity;
 
   const handleAddToCart = () => {
-    const productName =
-      activeLang === "ar" && product.name_ar ? product.name_ar
-        : activeLang === "fr" && product.name_fr ? product.name_fr
-          : product.name_en || product.name_fr || product.name_ar || "";
+    // 🌟 1. استخراج الأسماء الأساسية للمنتج بجميع اللغات
+    const baseNameAr = product.name_ar || product.name_en || "";
+    const baseNameEn = product.name_en || product.name_ar || "";
+    const baseNameFr = product.name_fr || product.name_en || product.name_ar || "";
 
-    const getModifiersText = () => {
+    // 🌟 2. دالة ذكية تبني نص الإضافات بناءً على اللغة الممررة لها
+    const getModifiersText = (lang: string) => {
       const names: string[] = [];
       const groups = product.modifier_groups || [];
-
+      
       Object.entries(selections).forEach(([optionId, qty]) => {
         groups.forEach((group: any) => {
           const optionsArray = group.modifier_options || group.options || [];
           const option = optionsArray.find((opt: any) => opt.id === optionId);
           if (option) {
-            // استخراج الاسم بأي لغة متوفرة لضمان عدم إرسال نص فارغ
-            const optName = option.name_ar || option.name_en || option.name_fr || "";
+            let optName = "";
+            if (lang === 'ar') optName = option.name_ar || option.name_en || option.name_fr || "";
+            else if (lang === 'fr') optName = option.name_fr || option.name_en || option.name_ar || "";
+            else optName = option.name_en || option.name_ar || option.name_fr || "";
+            
             names.push(qty > 1 ? `${optName} (x${qty})` : optName);
           }
         });
       });
-      return names.length > 0 ? ` (+ ${names.join("، ")})` : "";
+      const separator = lang === 'ar' ? '، ' : ', ';
+      return names.length > 0 ? ` (+ ${names.join(separator)})` : "";
     };
-
-    const modifiersText = getModifiersText();
 
     const selectionsHash = Object.entries(selections)
       .sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
       .map(([k, v]) => `${k}:${v}`)
       .join("-");
-
+    
     const cartItemId = selectionsHash ? `${product.id}-${selectionsHash}` : product.id;
 
-    // 🌟 إرسال الاسم مدمجاً مع الإضافات
+    // 🌟 3. إرسال الترجمات الدقيقة كلٌ في حقلها ليتمكن الكاشير من التبديل بينها بحرية
     addItem({
       id: cartItemId,
       product_id: product.id,
-      name_ar: (product.name_ar || productName) + modifiersText,
-      name_en: (product.name_en || productName) + modifiersText,
-      name_fr: (product.name_fr || productName) + modifiersText,
+      name_ar: baseNameAr + getModifiersText("ar"),
+      name_en: baseNameEn + getModifiersText("en"),
+      name_fr: baseNameFr + getModifiersText("fr"),
       price: unitPrice,
       quantity: quantity,
       image_url: product.image_url || "",
