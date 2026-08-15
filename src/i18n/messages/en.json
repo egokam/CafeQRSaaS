@@ -106,7 +106,7 @@
         "qr": "QR Ordering",
         "pos": "POS Workflow",
         "kitchen": "Kitchen Receipt Printing",
-        "admin": "Admin Dashboard",
+        "admin": "Admin Control Center",
         "saas": "Multi-tenant SaaS Architecture",
         "business": "Business Requirements",
         "security": "Security"
@@ -528,7 +528,7 @@
     },
     "admin": {
       "demoBadge": "LIVE SYNC DEMO",
-      "title": "Admin Dashboard ⚙️",
+      "title": "Admin Control Center",
       "subtitle": "Data syncs instantly with kitchen and POS.",
       "tabMenu": "Menu",
       "tabTables": "Tables",

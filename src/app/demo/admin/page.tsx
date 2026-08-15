@@ -22,7 +22,7 @@ const CATEGORIES = Object.keys(CATEGORY_MAP);
 const translations = {
   EN: {
     demoBadge: "LIVE SYNC DEMO",
-    title: "Admin Dashboard ⚙️",
+    title: "Admin Control Center",
     subtitle: "Data syncs instantly with kitchen and POS (serverless!)",
     tabMenu: "Menu",
     tabTables: "Tables",

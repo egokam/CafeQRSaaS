@@ -496,20 +496,24 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         )}
 
         {/* Product Grid */}
-        <div className="grid grid-cols-2 gap-4 px-5 pb-10 pt-2">
+        <div className="flex flex-wrap justify-center gap-4 px-5 pb-10 pt-2">
           {finalFilteredProducts.length === 0 ? (
-            <div className="col-span-2 mt-10 flex flex-col items-center justify-center rounded-3xl p-6 opacity-50">
+            <div className="mt-10 flex w-full flex-col items-center justify-center rounded-3xl p-6 opacity-50">
               <Coffee size={40} className="mb-3 text-gray-400" />
               <p className="text-center font-bold text-gray-500">{t.empty}</p>
             </div>
           ) : (
             finalFilteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                activeLang={activeLang}
-                onClick={() => setSelectedProduct(product)}
-              />
+              <div 
+                key={product.id} 
+                className="w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.67rem)] lg:w-[calc(16.666%-0.84rem)] max-w-[260px] flex-shrink-0"
+              >
+                <ProductCard 
+                  product={product} 
+                  activeLang={activeLang} 
+                  onClick={() => setSelectedProduct(product)} 
+                />
+              </div>
             ))
           )}
         </div>
