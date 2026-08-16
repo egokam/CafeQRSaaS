@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  CreditCard, 
-  CheckCircle2, 
-  Zap, 
-  Shield, 
-  ArrowRight, 
-  Loader2, 
+import {
+  CreditCard,
+  CheckCircle2,
+  Zap,
+  Shield,
+  ArrowRight,
+  Loader2,
   AlertCircle,
   Gem,
   AlertTriangle,
@@ -87,8 +87,10 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       currentPlanBtn: "الباقة الحالية",
       upgradeTo: "طلب الاشتراك في",
       renew: "تجديد",
-      warningTitle: "تنبيه الاشتراك",
-      warningDesc: "تقديم طلب باقة جديدة سيضيف المدة لاشتراكك إذا تم قبوله. هل تريد المتابعة؟",
+      warningTitle: "تنبيه التجديد",
+      warningDesc: "تقديم إيصال جديد سيضيف المدة إلى اشتراكك الحالي إذا تم قبوله. هل تريد المتابعة؟",
+      switchWarningTitle: "تنبيه تغيير الباقة",
+      switchWarningDesc: "تغيير باقتك الحالية (أو دورة الدفع) سيؤدي إلى فقدان المدة المتبقية في اشتراكك القديم وبدء مدة جديدة. هل أنت متأكد من المتابعة؟",
       cancel: "إلغاء",
       proceed: "نعم، المتابعة للدفع",
       bankTransfer: "الدفع عبر التحويل البنكي",
@@ -107,7 +109,42 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       errorMsg: "حدث خطأ أثناء معالجة الإيصال: ",
       alreadyPending: "لديك طلب تفعيل قيد المراجعة بالفعل. يرجى انتظار رد الإدارة قبل تقديم طلب جديد.",
       cancelRequest: "إلغاء الطلب المعلق",
-      cancelConfirm: "هل أنت متأكد من إلغاء طلب التفعيل المعلق؟ لتتمكن من اختيار باقة أخرى؟"
+      cancelConfirm: "هل أنت متأكد من إلغاء طلب التفعيل المعلق؟ لتتمكن من اختيار باقة أخرى؟",
+      plans: {
+        silver: {
+          target: "مثالي للمقاهي الصغيرة والناشئة",
+          features: [
+            "حتى 30 طاولة و 150 عنصراً في القائمة",
+            "جهاز كاشير (POS) واحد لإدارة الطلبات",
+            "ربط طابعة مطبخ/شاشة واحدة",
+            "طلبات QR غير محدودة (بدون عمولة)",
+            "تحديث القائمة فورياً",
+            "تتبع المداخيل اليومية"
+          ]
+        },
+        gold: {
+          target: "للمقاهي المزدحمة",
+          features: [
+            "حتى 100 طاولة وقائمة غير محدودة العناصر",
+            "حتى 3 أجهزة كاشير (POS)",
+            "ربط طابعة مطبخ/شاشة واحدة",
+            "جميع ميزات الباقة الفضية، بالإضافة إلى:",
+            "إحصائيات متقدمة وتحليل للمبيعات",
+            "دعم فني سريع وأولوية عبر واتساب"
+          ]
+        },
+        diamond: {
+          target: "للفروع المتعددة والعمليات الكبيرة",
+          features: [
+            "طاولات وعناصر قائمة غير محدودة",
+            "أجهزة كاشير وطابعات مطبخ غير محدودة",
+            "رابط مخصص (مثال: menu.yourcafe.ma)",
+            "إدخال بيانات القائمة وإعداد النظام من طرفنا",
+            "دعم نظام الفروع المتعددة",
+            "خط ساخن للطوارئ 24/7"
+          ]
+        }
+      }
     },
     fr: {
       billingAndSub: "Facturation et Abonnement",
@@ -136,8 +173,10 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       currentPlanBtn: "Forfait Actuel",
       upgradeTo: "Demander",
       renew: "Renouveler",
-      warningTitle: "Avertissement d'abonnement",
-      warningDesc: "Soumettre une nouvelle demande ajoutera la durée à votre abonnement si accepté. Voulez-vous continuer ?",
+      warningTitle: "Avis de renouvellement",
+      warningDesc: "Soumettre une nouvelle demande ajoutera la durée à votre abonnement actuel si accepté. Continuer ?",
+      switchWarningTitle: "Avertissement de changement",
+      switchWarningDesc: "Si vous passez à un forfait différent (ou cycle), vous perdrez la période restante de votre ancien forfait. Êtes-vous sûr de continuer ?",
       cancel: "Annuler",
       proceed: "Oui, Payer",
       bankTransfer: "Paiement par Virement Bancaire",
@@ -156,7 +195,42 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       errorMsg: "Une erreur s'est produite : ",
       alreadyPending: "Vous avez déjà une demande en attente. Veuillez patienter la réponse de l'administration.",
       cancelRequest: "Annuler la demande en attente",
-      cancelConfirm: "Êtes-vous sûr de vouloir annuler cette demande en attente ?"
+      cancelConfirm: "Êtes-vous sûr de vouloir annuler cette demande en attente ?",
+      plans: {
+        silver: {
+          target: "Parfait pour les petits cafés",
+          features: [
+            "Jusqu'à 30 tables et 150 articles",
+            "1 Terminal POS pour gérer les commandes",
+            "1 Connexion imprimante/écran cuisine",
+            "Commandes QR illimitées (0% commission)",
+            "Mises à jour instantanées du menu",
+            "Suivi des revenus quotidiens"
+          ]
+        },
+        gold: {
+          target: "Pour les cafés très fréquentés",
+          features: [
+            "Jusqu'à 100 tables & articles illimités",
+            "Jusqu'à 3 Terminaux POS",
+            "1 Connexion imprimante/écran cuisine",
+            "Toutes les fonctionnalités Silver, plus :",
+            "Statistiques de ventes avancées",
+            "Support prioritaire WhatsApp"
+          ]
+        },
+        diamond: {
+          target: "Pour les franchises & grandes opérations",
+          features: [
+            "Tables et articles de menu illimités",
+            "Terminaux POS & Imprimantes cuisine illimités",
+            "Nom de domaine personnalisé (ex: menu.votrecafe.ma)",
+            "Saisie complète du menu par notre équipe",
+            "Architecture multi-succursales prête",
+            "Assistance téléphonique d'urgence 24/7"
+          ]
+        }
+      }
     },
     en: {
       billingAndSub: "Billing & Subscription",
@@ -185,8 +259,10 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       currentPlanBtn: "Current Plan",
       upgradeTo: "Request",
       renew: "Renew",
-      warningTitle: "Subscription Notice",
-      warningDesc: "Submitting a new request will add duration to your sub if accepted. Proceed?",
+      warningTitle: "Renewal Notice",
+      warningDesc: "Submitting a new request will add duration to your current sub if accepted. Proceed?",
+      switchWarningTitle: "Plan Change Notice",
+      switchWarningDesc: "If you switch to a different plan (or billing cycle), you will lose your old plan's remaining period. Are you sure you want to proceed?",
       cancel: "Cancel",
       proceed: "Yes, Proceed",
       bankTransfer: "Bank Transfer Payment",
@@ -205,7 +281,42 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       errorMsg: "An error occurred: ",
       alreadyPending: "You already have a pending activation request. Please wait for the administration's response.",
       cancelRequest: "Cancel pending request",
-      cancelConfirm: "Are you sure you want to cancel this pending request to choose another plan?"
+      cancelConfirm: "Are you sure you want to cancel this pending request to choose another plan?",
+      plans: {
+        silver: {
+          target: "Perfect for small & emerging cafes",
+          features: [
+            "Up to 30 Tables & 150 Menu Items",
+            "1 POS Terminal to manage orders centrally",
+            "1 Kitchen Display/Printer connection",
+            "Unlimited QR orders with 0% commission",
+            "Instant menu updates",
+            "Daily revenue tracking"
+          ]
+        },
+        gold: {
+          target: "For busy cafes needing kitchen sync",
+          features: [
+            "Up to 100 Tables & Unlimited Menu Items",
+            "Up to 3 POS Terminals to speed up checkout",
+            "1 Kitchen Display/Printer connection",
+            "All Silver features, plus:",
+            "Advanced sales insights & analytics",
+            "Priority WhatsApp support"
+          ]
+        },
+        diamond: {
+          target: "For franchises & large operations",
+          features: [
+            "Unlimited Tables & Menu Items",
+            "Unlimited POS Terminals & Kitchen Printers",
+            "Custom domain branding (e.g., menu.yourcafe.ma)",
+            "Done-for-you full menu data entry",
+            "Multi-branch architecture ready",
+            "24/7 direct phone emergency hotline"
+          ]
+        }
+      }
     }
   };
 
@@ -215,48 +326,29 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
     {
       id: "silver",
       name: "Silver",
-      target: "Perfect for small & emerging cafes",
+      target: l.plans.silver.target,
       prices: { monthly: "249", yearly: "2,490" },
       icon: <Shield className="text-zinc-500" size={28} />,
       color: "bg-zinc-50 text-zinc-800 border-zinc-200",
-      features: [
-        "Unlimited QR orders with 0% commission",
-        "1 POS Terminal to manage all tables centrally",
-        "Automatic Kitchen Printing upon POS order confirmation",
-        "Secure Staff PINs to track cashier shifts safely",
-        "Instant menu updates (No more reprinting costs)",
-        "Daily revenue tracking & simple dashboard"
-      ]
+      features: l.plans.silver.features
     },
     {
       id: "gold",
       name: "Gold",
-      target: "For busy cafes needing kitchen sync",
+      target: l.plans.gold.target,
       prices: { monthly: "399", yearly: "3,990" },
       icon: <Zap className="text-amber-500" size={28} />,
       color: "bg-amber-50 text-amber-800 border-amber-300 shadow-amber-100/50",
-      features: [
-        "All Silver features, plus:",
-        "Up to 3 POS Terminals to speed up checkout lines",
-        "Insights to identify best-selling items & peak hours",
-        "Priority WhatsApp support for quick fixes"
-      ]
+      features: l.plans.gold.features
     },
     {
       id: "diamond",
       name: "Diamond",
-      target: "For franchises & large operations",
+      target: l.plans.diamond.target,
       prices: { monthly: "799", yearly: "7,990" },
       icon: <Gem className="text-cyan-500" size={28} />,
       color: "bg-cyan-50 text-cyan-800 border-cyan-300 shadow-cyan-100/50",
-      features: [
-        "All Gold features, plus:",
-        "Unlimited POS terminals & kitchen printers",
-        "Custom domain branding (e.g., menu.yourcafe.ma)",
-        "Done-for-you full menu data entry & system setup",
-        "Multi-branch architecture ready",
-        "24/7 direct phone & WhatsApp emergency hotline"
-      ]
+      features: l.plans.diamond.features
     }
   ];
 
@@ -266,7 +358,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       try {
         const { data: cafeData, error: cafeError } = await supabase
           .from("cafes")
-          .select("plan_type, billing_cycle, subscription_status, subscription_ends_at") 
+          .select("plan_type, billing_cycle, subscription_status, subscription_ends_at")
           .eq("id", cafeId)
           .single();
 
@@ -275,7 +367,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
           setCurrentCycle(cafeData.billing_cycle || "monthly");
           setSelectedCycle((cafeData.billing_cycle as "monthly" | "yearly") || "monthly");
           setSubStatus(cafeData.subscription_status || "active");
-          
+
           if (cafeData.subscription_ends_at) {
             const ends = new Date(cafeData.subscription_ends_at);
             const diffDays = Math.ceil((ends.getTime() - Date.now()) / (1000 * 3600 * 24));
@@ -283,29 +375,21 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
           }
         }
 
-        const { data: pendingReceipts } = await supabase
+        const { data: pendingReceipts, error: receiptError } = await supabase
           .from("payment_receipts")
-          .select("id, requested_plan, requested_cycle")
+          .select("id, requested_plan, requested_cycle, status")
           .eq("cafe_id", cafeId)
-          .eq("status", "pending")
-          .order("created_at", { ascending: false });
-          
+          .in("status", ["pending", "under_review", "processing"])
+          .order("uploaded_at", { ascending: false });
+
+        if (receiptError) {
+          console.error("Receipt error:", receiptError);
+        }
+
         if (pendingReceipts && pendingReceipts.length > 0) {
           const receipt = pendingReceipts[0];
-          
-          if (
-            cafeData?.subscription_status === "active" && 
-            cafeData?.plan_type === receipt.requested_plan && 
-            cafeData?.billing_cycle === receipt.requested_cycle &&
-            daysRemaining > 0
-          ) {
-            await supabase.from("payment_receipts").update({ status: "paid" }).eq("id", receipt.id);
-            setHasPendingReceipt(false);
-            setPendingReceiptId(null);
-          } else {
-            setHasPendingReceipt(true);
-            setPendingReceiptId(receipt.id);
-          }
+          setHasPendingReceipt(true);
+          setPendingReceiptId(receipt.id);
         } else {
           setHasPendingReceipt(false);
           setPendingReceiptId(null);
@@ -317,10 +401,10 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
             .select("rejection_reason")
             .eq("cafe_id", cafeId)
             .eq("status", "rejected")
-            .order("created_at", { ascending: false })
+            .order("uploaded_at", { ascending: false })
             .limit(1)
             .single();
-            
+
           if (rejectedReceipt?.rejection_reason) {
             setRejectionReason(rejectedReceipt.rejection_reason);
           }
@@ -333,14 +417,17 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
     };
 
     if (cafeId) fetchBillingDetails();
-  }, [cafeId, daysRemaining]);
+  }, [cafeId]); 
 
   const isInvalidSub = subStatus === "paused" || daysRemaining < 0;
+
+  // 🌟 الكشف الشامل: هل العملية تعتبر تجديد (نفس الباقة ونفس الدورة) أم تغيير؟
+  const isRenewingModal = pendingPlanId === currentPlan && selectedCycle === currentCycle;
 
   const handleCancelRequest = async () => {
     if (!pendingReceiptId) return;
     if (!confirm(l.cancelConfirm)) return;
-    
+
     setIsUploading(true);
     try {
       await supabase.from("payment_receipts").update({ status: "canceled" }).eq("id", pendingReceiptId);
@@ -359,9 +446,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       return;
     }
 
-    // 🌟 Allow clicking the exact same plan if the subscription is invalid/expired
-    if (planId === currentPlan && selectedCycle === currentCycle && !isInvalidSub) return;
-    
     setPendingPlanId(planId);
 
     if (daysRemaining > 0) {
@@ -456,18 +540,18 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto animate-in fade-in duration-300" dir={dir}>
-      
+
       {hasPendingReceipt && (
         <div className="bg-indigo-50/80 border-2 border-indigo-500/20 p-6 rounded-3xl flex items-start gap-4 shadow-sm animate-in slide-in-from-top-4 relative">
-          <button 
-             disabled={isUploading}
-             onClick={handleCancelRequest}
-             className={`absolute top-4 ${dir === 'rtl' ? 'left-4' : 'right-4'} p-2 text-indigo-400 hover:text-indigo-700 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-full transition-colors disabled:opacity-50`}
-             title={l.cancelRequest}
+          <button
+            disabled={isUploading}
+            onClick={handleCancelRequest}
+            className={`absolute top-4 ${dir === 'rtl' ? 'left-4' : 'right-4'} p-2 text-indigo-400 hover:text-indigo-700 bg-indigo-500/10 hover:bg-indigo-500/20 rounded-full transition-colors disabled:opacity-50`}
+            title={l.cancelRequest}
           >
-             <X size={16} />
+            <X size={16} />
           </button>
-          
+
           <div className="p-3 bg-indigo-500/10 text-indigo-600 rounded-2xl shrink-0">
             <Clock size={28} className="animate-pulse" />
           </div>
@@ -511,7 +595,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
             <p className="text-zinc-500 font-medium text-sm">{l.manageDesc}</p>
           </div>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <div className="bg-zinc-50 px-5 py-3 rounded-2xl border border-zinc-200 text-center flex-1 min-w-[120px]">
             <span className="block text-[10px] font-bold text-zinc-400 mb-1 uppercase tracking-wider">{l.currentPlan}</span>
@@ -522,7 +606,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
               </span>
             </div>
           </div>
-          
+
           <div className={`px-5 py-3 rounded-2xl border text-center flex-1 min-w-[120px] ${isInvalidSub ? 'bg-rose-50 border-rose-200' : 'bg-emerald-50 border-emerald-200'}`}>
             <span className={`block text-[10px] font-bold mb-1 uppercase tracking-wider ${isInvalidSub ? 'text-rose-400' : 'text-emerald-500'}`}>{l.status}</span>
             <div className={`text-lg font-black uppercase tracking-wider ${isInvalidSub ? 'text-rose-600' : 'text-emerald-600'}`}>
@@ -543,22 +627,22 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
       <div className="flex justify-center mt-8 mb-4">
         <div className="bg-white p-1.5 rounded-2xl flex items-center border border-zinc-200 shadow-sm">
           <button
+            disabled={hasPendingReceipt}
             onClick={() => setSelectedCycle("monthly")}
-            className={`px-8 py-3.5 rounded-xl text-sm font-black transition-all ${
-              selectedCycle === "monthly" 
-                ? "bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200/50" 
+            className={`px-8 py-3.5 rounded-xl text-sm font-black transition-all ${selectedCycle === "monthly"
+                ? "bg-zinc-100 text-zinc-900 shadow-sm border border-zinc-200/50"
                 : "text-zinc-400 hover:text-zinc-800 hover:bg-zinc-50 border border-transparent"
-            }`}
+              } ${hasPendingReceipt ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {l.monthly}
           </button>
           <button
+            disabled={hasPendingReceipt}
             onClick={() => setSelectedCycle("yearly")}
-            className={`px-8 py-3.5 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${
-              selectedCycle === "yearly" 
-                ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200" 
+            className={`px-8 py-3.5 rounded-xl text-sm font-black transition-all flex items-center gap-2 ${selectedCycle === "yearly"
+                ? "bg-emerald-50 text-emerald-700 shadow-sm border border-emerald-200"
                 : "text-zinc-400 hover:text-zinc-800 hover:bg-zinc-50 border border-transparent"
-            }`}
+              } ${hasPendingReceipt ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             {l.yearly}
             <span className={`px-2 py-0.5 rounded-full text-[10px] ${selectedCycle === "yearly" ? "bg-emerald-200 text-emerald-800" : "bg-emerald-100 text-emerald-600"}`}>
@@ -572,8 +656,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
         {PLANS.map((plan) => {
           const isActivePlan = currentPlan === plan.id;
           const isExactCurrent = isActivePlan && currentCycle === selectedCycle;
-          
-          // 🌟 الزر يتعطل فقط إذا كان هناك طلب قيد المراجعة. لا يتم تعطيله للباقة الحالية.
           const isDisabled = hasPendingReceipt;
 
           return (
@@ -617,7 +699,6 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
                 ))}
               </div>
 
-              {/* 🌟 الزر الجديد الذي يفرق بين الترقية والتجديد مع إبقائه نشطاً دائمًا */}
               <button
                 disabled={isDisabled}
                 onClick={() => handleInitiateUpgrade(plan.id)}
@@ -644,38 +725,46 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
 
       <PaymentHistory cafeId={cafeId} activeLang={activeLang} dir={dir} />
 
+      {/* 🌟 Warning Modal Update */}
       {showWarningModal && pendingPlanId && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative animate-in zoom-in-95 duration-200" dir={dir}>
-            <button 
-              onClick={() => { setShowWarningModal(false); setPendingPlanId(null); }} 
+            <button
+              onClick={() => { setShowWarningModal(false); setPendingPlanId(null); }}
               className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'} text-zinc-400 hover:text-zinc-700 bg-zinc-100 hover:bg-zinc-200 p-2 rounded-full transition-colors`}
             >
               <X size={20} />
             </button>
-            
-            <div className="w-20 h-20 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center mb-6 mx-auto border border-amber-200/50">
+
+            {/* 🌟 تغيير لون الأيقونة حسب حالة التجديد أو التغيير */}
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-6 mx-auto border ${isRenewingModal ? 'bg-emerald-100 text-emerald-500 border-emerald-200/50' : 'bg-rose-100 text-rose-500 border-rose-200/50'}`}>
               <AlertTriangle size={36} />
             </div>
-            
+
+            {/* 🌟 تغيير العنوان والنص بناءً على الإجراء */}
             <h2 className="text-2xl font-black text-center mb-4 text-zinc-900">
-              {l.warningTitle}
+              {isRenewingModal ? l.warningTitle : l.switchWarningTitle}
             </h2>
-            
+
             <p className="text-zinc-500 text-center text-sm font-bold leading-relaxed mb-8">
-              {l.warningDesc}
+              {isRenewingModal ? l.warningDesc : l.switchWarningDesc}
             </p>
-            
+
             <div className="flex gap-3 mt-4">
-              <button 
-                onClick={() => { setShowWarningModal(false); setPendingPlanId(null); }} 
+              <button
+                onClick={() => { setShowWarningModal(false); setPendingPlanId(null); }}
                 className="flex-1 py-4 font-bold rounded-2xl bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-colors"
               >
                 {l.cancel}
               </button>
-              <button 
-                onClick={proceedToCheckout} 
-                className="flex-1 py-4 font-bold rounded-2xl bg-amber-500 text-white hover:bg-amber-600 transition-colors shadow-lg shadow-amber-500/20 active:scale-95"
+              {/* 🌟 تغيير لون زر الموافقة بناءً على الإجراء */}
+              <button
+                onClick={proceedToCheckout}
+                className={`flex-1 py-4 font-bold rounded-2xl text-white transition-colors shadow-lg active:scale-95 ${
+                  isRenewingModal 
+                    ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20' 
+                    : 'bg-rose-500 hover:bg-rose-600 shadow-rose-500/20'
+                }`}
               >
                 {l.proceed}
               </button>
@@ -684,16 +773,17 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
         </div>
       )}
 
+      {/* Checkout Modal */}
       {showCheckoutModal && pendingPlanId && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-[2rem] p-6 sm:p-8 max-w-lg w-full shadow-2xl relative animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto" dir={dir}>
-            <button 
-              onClick={() => { setShowCheckoutModal(false); setPendingPlanId(null); setFile(null); }} 
+            <button
+              onClick={() => { setShowCheckoutModal(false); setPendingPlanId(null); setFile(null); }}
               className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'} text-zinc-400 hover:text-zinc-700 bg-zinc-100 hover:bg-zinc-200 p-2 rounded-full transition-colors`}
             >
               <X size={20} />
             </button>
-            
+
             <div className={`border-b border-zinc-100 pb-4 mb-6 ${activeLang === 'ar' ? 'pl-8' : 'pr-8'}`}>
               <h3 className="text-xl sm:text-2xl font-black text-zinc-900 flex items-center gap-2">
                 <Banknote className="text-emerald-500" /> {l.bankTransfer}
