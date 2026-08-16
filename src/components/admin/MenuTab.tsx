@@ -9,8 +9,6 @@ import { getCategories, addCategory, updateCategory, deleteCategory } from "../.
 
 // القائمة الثابتة للأقسام
 const DEFAULT_CATEGORIES = [
-  { id: 'cat_promotions', name_en: 'Promotions', name_fr: 'Promotions', name_ar: 'عروض', icon: 'Tag' },
-  { id: 'cat_bundles', name_en: 'Bundles', name_fr: 'Packs', name_ar: 'باقات', icon: 'Package' },
   { id: 'cat_patisserie', name_en: 'Patisserie', name_fr: 'Pâtisserie', name_ar: 'حلويات ومعجنات', icon: 'Croissant' },
   { id: 'cat_hot_coffee', name_en: 'Hot Coffee', name_fr: 'Cafés Chauds', name_ar: 'قهوة ساخنة', icon: 'Coffee' },
   { id: 'cat_tea', name_en: 'Tea', name_fr: 'Thé', name_ar: 'شاي', icon: 'CupSoda' },
