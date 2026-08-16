@@ -578,13 +578,34 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
 }
 
 export async function getAdminCafeBySlug(cafeSlug: string) {
-  const { data, error } = await supabaseAdmin
+  noStore();
+
+  const { data, error, status, statusText } = await supabaseAdmin
     .from("cafes")
     .select("id, name, slug, owner_email, plan_type, billing_cycle, max_cashiers, max_tables, max_menu_items, is_white_label, subscription_ends_at, subscription_status, latitude, longitude")
     .eq("slug", cafeSlug)
     .single();
 
+  console.log("[getAdminCafeBySlug] raw Supabase cafe row", {
+    cafeSlug,
+    status,
+    statusText,
+    row: data,
+  });
+
   if (error || !data) {
+    if (error) {
+      console.error("[getAdminCafeBySlug] Supabase select failed", {
+        cafeSlug,
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        status,
+        statusText,
+      });
+    }
+
     return { success: false, error: "not_found" };
   }
 

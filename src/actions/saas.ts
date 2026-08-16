@@ -7,6 +7,110 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+type CafePlan = "starter" | "silver" | "gold" | "diamond";
+
+type CafePlanLimits = {
+  max_cashiers: number;
+  max_tables: number;
+  max_menu_items: number;
+  is_white_label: boolean;
+  max_kitchens: number;
+};
+
+type CafeUpdatePayload = Record<string, string | number | boolean>;
+
+type SupabaseLoggableError = {
+  message?: string;
+  code?: string;
+  details?: string;
+  hint?: string;
+  status?: number | string;
+  stack?: string;
+};
+
+const PLAN_LIMITS: Record<CafePlan, CafePlanLimits> = {
+  starter: { max_cashiers: 1, max_tables: 30, max_menu_items: 150, is_white_label: false, max_kitchens: 1 },
+  silver: { max_cashiers: 1, max_tables: 30, max_menu_items: 150, is_white_label: false, max_kitchens: 1 },
+  gold: { max_cashiers: 3, max_tables: 100, max_menu_items: 9999, is_white_label: false, max_kitchens: 1 },
+  diamond: { max_cashiers: 9999, max_tables: 9999, max_menu_items: 9999, is_white_label: true, max_kitchens: 99 },
+};
+
+const CAFE_FORCE_UPDATE_COLUMNS =
+  "id, slug, subscription_status, subscription_ends_at, plan_type, billing_cycle, max_cashiers, max_tables, max_menu_items, is_white_label, max_kitchens, latitude, longitude";
+
+const CAFE_FORCE_UPDATE_PAYLOAD_COLUMNS = new Set([
+  "subscription_status",
+  "subscription_ends_at",
+  "plan_type",
+  "billing_cycle",
+  "max_cashiers",
+  "max_tables",
+  "max_menu_items",
+  "is_white_label",
+  "max_kitchens",
+  "latitude",
+  "longitude",
+]);
+
+const CAFE_NUMERIC_COLUMNS = new Set([
+  "max_cashiers",
+  "max_tables",
+  "max_menu_items",
+  "max_kitchens",
+  "latitude",
+  "longitude",
+]);
+
+const normalizeCafePlan = (plan: string): CafePlan => {
+  const normalized = plan?.toLowerCase().trim() as CafePlan;
+  return Object.prototype.hasOwnProperty.call(PLAN_LIMITS, normalized) ? normalized : "silver";
+};
+
+const getCafePlanLimits = (plan: string): CafePlanLimits => PLAN_LIMITS[normalizeCafePlan(plan)];
+
+const logSupabaseError = (context: string, error: SupabaseLoggableError | null | undefined) => {
+  console.error(context, {
+    message: error?.message,
+    code: error?.code,
+    details: error?.details,
+    hint: error?.hint,
+    status: error?.status,
+  });
+};
+
+const parseOptionalCoordinate = (label: string, value?: string | null) => {
+  if (!value || value.trim() === "") return undefined;
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) throw new Error(`Invalid ${label}: ${value}`);
+
+  return parsed;
+};
+
+const normalizeComparableCafeValue = (key: string, value: unknown) => {
+  if (value === undefined || value === null) return value;
+
+  if (key === "subscription_ends_at") {
+    const timestamp = new Date(String(value)).getTime();
+    return Number.isNaN(timestamp) ? value : timestamp;
+  }
+
+  if (CAFE_NUMERIC_COLUMNS.has(key)) return Number(value);
+
+  return value;
+};
+
+const findCafeUpdateMismatches = (updates: CafeUpdatePayload, row: Record<string, unknown>) =>
+  Object.entries(updates).flatMap(([key, expected]) => {
+    const actual = row?.[key];
+    const normalizedExpected = normalizeComparableCafeValue(key, expected);
+    const normalizedActual = normalizeComparableCafeValue(key, actual);
+
+    return normalizedExpected === normalizedActual
+      ? []
+      : [{ column: key, expected, actual }];
+  });
+
 // 1. فحص حالة الاشتراك
 export async function checkCafeSubscription(cafeSlug: string) {
   const { data: cafe, error } = await supabaseAdmin
@@ -153,35 +257,121 @@ export async function forceUpdateCafeSub(
   longitude?: string | null  // 🌟 إضافة متغير خط الطول
 ) {
   try {
-    const updates: any = {
+    const normalizedPlan = normalizeCafePlan(newPlan);
+    const planLimits = getCafePlanLimits(normalizedPlan);
+    const updates: CafeUpdatePayload = {
       subscription_status: newStatus,
       subscription_ends_at: isoDate,
-      plan_type: newPlan,
+      plan_type: normalizedPlan,
       billing_cycle: newCycle,
+      ...planLimits,
     };
 
     // 🌟 تحويل الإحداثيات من نص (String) إلى رقم (Number) قبل حفظها في قاعدة البيانات
-    if (latitude && latitude.trim() !== "") {
-      updates.latitude = parseFloat(latitude);
-    }
-    if (longitude && longitude.trim() !== "") {
-      updates.longitude = parseFloat(longitude);
+    const parsedLatitude = parseOptionalCoordinate("latitude", latitude);
+    const parsedLongitude = parseOptionalCoordinate("longitude", longitude);
+    if (parsedLatitude !== undefined) updates.latitude = parsedLatitude;
+    if (parsedLongitude !== undefined) updates.longitude = parsedLongitude;
+
+    const unknownPayloadColumns = Object.keys(updates).filter(
+      (column) => !CAFE_FORCE_UPDATE_PAYLOAD_COLUMNS.has(column)
+    );
+    const missingLimitColumns = ["max_cashiers", "max_tables", "max_menu_items"].filter(
+      (column) => !(column in updates)
+    );
+
+    if (unknownPayloadColumns.length > 0 || missingLimitColumns.length > 0) {
+      console.error("[forceUpdateCafeSub] Payload/schema mismatch before Supabase update", {
+        cafeId,
+        unknownPayloadColumns,
+        missingLimitColumns,
+        payloadKeys: Object.keys(updates),
+      });
     }
 
-    const { error } = await supabaseAdmin
+    console.log("[forceUpdateCafeSub] Calculated subscription limits", {
+      cafeId,
+      requestedPlan: newPlan,
+      normalizedPlan,
+      planLimits,
+    });
+    console.log("[forceUpdateCafeSub] Supabase cafes.update payload", {
+      cafeId,
+      updates,
+    });
+
+    const { data: existingCafe, error: preflightError } = await supabaseAdmin
       .from("cafes")
-      .update(updates)
-      .eq("id", cafeId);
+      .select(CAFE_FORCE_UPDATE_COLUMNS)
+      .eq("id", cafeId)
+      .maybeSingle();
+
+    if (preflightError) {
+      logSupabaseError("[forceUpdateCafeSub] Preflight cafe lookup failed", preflightError);
+      return { success: false, error: preflightError.message, code: preflightError.code };
+    }
+
+    if (!existingCafe) {
+      console.error("[forceUpdateCafeSub] Preflight found zero cafes. Update would affect 0 rows.", {
+        cafeId,
+        possibleCause: "Missing cafe id, RLS denying SELECT, or inaccessible row.",
+      });
+      return { success: false, error: "Cafe not found or inaccessible" };
+    }
+
+    console.log("[forceUpdateCafeSub] Cafe row before update", existingCafe);
+
+    const { data: updatedCafe, error, count, status, statusText } = await supabaseAdmin
+      .from("cafes")
+      .update(updates, { count: "exact" })
+      .eq("id", cafeId)
+      .select(CAFE_FORCE_UPDATE_COLUMNS)
+      .maybeSingle();
 
     if (error) {
-      console.error("Supabase Force Update Error:", error);
-      return false;
+      logSupabaseError("[forceUpdateCafeSub] Supabase cafes.update failed", error);
+      return { success: false, error: error.message, code: error.code };
     }
 
-    return true;
-  } catch (error) {
-    console.error("Force Update Exception:", error);
-    return false;
+    if (count === 0 || !updatedCafe) {
+      console.error("[forceUpdateCafeSub] Supabase update returned no row", {
+        cafeId,
+        count,
+        status,
+        statusText,
+        possibleCause: "RLS silently blocked UPDATE/RETURNING, the id matched no rows, or a policy denied returned rows.",
+        updates,
+      });
+      return { success: false, error: "Cafe update affected zero rows" };
+    }
+
+    const mismatches = findCafeUpdateMismatches(updates, updatedCafe);
+    if (mismatches.length > 0) {
+      console.error("[forceUpdateCafeSub] Post-update verification mismatch", {
+        cafeId,
+        mismatches,
+        updates,
+        updatedCafe,
+      });
+      return { success: false, error: "Cafe update verification mismatch" };
+    }
+
+    console.log("[forceUpdateCafeSub] Verified updated cafe row", updatedCafe);
+
+    revalidatePath('/ego-owner-9539');
+    if (updatedCafe.slug) revalidatePath(`/${updatedCafe.slug}/admin`);
+
+    return { success: true, cafe: updatedCafe };
+  } catch (error: unknown) {
+    const exception = error as SupabaseLoggableError;
+    console.error("Force Update Exception:", {
+      message: exception?.message,
+      code: exception?.code,
+      details: exception?.details,
+      hint: exception?.hint,
+      stack: exception?.stack,
+    });
+    return { success: false, error: exception?.message || "Force update failed", code: exception?.code };
   }
 }
 
@@ -215,9 +405,8 @@ export async function provisionNewCafe(payload: {
     const endsAt = new Date(Date.now() + payload.trialDays * 24 * 60 * 60 * 1000).toISOString();
     
     // 🌟 حساب القيود الديناميكية
-    let maxC = 1, maxT = 30, maxM = 150, isWL = false;
-    if (payload.planType === 'gold') { maxC = 3; maxT = 100; maxM = 9999; }
-    if (payload.planType === 'diamond') { maxC = 9999; maxT = 9999; maxM = 9999; isWL = true; }
+    const planType = normalizeCafePlan(payload.planType);
+    const planLimits = getCafePlanLimits(planType);
 
     const { data: newCafe, error: dbErr } = await supabaseAdmin.from('cafes').insert([{
       name: payload.name,
@@ -226,16 +415,16 @@ export async function provisionNewCafe(payload: {
       owner_auth_id: authUser.user.id,
       admin_pin: payload.adminPin || "1234",
       cashier_pin: payload.cashierPin || "0000",
-      plan_type: payload.planType,
+      plan_type: planType,
       billing_cycle: payload.billingCycle,
       subscription_status: 'active',
       subscription_ends_at: endsAt,
       can_use_grace: true,
-      max_cashiers: maxC,
-      max_tables: maxT,
-      max_menu_items: maxM,
-      is_white_label: isWL,
-      max_kitchens: payload.planType === 'diamond' ? 99 : 1
+      max_cashiers: planLimits.max_cashiers,
+      max_tables: planLimits.max_tables,
+      max_menu_items: planLimits.max_menu_items,
+      is_white_label: planLimits.is_white_label,
+      max_kitchens: planLimits.max_kitchens
     }]).select().single();
 
     if (dbErr || !newCafe) {

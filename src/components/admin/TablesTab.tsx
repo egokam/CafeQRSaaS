@@ -15,28 +15,33 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
   const [deleteUnderstood, setDeleteUnderstood] = useState(false);
   const [isDeletingTable, setIsDeletingTable] = useState(false);
 
+  // 🌟 حماية القيم وحساب حالات الاستهلاك والتجاوز
+  const safeMaxTables = Number(maxTables) || 30;
   const currentCount = tablesList.length;
-  const isDiamond = maxTables >= 9999;
-  const isLimitReached = !isDiamond && currentCount >= maxTables;
-  const usagePercent = isDiamond ? 0 : Math.min(100, (currentCount / maxTables) * 100);
+  const isDiamond = safeMaxTables >= 9999;
+  
+  const isLimitReached = !isDiamond && currentCount >= safeMaxTables;
+  const isOverage = !isDiamond && currentCount > safeMaxTables; // 🌟 حالة التخفيض (Downgrade Overage)
+  
+  const usagePercent = isDiamond ? 0 : Math.min(100, (currentCount / safeMaxTables) * 100);
 
   const handleGenerateSmartQR = async () => {
     if (!tableNum || !cafeId) return;
 
     if (isLimitReached) {
-      alert(activeLang === 'ar' ? "لقد وصلت للحد الأقصى للطاولات المسموح بها في باقتك." : "Table limit reached. Upgrade your plan.");
+      alert(activeLang === 'ar' ? "العملية مقفلة. يرجى حذف الطاولات الزائدة أو ترقية باقتك." : "Action locked. Delete excess tables or upgrade plan.");
       return;
     }
 
     setIsGeneratingQr(true); setQrReady(false);
     const formattedTableNumber = `table_${tableNum}`;
     
-    // 🌟 نستقبل الآن `tableId` (الـ UUID المشفر) الراجع من قاعدة البيانات
+    // نستقبل الآن `tableId` (الـ UUID المشفر) الراجع من قاعدة البيانات
     const { success, error, tableId } = await adminCheckOrAddTable(cafeId, formattedTableNumber);
     
     if (success && tableId) {
       const baseUrl = window.location.origin;
-      // 🌟 تم تغيير الرابط ليحتوي على الـ UUID بدلاً من رقم الطاولة
+      // تم تغيير الرابط ليحتوي على الـ UUID بدلاً من رقم الطاولة
       setQrUrl(`${baseUrl}/${cafeSlug}/${tableId}`);
       setQrReady(true);
       fetchTables(cafeId);
@@ -115,17 +120,24 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
       <h2 className="text-2xl font-bold mb-2">{t.qrTitle}</h2>
       <p className="text-muted-foreground mb-6 text-sm">{t.qrSub}</p>
 
+      {/* 🌟 إشعار مخصص للحد الأقصى وحالة التجاوز */}
       {isLimitReached && (
-        <div className="mb-6 w-full max-w-sm bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl flex items-start gap-3 text-left" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
+        <div className={`mb-6 w-full max-w-sm p-4 rounded-xl flex items-start gap-3 text-left border ${isOverage ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`} dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
           <AlertCircle size={20} className="shrink-0 mt-0.5" />
           <div>
             <h4 className="font-bold text-sm">
-              {activeLang === 'ar' ? "الحد الأقصى للطاولات" : "Table Limit Reached"}
+              {activeLang === 'ar' 
+                ? (isOverage ? "تجاوز الحد الأقصى للطاولات" : "الحد الأقصى للطاولات") 
+                : (isOverage ? "Table Limit Exceeded" : "Table Limit Reached")}
             </h4>
             <p className="text-xs mt-1 opacity-80">
               {activeLang === 'ar' 
-                ? "لا يمكنك إنشاء طاولات جديدة. يرجى ترقية باقتك."
-                : "You cannot create new tables. Please upgrade your plan."}
+                ? (isOverage 
+                    ? `بسبب تغيير الباقة، أنت تتجاوز الحد المسموح به. يرجى حذف ${currentCount - safeMaxTables} طاولات لتتمكن من إضافة طاولات جديدة.` 
+                    : "لا يمكنك إنشاء طاولات جديدة. يرجى ترقية باقتك.")
+                : (isOverage 
+                    ? `Due to plan change, you are over the limit. Please delete ${currentCount - safeMaxTables} tables to add new ones.` 
+                    : "You cannot create new tables. Please upgrade your plan.")}
             </p>
           </div>
         </div>
@@ -149,14 +161,14 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
           disabled={isGeneratingQr || !tableNum || isLimitReached} 
           className={`text-white py-4 rounded-2xl font-bold flex justify-center items-center gap-2 transition-colors ${
             isLimitReached 
-              ? 'bg-gray-400 cursor-not-allowed' 
+              ? (isOverage ? 'bg-rose-400 cursor-not-allowed' : 'bg-gray-400 cursor-not-allowed')
               : 'bg-primary hover:bg-primary/90 disabled:opacity-50'
           }`}
         >
           {isGeneratingQr ? (
             <><Loader2 className="animate-spin" size={20} /> {t.processing}</>
           ) : isLimitReached ? (
-            "Locked 🔒"
+            isOverage ? "Locked (Overage) 🔒" : "Locked 🔒"
           ) : (
             <><CheckCircle2 size={20} /> {t.generateQrBtn}</>
           )}
@@ -195,16 +207,16 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
           <h3 className="text-xl font-extrabold flex items-center gap-2">
             {activeLang === 'ar' ? 'الطاولات المسجلة حالياً' : activeLang === 'fr' ? 'Tables Enregistrées' : 'Registered Tables'}
           </h3>
-          <div className="flex items-center gap-3 bg-muted/30 px-4 py-2 rounded-xl border border-border">
-            <span className="text-xs font-bold text-muted-foreground uppercase">{activeLang === 'ar' ? 'الاستهلاك' : 'Usage'}:</span>
-            <span className="font-black text-primary font-mono" dir="ltr">{currentCount} / {isDiamond ? "♾️" : maxTables}</span>
+          <div className={`flex items-center gap-3 bg-muted/30 px-4 py-2 rounded-xl border ${isOverage ? 'border-rose-200 bg-rose-50' : 'border-border'}`}>
+            <span className={`text-xs font-bold uppercase ${isOverage ? 'text-rose-500' : 'text-muted-foreground'}`}>{activeLang === 'ar' ? 'الاستهلاك' : 'Usage'}:</span>
+            <span className={`font-black font-mono ${isOverage ? 'text-rose-600' : 'text-primary'}`} dir="ltr">{currentCount} / {isDiamond ? "♾️" : safeMaxTables}</span>
           </div>
         </div>
 
         {!isDiamond && (
           <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden mb-8">
             <div 
-              className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? 'bg-red-500' : 'bg-primary'}`} 
+              className={`h-full rounded-full transition-all duration-500 ${isOverage ? 'bg-rose-500' : isLimitReached ? 'bg-amber-500' : 'bg-primary'}`} 
               style={{ width: `${usagePercent}%` }} 
             />
           </div>
@@ -217,7 +229,7 @@ export default function TablesTab({ cafeId, cafeSlug, cafeName, activeLang, t, t
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {tablesList.map((tItem: any) => (
-              <div key={tItem.id} className="bg-muted/10 border border-border/50 rounded-2xl p-4 flex justify-between items-center hover:bg-muted/30 transition-colors shadow-sm">
+              <div key={tItem.id} className={`bg-muted/10 border border-border/50 rounded-2xl p-4 flex justify-between items-center hover:bg-muted/30 transition-colors shadow-sm ${isOverage ? 'opacity-90' : ''}`}>
                 <div className="flex flex-col items-start">
                   <span className="text-[10px] text-muted-foreground font-bold uppercase">{activeLang === 'ar' ? 'طاولة' : 'Table'}</span>
                   <span className="font-black text-2xl text-foreground font-mono">{tItem.table_number.replace('table_', '')}</span>

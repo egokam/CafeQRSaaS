@@ -572,17 +572,17 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
         {PLANS.map((plan) => {
           const isActivePlan = currentPlan === plan.id;
           const isExactCurrent = isActivePlan && currentCycle === selectedCycle;
-          // 🌟 Button is disabled ONLY if there's a pending receipt or if it's the exact current active (and valid) plan.
-          const isDisabled = hasPendingReceipt || (isExactCurrent && !isInvalidSub);
+          
+          // 🌟 الزر يتعطل فقط إذا كان هناك طلب قيد المراجعة. لا يتم تعطيله للباقة الحالية.
+          const isDisabled = hasPendingReceipt;
 
           return (
-            <div 
-              key={plan.id} 
-              className={`relative flex flex-col p-8 rounded-3xl border-2 transition-all duration-300 ${
-                isExactCurrent 
-                  ? `${plan.color} scale-[1.02] border-opacity-100` 
+            <div
+              key={plan.id}
+              className={`relative flex flex-col p-8 rounded-3xl border-2 transition-all duration-300 ${isExactCurrent
+                  ? `${plan.color} scale-[1.02] border-opacity-100`
                   : "bg-white border-zinc-100 hover:border-zinc-300 hover:shadow-md"
-              } ${(isInvalidSub || hasPendingReceipt) && isExactCurrent ? 'opacity-90 grayscale-[20%]' : ''}`}
+                } ${(isInvalidSub || hasPendingReceipt) && isExactCurrent ? 'opacity-90 grayscale-[20%]' : ''}`}
             >
               {isExactCurrent && (
                 <div className={`absolute -top-4 left-1/2 -translate-x-1/2 text-white text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-sm ${isInvalidSub ? 'bg-rose-500' : 'bg-zinc-900'}`}>
@@ -617,21 +617,21 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
                 ))}
               </div>
 
+              {/* 🌟 الزر الجديد الذي يفرق بين الترقية والتجديد مع إبقائه نشطاً دائمًا */}
               <button
                 disabled={isDisabled}
                 onClick={() => handleInitiateUpgrade(plan.id)}
                 className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-2 transition-all ${
                   isDisabled
-                    ? "bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200" 
+                    ? "bg-zinc-100 text-zinc-400 cursor-not-allowed border border-zinc-200"
+                    : isExactCurrent
+                    ? "bg-emerald-500 text-white hover:bg-emerald-400 active:scale-95 shadow-lg shadow-emerald-500/20 border border-emerald-400/50"
                     : "bg-zinc-900 text-white hover:bg-zinc-800 active:scale-95 shadow-lg shadow-zinc-900/10"
                 }`}
               >
-                {/* 🌟 Dynamic Button Logic */}
                 {hasPendingReceipt ? (
                   l.pending
-                ) : isExactCurrent && !isInvalidSub ? (
-                  l.currentPlanBtn
-                ) : isExactCurrent && isInvalidSub ? (
+                ) : isExactCurrent ? (
                   <>{l.renew} {plan.name} <ArrowRight size={18} className={dir === 'rtl' ? 'rotate-180' : ''} /></>
                 ) : (
                   <>{l.upgradeTo} {plan.name} <ArrowRight size={18} className={dir === 'rtl' ? 'rotate-180' : ''} /></>

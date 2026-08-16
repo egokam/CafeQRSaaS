@@ -6,6 +6,18 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
+// 🌟 Helper function to ensure limits always match the backend source of truth
+function getPlanLimits(planType: string) {
+  if (planType === 'diamond') {
+    return { maxC: 9999, maxT: 9999, maxM: 9999, isWL: true, maxK: 99 };
+  }
+  if (planType === 'gold') {
+    return { maxC: 3, maxT: 100, maxM: 9999, isWL: false, maxK: 1 };
+  }
+  // Silver (Default)
+  return { maxC: 1, maxT: 30, maxM: 150, isWL: false, maxK: 1 };
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -54,27 +66,58 @@ export async function POST(req: Request) {
         const cafeId = receipt.cafe_id;
 
         if (action === "app") {
-          const { data: cafe } = await supabase.from("cafes").select("subscription_status, subscription_ends_at").eq("id", cafeId).single();
+          // 🌟 جلب بيانات المقهى لمعرفة الباقة والدورة الحالية
+          const { data: cafe } = await supabase
+            .from("cafes")
+            .select("subscription_status, subscription_ends_at, plan_type, billing_cycle")
+            .eq("id", cafeId)
+            .single();
+            
           let baseDate = new Date();
-          if (cafe?.subscription_status === 'active' && cafe?.subscription_ends_at) {
+          
+          // 🌟 التحقق: هل هو تجديد لنفس الباقة أم انتقال لباقة جديدة؟
+          const isSamePlan = cafe?.plan_type === receipt.requested_plan && cafe?.billing_cycle === receipt.requested_cycle;
+
+          if (isSamePlan && cafe?.subscription_status === 'active' && cafe?.subscription_ends_at) {
+            // التجديد (نفس الباقة): إضافة المدة إلى الوقت المتبقي
             const currentEndsAt = new Date(cafe.subscription_ends_at);
-            if (currentEndsAt > baseDate) baseDate = currentEndsAt;
+            if (currentEndsAt > baseDate) {
+              baseDate = currentEndsAt;
+            }
+          } else {
+            // تغيير الباقة (ترقية/تخفيض): إسقاط الوقت المتبقي وبدء المدة من اليوم
+            baseDate = new Date();
           }
 
-          if (receipt.requested_cycle === 'yearly') baseDate.setFullYear(baseDate.getFullYear() + 1);
-          else baseDate.setMonth(baseDate.getMonth() + 1);
+          if (receipt.requested_cycle === 'yearly') {
+            baseDate.setFullYear(baseDate.getFullYear() + 1);
+          } else {
+            baseDate.setMonth(baseDate.getMonth() + 1);
+          }
+
+          // 🌟 جلب القيود الخاصة بالباقة المطلوبة
+          const limits = getPlanLimits(receipt.requested_plan);
 
           await supabase.from("payment_receipts").update({ status: "paid" }).eq("id", receiptId);
+          
+          // 🌟 حقن القيود وتحديث البيانات
           await supabase.from("cafes").update({
-            plan_type: receipt.requested_plan, billing_cycle: receipt.requested_cycle,
-            subscription_status: "active", subscription_ends_at: baseDate.toISOString()
+            plan_type: receipt.requested_plan, 
+            billing_cycle: receipt.requested_cycle,
+            subscription_status: "active", 
+            subscription_ends_at: baseDate.toISOString(),
+            max_cashiers: limits.maxC,
+            max_tables: limits.maxT,
+            max_menu_items: limits.maxM,
+            is_white_label: limits.isWL,
+            max_kitchens: limits.maxK
           }).eq("id", cafeId);
 
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ chat_id: chatId, text: `✅ تم تفعيل الحساب وإضافة المدة.` })
+            body: JSON.stringify({ chat_id: chatId, text: `✅ تم تفعيل حساب العميل. ${isSamePlan ? 'تم إضافة المدة للرصيد المتبقي' : 'تم تصفير الرصيد القديم وبدء اشتراك جديد'}.` })
           });
-        } 
+        }
         else if (action === "den") {
           await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
             method: "POST", headers: { "Content-Type": "application/json" },
@@ -190,7 +233,7 @@ export async function POST(req: Request) {
         }
       }
 
-      // Session-based Message Routing (Not a reply, not a command)
+      // Session-based Message Routing
       const { data: botState } = await supabase.from("telegram_bot_state").select("active_cafe_id").eq("chat_id", chatId).single();
       
       if (botState && botState.active_cafe_id) {

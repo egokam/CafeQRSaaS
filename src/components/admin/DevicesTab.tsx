@@ -5,17 +5,20 @@ import { updateDeviceStatus, deletePosDevice } from "../../actions/auth";
 
 export default function DevicesTab({ cafeId, activeLang, t, devicesList, fetchDevices, isLoadingDevices, maxCashiers }: any) {
   
-  // 🌟 استخراج البيانات الحالية للقيود
+  // 🌟 استخراج البيانات الحالية للقيود وحساب حالة التخفيض (Overage)
   const approvedCount = devicesList.filter((d: any) => d.status === 'approved').length;
   const maxLimit = parseInt(maxCashiers, 10) || 1;
-  const isDiamond = maxLimit === 9999;
+  const isDiamond = maxLimit >= 9999;
+  
   const isLimitReached = !isDiamond && approvedCount >= maxLimit;
+  const isOverage = !isDiamond && approvedCount > maxLimit; // 🌟 اكتشاف حالة التجاوز بسبب تغيير الباقة
+  
   const usagePercent = isDiamond ? 0 : Math.min(100, (approvedCount / maxLimit) * 100);
 
   const handleUpdateDeviceStatus = async (deviceId: string, status: 'approved' | 'blocked' | 'pending') => {
     // 🌟 فحص إضافي قبل إرسال الطلب للسيرفر
     if (status === 'approved' && isLimitReached) {
-      alert(activeLang === 'ar' ? "لقد استنفدت الحد الأقصى للأجهزة. يرجى الترقية." : "Device limit reached. Please upgrade.");
+      alert(activeLang === 'ar' ? "العملية مقفلة. يرجى حظر الأجهزة الزائدة أو ترقية باقتك." : "Action locked. Block excess devices or upgrade plan.");
       return;
     }
 
@@ -38,18 +41,24 @@ export default function DevicesTab({ cafeId, activeLang, t, devicesList, fetchDe
         </button>
       </div>
 
-      {/* 🌟 رسالة تنبيه عند الوصول للحد الأقصى */}
+      {/* 🌟 رسالة تنبيه ديناميكية للحد الأقصى أو التجاوز */}
       {isLimitReached && (
-        <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-2xl flex items-start gap-3">
+        <div className={`p-4 rounded-2xl flex items-start gap-3 border ${isOverage ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`} dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
           <AlertCircle size={20} className="shrink-0 mt-0.5" />
           <div>
             <h4 className="font-bold text-sm">
-              {activeLang === 'ar' ? "الحد الأقصى للأجهزة" : "Maximum Devices Reached"}
+              {activeLang === 'ar' 
+                ? (isOverage ? "تجاوز الحد الأقصى للأجهزة" : "الحد الأقصى للأجهزة") 
+                : (isOverage ? "Device Limit Exceeded" : "Maximum Devices Reached")}
             </h4>
             <p className="text-xs mt-1 opacity-80">
               {activeLang === 'ar' 
-                ? "لا يمكنك الموافقة على أجهزة كاشير جديدة. قم بترقية باقتك لإضافة المزيد من الأجهزة، أو قم بحظر جهاز حالي."
-                : "You cannot approve new cashier devices. Upgrade your plan to add more, or block an existing device."}
+                ? (isOverage 
+                    ? `بسبب تغيير الباقة، أنت تتجاوز الحد المسموح به. يرجى حظر ${approvedCount - maxLimit} أجهزة كاشير لتتمكن من الموافقة على أجهزة جديدة.` 
+                    : "لا يمكنك الموافقة على أجهزة كاشير جديدة. قم بترقية باقتك لإضافة المزيد من الأجهزة، أو قم بحظر جهاز حالي.")
+                : (isOverage 
+                    ? `Due to plan change, you are over the limit. Please block ${approvedCount - maxLimit} devices to approve new ones.` 
+                    : "You cannot approve new cashier devices. Upgrade your plan to add more, or block an existing device.")}
             </p>
           </div>
         </div>
@@ -76,16 +85,17 @@ export default function DevicesTab({ cafeId, activeLang, t, devicesList, fetchDe
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      {/* 🌟 زر الموافقة يتغير مظهره في حالة التجاوز */}
                       <button 
                         onClick={() => handleUpdateDeviceStatus(d.id, 'approved')} 
                         disabled={isLimitReached}
                         className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${
                           isLimitReached 
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                            ? (isOverage ? "bg-rose-100 text-rose-500 cursor-not-allowed" : "bg-gray-100 text-gray-400 cursor-not-allowed")
                             : "bg-emerald-50 hover:bg-emerald-500 text-emerald-600 hover:text-white"
                         }`}
                       >
-                        {isLimitReached ? "Locked 🔒" : t.approveBtn}
+                        {isLimitReached ? (isOverage ? "Locked (Overage) 🔒" : "Locked 🔒") : t.approveBtn}
                       </button>
                       <button onClick={() => handleUpdateDeviceStatus(d.id, 'blocked')} className="flex-1 bg-red-50 hover:bg-red-500 text-red-600 hover:text-white py-2 rounded-xl text-xs font-bold transition-colors">{t.blockBtn}</button>
                     </div>
@@ -100,14 +110,14 @@ export default function DevicesTab({ cafeId, activeLang, t, devicesList, fetchDe
             <div className="mb-6 border-b pb-4">
               <h3 className="font-bold flex items-center gap-2 text-emerald-500 mb-2">
                 <Check size={20} /> {t.approvedDevices} 
-                <span className="text-xs text-muted-foreground ml-auto" dir="ltr">({approvedCount} / {isDiamond ? "♾️" : maxLimit})</span>
+                <span className={`text-xs ml-auto ${isOverage ? 'text-rose-500 font-black' : 'text-muted-foreground'}`} dir="ltr">({approvedCount} / {isDiamond ? "♾️" : maxLimit})</span>
               </h3>
               
-              {/* 🌟 شريط التقدم */}
+              {/* 🌟 شريط التقدم يتحول للأحمر في حالة التجاوز */}
               {!isDiamond && (
                 <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                   <div 
-                    className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? 'bg-red-500' : 'bg-emerald-500'}`} 
+                    className={`h-full rounded-full transition-all duration-500 ${isOverage ? 'bg-rose-500' : isLimitReached ? 'bg-amber-500' : 'bg-emerald-500'}`} 
                     style={{ width: `${usagePercent}%` }} 
                   />
                 </div>
@@ -119,11 +129,11 @@ export default function DevicesTab({ cafeId, activeLang, t, devicesList, fetchDe
                 <p className="text-xs text-muted-foreground font-bold text-center py-8">{t.noDevices}</p>
               ) : (
                 devicesList.filter((d: any) => d.status === 'approved').map((d: any) => (
-                  <div key={d.id} className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
+                  <div key={d.id} className={`p-4 border rounded-2xl ${isOverage ? 'bg-rose-50/50 border-rose-100 opacity-90' : 'bg-emerald-50/50 border-emerald-100'}`}>
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="font-bold text-sm">{d.device_name}</p>
-                        <p className="text-[10px] text-emerald-600/70 mt-1">{new Date(d.last_active).toLocaleString()}</p>
+                        <p className={`text-[10px] mt-1 ${isOverage ? 'text-rose-500/70' : 'text-emerald-600/70'}`}>{new Date(d.last_active).toLocaleString()}</p>
                       </div>
                     </div>
                     <button onClick={() => handleUpdateDeviceStatus(d.id, 'blocked')} className="w-full bg-white border border-border hover:bg-red-50 hover:border-red-200 hover:text-red-500 py-2 rounded-xl text-xs font-bold transition-colors">{t.blockBtn}</button>

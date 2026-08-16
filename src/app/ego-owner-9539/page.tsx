@@ -113,23 +113,30 @@ export default function UltimateSuperAdminDashboard() {
       const isoDate = new Date(rawDate).toISOString();
       
       // 🌟 نمرر الإحداثيات إلى دالة الـ Action
-      const success = await forceUpdateCafeSub(cafeId, newStatus, isoDate, newPlan, newCycle, newLatitude, newLongitude);
+      const forceUpdateArgs = [cafeId, newStatus, isoDate, newPlan, newCycle, newLatitude, newLongitude] as const;
+      console.log("[SuperAdmin] forceUpdateCafeSub arguments", {
+        positional: [...forceUpdateArgs],
+        named: {
+          cafeId,
+          newStatus,
+          isoDate,
+          newPlan,
+          newCycle,
+          newLatitude,
+          newLongitude,
+        },
+      });
 
-      if (success) {
+      const result = await forceUpdateCafeSub(...forceUpdateArgs);
+
+      if (result.success) {
         alert(t("success.forceUpdate"));
+        const updatedCafe = result.cafe || {};
 
         setData((prevData: any) => {
           const updatedCafes = prevData.cafes.map((c: any) =>
             c.id === cafeId
-              ? { 
-                  ...c, 
-                  subscription_status: newStatus, 
-                  subscription_ends_at: isoDate, 
-                  plan_type: newPlan, 
-                  billing_cycle: newCycle,
-                  latitude: newLatitude || c.latitude, // 🌟 التحديث محلياً لتظهر الواجهة أسرع
-                  longitude: newLongitude || c.longitude // 🌟
-                }
+              ? { ...c, ...updatedCafe }
               : c
           );
           return { ...prevData, cafes: updatedCafes };
@@ -139,6 +146,7 @@ export default function UltimateSuperAdminDashboard() {
         router.refresh();
 
       } else {
+        console.error("[SuperAdmin] forceUpdateCafeSub failed", result);
         alert(t("errors.forceUpdateFail"));
       }
     } catch (error) {
