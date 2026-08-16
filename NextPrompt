@@ -1,15 +1,35 @@
-and before test i have to fix something: i wanna add renew plan button on the active plan instead of turning the button off
+patisserie.png
 
+hot_coffee.png
 
+tea.png
 
+cold_coffee.png
 
+soft_drinks.png
 
+juices.png
 
+milkshakes.png
 
+smoothies.png
 
+breakfasts.png
 
+sandwiches.png
 
+paninis.png
 
+tacos.png
 
-and btw i wanna set a new logic, for renew same plan add the paid period normally to old if exists, and if switching to new plan remove old plan remaining period.
-and also when being in diamond alows a user to create more than a 200 tables for example, and he switched to gold after that, he should locked at 100 tables max, this applies for all other limits, devices/tables ..
+burgers.png
+
+pizzas.png
+
+fried_chicken.png
+
+salads.png
+
+plates.png
+
+desserts.png

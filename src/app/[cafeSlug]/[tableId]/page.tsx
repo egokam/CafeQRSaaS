@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect, use, useRef } from "react";
 import { CheckCircle, Clock, Coffee, Receipt, X as XIcon, Zap } from "lucide-react";
 import { useCart } from "../../../store/useCart";
 import { supabase } from "../../../lib/supabase";
@@ -202,6 +202,9 @@ const getSafeUUID = () => {
 export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug: string; tableId: string }> }) {
   const { cafeSlug, tableId: urlTableId } = use(params);
   const { items, totalItems, totalPrice, clearCart } = useCart();
+  
+  // 🌟 مرجع القفل الفوري (Instant Lock)
+  const isSubmittingRef = useRef(false);
 
   const [activeLang, setActiveLang] = useState<Lang>("en");
   const [showLangPopup, setShowLangPopup] = useState(false);
@@ -325,8 +328,13 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   }, [activeOrders.length, cafeData?.id]);
 
   const handleCheckout = async () => {
-    if (totalItems() === 0 || !cafeData || !tableId) return;
+    // 🌟 1. فحص القفل: إذا كانت الدالة تعمل بالفعل، سيتم منع أي نقرة إضافية فوراً
+    if (totalItems() === 0 || !cafeData || !tableId || isSubmittingRef.current) return;
+    
+    // 🌟 2. تفعيل القفل فوراً قبل إرسال الطلب
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
+    
     try {
       const sessionId = localStorage.getItem("cafe_lux_client_session");
       if (!sessionId) throw new Error("Missing session");
@@ -340,6 +348,8 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     } catch {
       alert(activeLang === "ar" ? "حدث خطأ في إرسال الطلب." : "There was an error sending the order.");
     } finally {
+      // 🌟 3. إزالة القفل بعد انتهاء الطلب (نجاحاً أو فشلاً)
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -485,14 +495,11 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         {/* 🌟 إذا كان القسم النشط هو الرئيسية (home) ولم يتم إدخال بحث، اعرض صفحة البداية */}
         {activeCategoryId === "home" && !searchQuery ? (
           <ClientHome
-            cafeName={displayTitle}
             activeLang={activeLang}
-            onGoToMenu={() => {
-              // توجيه العميل للقسم الأول من المنيو إن وُجد
-              if (categories.length > 0) {
-                setActiveCategoryId(categories[0].id);
-              }
-            }}
+            products={products}
+            categories={categories}
+            onCategorySelect={(id) => setActiveCategoryId(id)}
+            onProductClick={(p) => setSelectedProduct(p)}
           />
         ) : (
           /* 🌟 إذا كان هناك قسم نشط أو العميل يبحث، اعرض المنتجات */
@@ -517,14 +524,14 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
                 </div>
               ) : (
                 finalFilteredProducts.map((product) => (
-                  <div 
-                    key={product.id} 
+                  <div
+                    key={product.id}
                     className="w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.67rem)] lg:w-[calc(16.666%-0.84rem)] max-w-[260px] flex-shrink-0"
                   >
-                    <ProductCard 
-                      product={product} 
-                      activeLang={activeLang} 
-                      onClick={() => setSelectedProduct(product)} 
+                    <ProductCard
+                      product={product}
+                      activeLang={activeLang}
+                      onClick={() => setSelectedProduct(product)}
                     />
                   </div>
                 ))
