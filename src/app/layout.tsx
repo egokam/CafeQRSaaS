@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Cairo, Geist } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages, getTranslations } from "next-intl/server";
-import Script from "next/script";
 import "./globals.css";
 import { cn } from "../lib/utils";
 import { getLocaleDirection, type Locale } from "@/i18n/config";
@@ -63,14 +62,6 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={cn(geist.variable, cairo.variable)}
     >
-      <head>
-        <Script
-          async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8375393366608206"
-          crossOrigin="anonymous"
-          strategy="afterInteractive"
-        />
-      </head>
       <body
         suppressHydrationWarning
         className={cn(

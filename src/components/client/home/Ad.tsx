@@ -1,38 +1,13 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-
-interface AdProps {
-  // Pass your specific ad unit slot ID when calling <Ad slot="1234567890" />
-  slot: string; 
-}
-
-export default function Ad({ slot }: AdProps) {
-  const adRef = useRef<HTMLModElement>(null);
-
-  useEffect(() => {
-    try {
-      // Prevent pushing the ad multiple times if it's already filled
-      if (adRef.current && !adRef.current.hasAttribute("data-ad-status")) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        ((window as any).adsbygoogle = (window as any).adsbygoogle || []).push({});
-      }
-    } catch (error) {
-      console.error("AdSense error:", error);
-    }
-  }, []);
-
+export default function Ad() {
   return (
-    <div className="my-6 flex w-full justify-center overflow-hidden">
-      <ins
-        ref={adRef}
-        className="adsbygoogle"
-        style={{ display: "block", width: "100%", maxWidth: "600px" }}
-        data-ad-client="ca-pub-8375393366608206" 
-        data-ad-slot={slot}
-        data-ad-format="auto"
-        data-full-width-responsive="true"
-      />
+    <div className="my-6 flex w-full justify-center">
+      <div className="flex w-full max-w-[600px] min-h-[60px] sm:min-h-[90px] items-center justify-center rounded-2xl bg-blue-600 p-4 text-center shadow-sm">
+        <span className="font-mono text-sm sm:text-lg font-bold tracking-widest text-white/90">
+          GOOGLE AD (RESPONSIVE)
+        </span>
+      </div>
     </div>
   );
 }
