@@ -30,7 +30,7 @@ export default function ClientHome({ activeLang, products, categories, onCategor
         onProductClick={onProductClick} 
       />
 
-      <Ad />
+      
     </div>
   );
 }

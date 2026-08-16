@@ -43,7 +43,7 @@ export default function TopPicks({ products, activeLang, onProductClick }: TopPi
       <h3 className="mb-4 px-1 text-lg font-black text-zinc-900">{t.title}</h3>
       
       {/* Horizontal Scroll Container */}
-      <div className="flex w-full snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      <div className="flex w-full snap-x snap-mandatory gap-4 overflow-x-auto pb-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {dailyPicks.map((product) => (
           <div 
             key={product.id} 
