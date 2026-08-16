@@ -3,7 +3,7 @@
 import type { Lang, Product, Category } from "@/app/[cafeSlug]/[tableId]/page";
 import Banner from "./home/Banner";
 import TopPicks from "./home/TopPicks";
-import Ad from "./home/Ad";
+
 
 interface ClientHomeProps {
   activeLang: Lang;
