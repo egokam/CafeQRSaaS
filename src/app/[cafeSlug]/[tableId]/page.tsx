@@ -16,6 +16,9 @@ import ProductCard from "../../../components/client/ProductCard";
 import ProductPage from "../../../components/client/ProductPage";
 import LanguagePopup from "../../../components/client/LanguagePopup";
 
+// 🌟 استيراد مكون الصفحة الرئيسية الجديد
+import ClientHome from "../../../components/client/Home";
+
 export type Lang = "en" | "fr" | "ar";
 
 export type Translation = {
@@ -225,11 +228,9 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   const [isCafeNotFound, setIsCafeNotFound] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
 
-  // 🌟 استدعاء الـ subtitle المترجم بناءً على اللغة
   const displayTitle = cafeData?.name || "octOber";
   const subtitle = t.subtitle;
 
-  // فحص وإعداد لغة العميل عند أول تحميل
   useEffect(() => {
     const savedLang = localStorage.getItem("cafeqr_client_lang");
     if (savedLang && (savedLang === "ar" || savedLang === "fr" || savedLang === "en")) {
@@ -463,7 +464,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
       <main className="flex-1 w-full overflow-y-auto pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
         <div className="flex px-5 gap-3 mt-4 mb-1 items-center">
-          {/* 🌟 تمرير اللغة إلى الـ Searchbar */}
           <Searchbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} activeLang={activeLang} />
           <CartButton
             cartItemCount={headerBadgeCount}
@@ -474,7 +474,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
         </div>
 
         <div className="mb-1.5">
-          {/* 🌟 تمرير اللغة إلى الـ Navbar */}
           <Navbar
             categories={categories}
             activeCategoryId={activeCategoryId}
@@ -483,40 +482,56 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           />
         </div>
 
-        {uniqueSubCategories.length > 0 && (
-          <div className="mb-2">
-            {/* 🌟 تمرير اللغة إلى الـ SubNavbar */}
-            <SubNavbar
-              subCategories={uniqueSubCategories}
-              activeSubCategory={activeSubCategory}
-              setActiveSubCategory={setActiveSubCategory}
-              t={t}
-            />
-          </div>
-        )}
-
-        {/* Product Grid */}
-        <div className="flex flex-wrap justify-center gap-4 px-5 pb-10 pt-2">
-          {finalFilteredProducts.length === 0 ? (
-            <div className="mt-10 flex w-full flex-col items-center justify-center rounded-3xl p-6 opacity-50">
-              <Coffee size={40} className="mb-3 text-gray-400" />
-              <p className="text-center font-bold text-gray-500">{t.empty}</p>
-            </div>
-          ) : (
-            finalFilteredProducts.map((product) => (
-              <div 
-                key={product.id} 
-                className="w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.67rem)] lg:w-[calc(16.666%-0.84rem)] max-w-[260px] flex-shrink-0"
-              >
-                <ProductCard 
-                  product={product} 
-                  activeLang={activeLang} 
-                  onClick={() => setSelectedProduct(product)} 
+        {/* 🌟 إذا كان القسم النشط هو الرئيسية (home) ولم يتم إدخال بحث، اعرض صفحة البداية */}
+        {activeCategoryId === "home" && !searchQuery ? (
+          <ClientHome
+            cafeName={displayTitle}
+            activeLang={activeLang}
+            onGoToMenu={() => {
+              // توجيه العميل للقسم الأول من المنيو إن وُجد
+              if (categories.length > 0) {
+                setActiveCategoryId(categories[0].id);
+              }
+            }}
+          />
+        ) : (
+          /* 🌟 إذا كان هناك قسم نشط أو العميل يبحث، اعرض المنتجات */
+          <>
+            {uniqueSubCategories.length > 0 && (
+              <div className="mb-2">
+                <SubNavbar
+                  subCategories={uniqueSubCategories}
+                  activeSubCategory={activeSubCategory}
+                  setActiveSubCategory={setActiveSubCategory}
+                  t={t}
                 />
               </div>
-            ))
-          )}
-        </div>
+            )}
+
+            {/* Product Grid */}
+            <div className="flex flex-wrap justify-center gap-4 px-5 pb-10 pt-2">
+              {finalFilteredProducts.length === 0 ? (
+                <div className="mt-10 flex w-full flex-col items-center justify-center rounded-3xl p-6 opacity-50">
+                  <Coffee size={40} className="mb-3 text-gray-400" />
+                  <p className="text-center font-bold text-gray-500">{t.empty}</p>
+                </div>
+              ) : (
+                finalFilteredProducts.map((product) => (
+                  <div 
+                    key={product.id} 
+                    className="w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.67rem)] lg:w-[calc(16.666%-0.84rem)] max-w-[260px] flex-shrink-0"
+                  >
+                    <ProductCard 
+                      product={product} 
+                      activeLang={activeLang} 
+                      onClick={() => setSelectedProduct(product)} 
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
 
         {!cafeData?.is_white_label && (
           <div className="flex select-none flex-col items-center justify-center pb-8 pt-4 opacity-40">
