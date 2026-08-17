@@ -894,6 +894,7 @@ export async function loginCashierWithDevice(
 }
 
 export async function getAdminPosDevices(cafeId: string) {
+  noStore(); 
   try {
     await assertAdminCafeAccess(cafeId);
 
