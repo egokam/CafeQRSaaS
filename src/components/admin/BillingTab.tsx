@@ -234,7 +234,7 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
     },
     en: {
       billingAndSub: "Billing & Subscription",
-      manageDesc: "Manage your cafe's plan and POS hardware limits.",
+      manageDesc: "Manage your Business's plan and POS hardware limits.",
       currentPlan: "Current Plan",
       status: "Status",
       timeRemaining: "Time Remaining",
