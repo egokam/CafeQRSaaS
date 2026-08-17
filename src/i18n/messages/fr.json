@@ -1,22 +1,22 @@
 {
   "Metadata": {
-    "title": "CafeQR",
+    "title": "ServeQR",
     "description": "Le système intelligent de commande par QR pour les cafés modernes.",
-    "ogTitle": "CafeQR - Système intelligent pour cafés",
+    "ogTitle": "ServeQR - Système intelligent pour cafés",
     "ogDescription": "Une plateforme plus rapide et plus sûre pour gérer les cafés modernes au Maroc et ailleurs.",
-    "siteName": "CafeQR",
+    "siteName": "ServeQR",
     "locale": "fr_FR",
-    "imageAlt": "Aperçu de la plateforme CafeQR",
-    "tutorialTitle": "Guide produit CafeQR",
-    "tutorialDescription": "Une visite visuelle de CafeQR SaaS : commande QR, caisse POS, impression cuisine, architecture tenant, sécurité et workflows."
+    "imageAlt": "Aperçu de la plateforme ServeQR",
+    "tutorialTitle": "Guide produit ServeQR",
+    "tutorialDescription": "Une visite visuelle de ServeQR SaaS : commande QR, caisse POS, impression cuisine, architecture tenant, sécurité et workflows."
   },
   "Common": {
     "currency": "MAD",
-    "brand": "CafeQR"
+    "brand": "ServeQR"
   },
   "Landing": {
     "Navbar": {
-      "brand": "CafeQR",
+      "brand": "ServeQR",
       "links": {
         "features": "Fonctionnalités",
         "demo": "Démo live",
@@ -97,7 +97,7 @@
     },
     "ProjectGuide": {
       "badge": "Walkthrough produit",
-      "titleBefore": "Comprendre CafeQR en",
+      "titleBefore": "Comprendre ServeQR en",
       "titleHighlight": "5 minutes",
       "description": "Vous voulez voir comment tout fonctionne avant d’essayer la démo ? Lisez un guide clair pensé pour les propriétaires de cafés, les clients et les profils techniques.",
       "button": "Lire le guide complet",
@@ -121,9 +121,9 @@
     },
     "Footer": {
       "title": "Prêt à moderniser votre café ?",
-      "description": "Rejoignez les cafés qui servent plus vite, plus intelligemment et plus sereinement avec CafeQR.",
+      "description": "Rejoignez les cafés qui servent plus vite, plus intelligemment et plus sereinement avec ServeQR.",
       "getStarted": "Commencer gratuitement",
-      "copyright": "© {year} CafeQR. Conçu pour les cafés modernes."
+      "copyright": "© {year} ServeQR. Conçu pour les cafés modernes."
     }
   },
   "Tutorial": {
@@ -148,9 +148,9 @@
       "roadmap": "Roadmap"
     },
     "hero": {
-      "badge": "Guide CafeQR",
+      "badge": "Guide ServeQR",
       "title": "Une visite visuelle de la plateforme de commande QR pour cafés modernes.",
-      "description": "CafeQR réunit le menu client, la caisse, le passage en cuisine, l’administration du café et les opérations SaaS dans un seul produit App Router. Ce guide explique la plateforme de façon concrète pour les clients, partenaires et recruteurs techniques.",
+      "description": "ServeQR réunit le menu client, la caisse, le passage en cuisine, l’administration du café et les opérations SaaS dans un seul produit App Router. Ce guide explique la plateforme de façon concrète pour les clients, partenaires et recruteurs techniques.",
       "tags": [
         "Commande QR",
         "POS",
@@ -164,7 +164,7 @@
       "eyebrow": "Vue d’ensemble",
       "title": "Une seule plateforme pour clients, staff, propriétaires et opérateurs",
       "paragraphs": [
-        "CafeQR s’adresse aux cafés qui veulent une expérience de commande digitale élégante sans ralentir le service. Les clients commandent depuis un menu QR, les caissiers valident les tickets, la cuisine reçoit les reçus imprimés et les propriétaires contrôlent le menu depuis une console privée.",
+        "ServeQR s’adresse aux cafés qui veulent une expérience de commande digitale élégante sans ralentir le service. Les clients commandent depuis un menu QR, les caissiers valident les tickets, la cuisine reçoit les reçus imprimés et les propriétaires contrôlent le menu depuis une console privée.",
         "Techniquement, chaque café est traité comme un tenant. Un slug relie le menu QR public, le terminal caisse, la configuration d’impression cuisine, l’admin, les produits, les commandes, les tables et l’état d’abonnement."
       ],
       "calloutTitle": "Intention produit",
@@ -250,7 +250,7 @@
     "security": {
       "eyebrow": "Sécurité",
       "title": "Des contrôles par couches autour des tenants, rôles, sessions et abonnements",
-      "paragraph": "CafeQR adopte une posture de sécurité pragmatique pour un SaaS hospitality : valider le tenant avant d’exposer une surface, limiter les rôles, garder les secrets hors du code et appliquer l’état d’abonnement sur les opérations de commande.",
+      "paragraph": "ServeQR adopte une posture de sécurité pragmatique pour un SaaS hospitality : valider le tenant avant d’exposer une surface, limiter les rôles, garder les secrets hors du code et appliquer l’état d’abonnement sur les opérations de commande.",
       "features": {
         "headers": {
           "title": "Durcissement HTTP",
@@ -558,7 +558,7 @@
       "qrTitle": "Générateur QR (démo interactive)",
       "tableNumber": "Numéro de table :",
       "generateCode": "Générer le code",
-      "cafeName": "Démo CafeQR"
+      "cafeName": "Démo ServeQR"
     },
     "kitchen": {
       "title": "Affichage cuisine",
@@ -576,7 +576,7 @@
     "mostPopular": "Le plus populaire",
     "billing": "MAD / an",
     "choosePlan": "Choisir {plan}",
-    "whatsappMessage": "Bonjour, je suis intéressé(e) par le forfait annuel ({plan}) pour CafeQR. Pourriez-vous me fournir plus de détails ?",
+    "whatsappMessage": "Bonjour, je suis intéressé(e) par le forfait annuel ({plan}) pour ServeQR. Pourriez-vous me fournir plus de détails ?",
     "contact": {
       "title": "Besoin d'une solution sur mesure ?",
       "description": "Contactez directement notre équipe commerciale. Nous déployons et configurons l'ensemble de votre système en moins de 24 heures.",
@@ -674,7 +674,7 @@
       "deepDeleteConfirm2": "Cette action est irréversible ! Elle effacera le café, les produits, les commandes et le compte propriétaire.\nTapez \"DELETE\" en majuscules pour confirmer :"
     },
     "whatsapp": {
-      "welcome": "Bienvenue sur la plateforme SaaS EgoCafe ☕🚀",
+      "welcome": "Bienvenue sur la plateforme SaaS ServeQR ☕🚀",
       "provisioned": "Votre système \"{cafeName}\" a été déployé avec succès ! L'essai gratuit est actif pendant {trialDays} jours.",
       "linksHeader": "🔗 Vos liens d'accès :",
       "adminLink": "1️⃣ Tableau de bord Admin:\n{url}/{slug}/admin\n▪️ Email : {email}\n▪️ Mot de passe : {password}",

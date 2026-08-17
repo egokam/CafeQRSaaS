@@ -544,7 +544,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           <div className="flex select-none flex-col items-center justify-center pb-8 pt-4 opacity-40">
             <div className="flex items-center gap-1.5 text-gray-500">
               <Zap size={14} className="text-amber-500" />
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Powered by CafeQR</span>
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Powered by ServeQR</span>
             </div>
           </div>
         )}

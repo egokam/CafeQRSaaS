@@ -1,6 +1,6 @@
 {
-  "name": "EgoCafe POS & KDS",
-  "short_name": "EgoCafe",
+  "name": "ServeQR",
+  "short_name": "ServeQR",
   "description": "النظام السحابي المتكامل لإدارة المقاهي",
   "start_url": "/",
   "display": "standalone",

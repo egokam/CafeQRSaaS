@@ -54,7 +54,7 @@ const translations = {
     qrTitle: "QR Generator (Interactive Demo)",
     tableNumber: "Table Number :",
     generateCode: "Generate Code",
-    cafeName: "CafeQR Demo"
+    cafeName: "ServeQR Demo"
   },
   FR: {
     demoBadge: "DÉMO EN DIRECT",
@@ -90,7 +90,7 @@ const translations = {
     qrTitle: "Générateur QR (Démo Interactive)",
     tableNumber: "Numéro de Table :",
     generateCode: "Générer le Code",
-    cafeName: "Démo CafeQR"
+    cafeName: "Démo ServeQR"
   },
   AR: {
     demoBadge: "مزامنة حية (ديمو)",
@@ -126,7 +126,7 @@ const translations = {
     qrTitle: "توليد الـ QR (ديمو تفاعلي)",
     tableNumber: "رقم الطاولة :",
     generateCode: "إنشاء الكود",
-    cafeName: "مقهى ديمو كافي كيو آر"
+    cafeName: "ديمو ServeQR"
   }
 };
 

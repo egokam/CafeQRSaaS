@@ -254,7 +254,7 @@ export default function GetStartedPage() {
             </a>
             
             <a 
-              href={`mailto:${EMAIL_ADDRESS}?subject=CafeQR Enterprise Inquiry`}
+              href={`mailto:${EMAIL_ADDRESS}?subject=ServeQR Enterprise Inquiry`}
               className="w-full sm:w-auto px-8 py-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] border border-white/10 hover:border-white/20"
             >
               <Mail size={20} />

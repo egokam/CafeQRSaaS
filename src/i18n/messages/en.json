@@ -1,22 +1,22 @@
 {
   "Metadata": {
-    "title": "CafeQR",
+    "title": "ServeQR",
     "description": "The smart QR ordering system for modern cafes.",
-    "ogTitle": "CafeQR - Smart Cafe System",
+    "ogTitle": "ServeQR - Smart Cafe System",
     "ogDescription": "A faster and more secure platform for managing modern cafes in Morocco and beyond.",
-    "siteName": "CafeQR",
+    "siteName": "ServeQR",
     "locale": "en_US",
-    "imageAlt": "CafeQR platform preview",
-    "tutorialTitle": "CafeQR Product Guide",
-    "tutorialDescription": "A visual walkthrough of CafeQR SaaS, including QR ordering, POS, kitchen printing, tenant architecture, security, and workflows."
+    "imageAlt": "ServeQR platform preview",
+    "tutorialTitle": "ServeQR Product Guide",
+    "tutorialDescription": "A visual walkthrough of ServeQR SaaS, including QR ordering, POS, kitchen printing, tenant architecture, security, and workflows."
   },
   "Common": {
     "currency": "MAD",
-    "brand": "CafeQR"
+    "brand": "ServeQR"
   },
   "Landing": {
     "Navbar": {
-      "brand": "CafeQR",
+      "brand": "ServeQR",
       "links": {
         "features": "Features",
         "demo": "Live Demo",
@@ -97,7 +97,7 @@
     },
     "ProjectGuide": {
       "badge": "Product walkthrough",
-      "titleBefore": "Understand CafeQR in",
+      "titleBefore": "Understand ServeQR in",
       "titleHighlight": "5 minutes",
       "description": "Want to see how everything works before trying the demo? Read a guided product walkthrough built for cafe owners, clients, and technical reviewers.",
       "button": "Read the Complete Guide",
@@ -121,9 +121,9 @@
     },
     "Footer": {
       "title": "Ready to modernize your cafe?",
-      "description": "Join the cafes serving faster, smarter and smoother with CafeQR.",
+      "description": "Join the cafes serving faster, smarter and smoother with ServeQR.",
       "getStarted": "Get Started Free",
-      "copyright": "© {year} CafeQR. Crafted for modern cafes."
+      "copyright": "© {year} ServeQR. Crafted for modern cafes."
     }
   },
   "Tutorial": {
@@ -148,9 +148,9 @@
       "roadmap": "Roadmap"
     },
     "hero": {
-      "badge": "CafeQR guide",
+      "badge": "ServeQR guide",
       "title": "A visual walkthrough of the QR ordering platform for modern cafes.",
-      "description": "CafeQR brings the guest menu, cashier counter, kitchen handoff, cafe administration, and SaaS operations into one App Router product. This guide explains the platform at a practical level for potential clients, partners, and technical reviewers.",
+      "description": "ServeQR brings the guest menu, cashier counter, kitchen handoff, cafe administration, and SaaS operations into one App Router product. This guide explains the platform at a practical level for potential clients, partners, and technical reviewers.",
       "tags": [
         "QR Ordering",
         "POS",
@@ -164,7 +164,7 @@
       "eyebrow": "Platform Overview",
       "title": "One product surface for guests, staff, owners, and operators",
       "paragraphs": [
-        "CafeQR is designed for cafes that want a polished digital ordering flow without slowing down service. Guests order from a QR menu, cashiers approve and manage tickets, kitchen staff receive printed receipts, and cafe owners control menu content from an admin console.",
+        "ServeQR is designed for cafes that want a polished digital ordering flow without slowing down service. Guests order from a QR menu, cashiers approve and manage tickets, kitchen staff receive printed receipts, and cafe owners control menu content from an admin console.",
         "Under the hood, every cafe is treated as a tenant. A tenant slug connects the public QR menu, cashier terminal, kitchen printing setup, admin console, products, orders, tables, and subscription status."
       ],
       "calloutTitle": "Design intent",
@@ -250,7 +250,7 @@
     "security": {
       "eyebrow": "Security",
       "title": "Layered controls around tenants, roles, sessions, and subscriptions",
-      "paragraph": "CafeQR uses a practical security posture for a hospitality SaaS: validate the tenant before exposing a surface, limit role access, keep sensitive credentials outside source control, and enforce subscription state where ordering operations happen.",
+      "paragraph": "ServeQR uses a practical security posture for a hospitality SaaS: validate the tenant before exposing a surface, limit role access, keep sensitive credentials outside source control, and enforce subscription state where ordering operations happen.",
       "features": {
         "headers": {
           "title": "HTTP hardening",
@@ -558,7 +558,7 @@
       "qrTitle": "QR Generator (Interactive Demo)",
       "tableNumber": "Table Number:",
       "generateCode": "Generate Code",
-      "cafeName": "CafeQR Demo"
+      "cafeName": "ServeQR Demo"
     },
     "kitchen": {
       "title": "Kitchen Display",
@@ -576,7 +576,7 @@
     "mostPopular": "Most Popular",
     "billing": "MAD / year",
     "choosePlan": "Choose {plan}",
-    "whatsappMessage": "Hi, I'm interested in the {plan} Yearly Plan for CafeQR. Could you provide more details?",
+    "whatsappMessage": "Hi, I'm interested in the {plan} Yearly Plan for ServeQR. Could you provide more details?",
     "contact": {
       "title": "Need a custom solution?",
       "description": "Contact our sales team directly. We deploy and configure your entire system in under 24 hours.",
@@ -674,7 +674,7 @@
       "deepDeleteConfirm2": "This action is irreversible! It will permanently wipe the cafe, products, orders, and owner account.\nType \"DELETE\" in uppercase to confirm:"
     },
     "whatsapp": {
-      "welcome": "Welcome to the EgoCafe SaaS Platform ☕🚀",
+      "welcome": "Welcome to the ServeQR SaaS Platform ☕🚀",
       "provisioned": "Your cafe system \"{cafeName}\" has been successfully provisioned! The free trial is active for {trialDays} days.",
       "linksHeader": "🔗 Your Access Links:",
       "adminLink": "1️⃣ Admin Dashboard (For Owners):\n{url}/{slug}/admin\n▪️ Email: {email}\n▪️ Password: {password}",

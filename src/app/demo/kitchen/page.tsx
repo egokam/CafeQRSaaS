@@ -279,7 +279,7 @@ function ReceiptPaper({ order, compact = false }: { order: DemoOrder; compact?: 
 
       <div className="relative">
         <div className="mb-4 text-center">
-          <p className="text-lg font-black tracking-tight">CafeQR Demo</p>
+          <p className="text-lg font-black tracking-tight">ServeQR Demo</p>
           <p className="mt-1 text-[10px] uppercase tracking-[0.32em] text-zinc-500">
             Kitchen Receipt
           </p>
@@ -317,7 +317,7 @@ function ReceiptPaper({ order, compact = false }: { order: DemoOrder; compact?: 
         <div className="mt-6 border-t border-dashed border-zinc-400 pt-4 text-center">
           <p className="text-base font-black">{order.total_amount.toFixed(2)} MAD</p>
           <p className="mt-5 text-[9px] uppercase tracking-[0.28em] text-zinc-500">
-            Powered by CafeQR
+            Powered by ServeQR
           </p>
         </div>
       </div>
