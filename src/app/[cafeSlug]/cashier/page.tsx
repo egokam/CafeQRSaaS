@@ -654,7 +654,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           <div className="mt-auto pt-12 pb-2 flex flex-col items-center justify-center opacity-40 select-none">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Zap size={14} className="text-amber-500" />
-              <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Powered by ServeQR</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Powered by Qerve</span>
             </div>
           </div>
         )}
@@ -700,7 +700,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           
           {!cafeDataObj?.is_white_label && (
             <div className="text-center mt-6 pt-4 border-t-2 border-dashed border-gray-400">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Powered by ServeQR</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Powered by Qerve</p>
             </div>
           )}
         </div>

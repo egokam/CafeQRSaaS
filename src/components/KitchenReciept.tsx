@@ -44,7 +44,7 @@ export const KitchenReceipt = forwardRef<HTMLDivElement, KitchenReceiptProps>(
             {!isWhiteLabel && (
               <div className="mt-4 pt-2 border-t border-gray-300">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                  Powered by ServeQR
+                  Powered by Qerve
                 </p>
               </div>
             )}

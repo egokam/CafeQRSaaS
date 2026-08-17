@@ -138,7 +138,7 @@ export type DemoOrder = {
 export const DEMO_CAFE: DemoCafe = {
   id: DEMO_CAFE_ID,
   slug: "demo-cafe",
-  name: "ServeQR Demo",
+  name: "Qerve Demo",
   logo_url: null,
   is_white_label: false,
   max_cashiers: 3,

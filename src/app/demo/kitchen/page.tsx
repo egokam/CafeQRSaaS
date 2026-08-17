@@ -174,7 +174,7 @@ export default function KitchenPrinter3D() {
 
       <div className="pointer-events-none absolute inset-x-0 top-16 z-20 text-center">
         <h1 className="mb-2 font-mono text-sm uppercase tracking-[0.34em] text-zinc-500">
-          Kitchen Display
+          Kitchen Print
         </h1>
         {activeReceipt ? (
           <p className="font-semibold text-amber-500">Pull downwards to tear the receipt</p>
@@ -279,7 +279,7 @@ function ReceiptPaper({ order, compact = false }: { order: DemoOrder; compact?: 
 
       <div className="relative">
         <div className="mb-4 text-center">
-          <p className="text-lg font-black tracking-tight">ServeQR Demo</p>
+          <p className="text-lg font-black tracking-tight">Qerve Demo</p>
           <p className="mt-1 text-[10px] uppercase tracking-[0.32em] text-zinc-500">
             Kitchen Receipt
           </p>
@@ -317,7 +317,7 @@ function ReceiptPaper({ order, compact = false }: { order: DemoOrder; compact?: 
         <div className="mt-6 border-t border-dashed border-zinc-400 pt-4 text-center">
           <p className="text-base font-black">{order.total_amount.toFixed(2)} MAD</p>
           <p className="mt-5 text-[9px] uppercase tracking-[0.28em] text-zinc-500">
-            Powered by ServeQR
+            Powered by Qerve
           </p>
         </div>
       </div>

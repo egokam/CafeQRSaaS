@@ -47,7 +47,7 @@ export function Footer() {
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-400 text-zinc-950">
             <QrCode className="h-4 w-4" strokeWidth={2.4} />
           </span>
-          <span className="font-semibold text-zinc-50">ServeQR</span>
+          <span className="font-semibold text-zinc-50">Qerve</span>
         </a>
         <p className="text-sm text-zinc-500">
           {t("copyright", { year: new Date().getFullYear() })}

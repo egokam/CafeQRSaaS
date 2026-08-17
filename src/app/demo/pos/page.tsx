@@ -504,7 +504,7 @@ export default function CashierDemoDashboard() {
           <div className="mt-auto pt-12 pb-2 flex flex-col items-center justify-center opacity-40 select-none">
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Zap size={14} className="text-amber-500" />
-              <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Powered by ServeQR</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest font-mono">Powered by Qerve</span>
             </div>
           </div>
         )}

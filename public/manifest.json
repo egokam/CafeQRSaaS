@@ -1,6 +1,6 @@
 {
-  "name": "ServeQR",
-  "short_name": "ServeQR",
+  "name": "Qerve",
+  "short_name": "Qerve",
   "description": "النظام السحابي المتكامل لإدارة المقاهي",
   "start_url": "/",
   "display": "standalone",
