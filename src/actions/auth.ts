@@ -77,7 +77,6 @@ async function hasRoleCookie(role: CafeRole, cafeId: string, email?: string) {
   return isValidSignedCookieValue(value, payload);
 }
 
-// التصدير مطلوب لاستخدامها في الملفات الأخرى
 export async function assertAdminCafeAccess(cafeId: string) {
   const { data: cafe, error } = await supabaseAdmin
     .from("cafes")
@@ -168,7 +167,12 @@ async function getActiveOrdersForCafe(cafeId: string) {
 }
 
 export async function signInAdminWithEmail(email: string, password: string) {
-  const { data, error } = await supabaseAdmin.auth.signInWithPassword({
+  // استخدام عميل مؤقت لمنع تلويث ذاكرة الخادم وصلاحيات supabaseAdmin
+  const tempAuthClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+
+  const { data, error } = await tempAuthClient.auth.signInWithPassword({
     email,
     password,
   });
@@ -278,7 +282,12 @@ export async function verifyOtpAndUpdatePins(
   newAdminPin: string,
   newCashierPin: string
 ) {
-  const { error: otpError } = await supabaseAdmin.auth.verifyOtp({
+  // استخدام عميل مؤقت
+  const tempAuthClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+
+  const { error: otpError } = await tempAuthClient.auth.verifyOtp({
     email,
     token: otp,
     type: "recovery",
@@ -524,12 +533,6 @@ export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) 
   try {
     await assertAdminCafeAccess(cafeId);
 
-    const token = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-    if (token.includes('.')) {
-      const payload = JSON.parse(atob(token.split('.')[1]));
-      console.log("🚨 TRUTH SERUM - Server is currently acting as:", payload.role);
-    }
-
     const { data: existing, error: selectError } = await supabaseAdmin
       .from("tables")
       .select("id")
@@ -587,13 +590,6 @@ export async function getAdminCafeBySlug(cafeSlug: string) {
     .select("id, name, slug, owner_email, plan_type, billing_cycle, max_cashiers, max_tables, max_menu_items, is_white_label, subscription_ends_at, subscription_status, latitude, longitude")
     .eq("slug", cafeSlug)
     .single();
-
-  console.log("[getAdminCafeBySlug] raw Supabase cafe row", {
-    cafeSlug,
-    status,
-    statusText,
-    row: data,
-  });
 
   if (error || !data) {
     if (error) {
