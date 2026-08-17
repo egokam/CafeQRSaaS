@@ -1,272 +1,421 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useCart } from "@/store/useCart"; // تأكد من مسار الـ store الخاص بك
-import MenuCard from "@/components/MenuCard"; // تأكد من مسار الـ MenuCard الخاص بك
-import { Receipt, X as XIcon, Clock, CheckCircle, Coffee, CakeSlice, CupSoda, Croissant, QrCode } from "lucide-react";
-import { useDemoProducts, useDemoOrders } from "@/lib/demoStore";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Coffee, Receipt, X as XIcon, Zap } from "lucide-react";
+import { useCart, type CartItem } from "@/store/useCart";
+import Topbar from "@/components/client/Topbar";
+import Searchbar from "@/components/client/Searchbar";
+import CartButton from "@/components/client/Cart";
+import Navbar from "@/components/client/Navbar";
+import SubNavbar from "@/components/client/SubNavbar";
+import ProductCard from "@/components/client/ProductCard";
+import LanguagePopup from "@/components/client/LanguagePopup";
+import ClientHome from "@/components/client/Home";
+import {
+  DEMO_CAFE,
+  DEMO_TABLES,
+  createDemoOrder,
+  useDemoCategories,
+  useDemoOrders,
+  useDemoProducts,
+  type DemoOrder,
+  type DemoProduct,
+} from "@/lib/demoStore";
+import type { Lang, Translation } from "@/app/[cafeSlug]/[tableId]/page";
 
-const TRANSLATIONS: Record<string, any> = {
+const TRANSLATIONS: Record<Lang, Translation> = {
   ar: {
-    subtitle: "اكتشف المذاق الأصيل ☕", empty: "لا توجد منتجات في هذا القسم حالياً.",
-    confirmOrder: "تأكيد الطلب", sending: "جاري الإرسال...", itemsCount: "منتج", total: "الإجمالي",
-    reviewing: "قيد المراجعة ⏳", preparing: "جاري التحضير 👨‍🍳", ready: "جاهز للتقديم 🚶‍♂️",
-    orderNum: "رقم الطلب", addMore: "+ طلب شيء آخر", cancel: "إلغاء الطلب",
-    myOrders: "طلباتي الحالية", emptyOrders: "لا توجد طلبات نشطة حالياً.", close: "إغلاق",
-    categories: [
-      { id: "coffee", name: "القهوة", icon: Coffee }, { id: "sweets", name: "الحلوى", icon: CakeSlice },
-      { id: "juice", name: "عصائر", icon: CupSoda }, { id: "bakery", name: "مخبوزات", icon: Croissant }
-    ]
+    subtitle: "اكتشف المذاق الأصيل",
+    empty: "لا توجد منتجات في هذا القسم حالياً.",
+    confirmOrder: "تأكيد الطلب",
+    sending: "جاري الإرسال...",
+    itemsCount: "منتج",
+    total: "الإجمالي",
+    reviewing: "قيد المراجعة",
+    preparing: "جاري التحضير",
+    ready: "جاهز للتقديم",
+    orderNum: "رقم الطلب",
+    addMore: "+ طلب شيء آخر",
+    cancel: "إلغاء الطلب",
+    myOrders: "طلباتي الحالية",
+    emptyOrders: "لا توجد طلبات نشطة حالياً.",
+    close: "إغلاق",
+    tableErrorTitle: "الطاولة غير مفعلة",
+    tableErrorDesc: "عذراً، كود QR الخاص بهذه الطاولة غير مسجل بعد.",
+    home: "الرئيسية",
+    all: "الكل",
+    loading: "جاري التحميل...",
+    suspended: "النظام معلق",
+    cafeError: "خطأ في المقهى أو الطاولة",
   },
   en: {
-    subtitle: "Discover Authentic Taste ☕", empty: "No products in this category.",
-    confirmOrder: "Confirm Order", sending: "Sending...", itemsCount: "items", total: "Total",
-    reviewing: "Reviewing ⏳", preparing: "Preparing 👨‍🍳", ready: "Ready! 🚶‍♂️",
-    orderNum: "Order #", addMore: "+ Add more", cancel: "Cancel",
-    myOrders: "My Orders", emptyOrders: "No active orders.", close: "Close",
-    categories: [
-      { id: "coffee", name: "Coffee", icon: Coffee }, { id: "sweets", name: "Sweets", icon: CakeSlice },
-      { id: "juice", name: "Juices", icon: CupSoda }, { id: "bakery", name: "Bakery", icon: Croissant }
-    ]
+    subtitle: "Discover Authentic Taste",
+    empty: "No products found.",
+    confirmOrder: "Confirm Order",
+    sending: "Sending...",
+    itemsCount: "items",
+    total: "Total",
+    reviewing: "Reviewing",
+    preparing: "Preparing",
+    ready: "Ready!",
+    orderNum: "Order #",
+    addMore: "+ Add more",
+    cancel: "Cancel",
+    myOrders: "My Orders",
+    emptyOrders: "No active orders.",
+    close: "Close",
+    tableErrorTitle: "Table Not Active",
+    tableErrorDesc: "Sorry, this table's QR code is not registered in the system yet.",
+    home: "Home",
+    all: "All",
+    loading: "Loading...",
+    suspended: "System suspended",
+    cafeError: "Cafe or table error",
   },
   fr: {
-    subtitle: "Découvrez le goût authentique ☕", empty: "Aucun produit dans cette catégorie.",
-    confirmOrder: "Confirmer la cmd", sending: "Envoi...", itemsCount: "articles", total: "Total",
-    reviewing: "En révision ⏳", preparing: "Préparation 👨‍🍳", ready: "Prêt! 🚶‍♂️",
-    orderNum: "N° Cmd", addMore: "+ Ajouter", cancel: "Annuler",
-    myOrders: "Mes Commandes", emptyOrders: "Aucune commande active.", close: "Fermer",
-    categories: [
-      { id: "coffee", name: "Café", icon: Coffee }, { id: "sweets", name: "Desserts", icon: CakeSlice },
-      { id: "juice", name: "Jus", icon: CupSoda }, { id: "bakery", name: "Boulangerie", icon: Croissant }
-    ]
-  }
+    subtitle: "Découvrez le goût authentique",
+    empty: "Aucun produit trouvé.",
+    confirmOrder: "Confirmer la cmd",
+    sending: "Envoi...",
+    itemsCount: "articles",
+    total: "Total",
+    reviewing: "En révision",
+    preparing: "Préparation",
+    ready: "Prêt!",
+    orderNum: "N° Cmd",
+    addMore: "+ Ajouter",
+    cancel: "Annuler",
+    myOrders: "Mes Commandes",
+    emptyOrders: "Aucune commande active.",
+    close: "Fermer",
+    tableErrorTitle: "Table Non Active",
+    tableErrorDesc: "Désolé, le code QR de cette table n'est pas encore enregistré.",
+    home: "Accueil",
+    all: "Tout",
+    loading: "Chargement...",
+    suspended: "Système suspendu",
+    cafeError: "Erreur café ou table",
+  },
 };
 
-const LANGUAGES = ["ar", "fr", "en"];
-const formatMAD = (price: number) => `${Number(price).toFixed(2)}`;
+const CLIENT_SESSION_KEY = "cafeqr_demo_client_session";
+const CLIENT_LANG_KEY = "cafeqr_client_lang";
+const formatMAD = (price: number) => `${Number(price).toFixed(0)}`;
 
 const getSafeUUID = () => {
-  if (typeof window !== "undefined" && window.crypto && window.crypto.randomUUID) {
+  if (typeof window !== "undefined" && window.crypto?.randomUUID) {
     return window.crypto.randomUUID();
   }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (char) => {
+    const random = (Math.random() * 16) | 0;
+    const value = char === "x" ? random : (random & 0x3) | 0x8;
+    return value.toString(16);
   });
 };
 
+const toBaseCartItem = (product: DemoProduct): CartItem => ({
+  id: product.id,
+  product_id: product.id,
+  name_ar: product.name_ar || product.name_en || "",
+  name_en: product.name_en || product.name_ar || "",
+  name_fr: product.name_fr || product.name_en || product.name_ar || "",
+  price: Number(product.price),
+  quantity: 1,
+  image_url: product.image_url || "",
+  modifiers: {},
+});
+
+const isVisibleOrder = (order: DemoOrder) =>
+  !["completed", "rejected", "cancelled"].includes(order.status);
+
 export default function ClientMenuDemo() {
-  const { items, totalItems, totalPrice, clearCart } = useCart();
-  
-  // 🌟 استدعاء الداتا الحية المشتركة
+  const { items, addItem, totalItems, totalPrice, clearCart } = useCart();
+  const isSubmittingRef = useRef(false);
+
   const { products } = useDemoProducts();
+  const { categories } = useDemoCategories();
   const { orders, updateOrders } = useDemoOrders();
 
-  const [activeLang, setActiveLang] = useState("en");
-  const t = TRANSLATIONS[activeLang];
-  const [activeCategoryId, setActiveCategoryId] = useState("coffee");
-
-  const [sessionId, setSessionId] = useState<string>("");
+  const [activeLang, setActiveLang] = useState<Lang>("en");
+  const [showLangPopup, setShowLangPopup] = useState(false);
+  const [activeCategoryId, setActiveCategoryId] = useState("home");
+  const [activeSubCategory, setActiveSubCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sessionId, setSessionId] = useState("");
   const [showOrdersModal, setShowOrdersModal] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // تصفية الطلبات: إظهار طلبات هذه الجلسة فقط (الزائر الحالي)
-  const activeOrders = orders.filter(o => 
-    o.session_id === sessionId && !['completed', 'rejected', 'cancelled'].includes(o.status)
-  );
-
-  const displayTitle = activeLang === 'ar' ? "مقهى ديمو" : activeLang === 'fr' ? "Café Demo" : "Demo Cafe";
+  const t = TRANSLATIONS[activeLang];
+  const dir = activeLang === "ar" ? "rtl" : "ltr";
+  const displayTitle = DEMO_CAFE.name;
+  const cartCount = totalItems();
 
   useEffect(() => {
-    // محاكاة تحميل سريع وإنشاء جلسة وهمية للزائر
-    setTimeout(() => {
-      let localSession = localStorage.getItem('demo_client_session');
-      if (!localSession) {
-        localSession = getSafeUUID();
-        localStorage.setItem('demo_client_session', localSession);
+    const savedLang = localStorage.getItem(CLIENT_LANG_KEY);
+    let localSession = localStorage.getItem(CLIENT_SESSION_KEY);
+
+    if (!localSession) {
+      localSession = getSafeUUID();
+      localStorage.setItem(CLIENT_SESSION_KEY, localSession);
+    }
+
+    window.setTimeout(() => {
+      if (savedLang === "ar" || savedLang === "fr" || savedLang === "en") {
+        setActiveLang(savedLang);
+      } else {
+        setShowLangPopup(true);
       }
+
       setSessionId(localSession);
       setIsLoading(false);
-    }, 400);
+    }, 0);
   }, []);
 
+  const handleLanguageSelect = (lang: Lang) => {
+    setActiveLang(lang);
+    localStorage.setItem(CLIENT_LANG_KEY, lang);
+    setShowLangPopup(false);
+  };
+
+  const handleCategorySelect = (categoryId: string) => {
+    setActiveCategoryId(categoryId);
+    setActiveSubCategory("all");
+  };
+
+  const activeOrders = useMemo(
+    () => orders.filter((order) => order.session_id === sessionId && isVisibleOrder(order)),
+    [orders, sessionId]
+  );
+
+  const activeProducts = useMemo(
+    () => products.filter((product) => product.is_active !== false),
+    [products]
+  );
+
+  const searchedProducts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return activeProducts;
+
+    return activeProducts.filter((product) =>
+      product.name_en?.toLowerCase().includes(query) ||
+      product.name_fr?.toLowerCase().includes(query) ||
+      product.name_ar?.toLowerCase().includes(query) ||
+      product.description_en?.toLowerCase().includes(query) ||
+      product.description_fr?.toLowerCase().includes(query) ||
+      product.description_ar?.toLowerCase().includes(query)
+    );
+  }, [activeProducts, searchQuery]);
+
+  const productsInActiveCategory = activeCategoryId === "home"
+    ? searchedProducts
+    : searchedProducts.filter((product) => product.category_id === activeCategoryId);
+
+  const uniqueSubCategories = Array.from(
+    new Set(
+      productsInActiveCategory
+        .map((product) => product.sub_category)
+        .filter((subCategory): subCategory is string => Boolean(subCategory?.trim()))
+    )
+  );
+
+  const finalFilteredProducts = activeSubCategory === "all"
+    ? productsInActiveCategory
+    : productsInActiveCategory.filter((product) => product.sub_category === activeSubCategory);
+
+  const headerBadgeCount = cartCount > 0 ? cartCount : activeOrders.length;
+
+  const handleProductClick = (product: DemoProduct) => {
+    addItem(toBaseCartItem(product));
+  };
+
   const handleCheckout = () => {
-    if (totalItems() === 0) return;
+    if (cartCount === 0 || !sessionId || isSubmittingRef.current) return;
+
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
 
-    // محاكاة إرسال الطلب (ينتقل فوراً للـ LocalStore ليظهر عند الكاشير)
-    setTimeout(() => {
-      const newOrder = {
-        id: "ORD-" + Math.floor(1000 + Math.random() * 9000),
-        cafe_id: "demo_cafe",
-        table_id: "t1",
-        tables: { table_number: "table_1" }, // نفترض أن هذا الزائر يجلس على الطاولة 1 في الديمو
-        session_id: sessionId,
-        items: items,
-        total_amount: totalPrice(),
-        status: 'pending', // يبدأ كقيد المراجعة ليوافق عليه الكاشير
-        created_at: new Date().toISOString()
-      };
+    try {
+      const newOrder = createDemoOrder({
+        tableId: DEMO_TABLES[0].id,
+        sessionId,
+        items,
+        status: "pending",
+      });
 
       updateOrders([newOrder, ...orders]);
       setShowOrdersModal(true);
       clearCart();
+    } catch {
+      alert(activeLang === "ar" ? "حدث خطأ في إرسال الطلب." : "There was an error sending the order.");
+    } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
-      
-      // تشغيل صوت نجاح اختياري
-      new Audio('/bell.mp3').play().catch(() => {});
-    }, 600);
+    }
   };
 
   const handleCancelOrder = (orderId: string) => {
-    if (!confirm(activeLang === 'ar' ? "هل أنت متأكد من الإلغاء؟" : "Are you sure?")) return;
-    
-    const updatedOrders = orders.map(o => 
-      o.id === orderId ? { ...o, status: 'cancelled' } : o
+    if (!confirm(activeLang === "ar" ? "هل أنت متأكد من الإلغاء؟" : "Are you sure?")) return;
+
+    const updatedAt = new Date().toISOString();
+    const updatedOrders = orders.map((order) =>
+      order.id === orderId && order.session_id === sessionId
+        ? { ...order, status: "cancelled" as const, updated_at: updatedAt }
+        : order
     );
+
     updateOrders(updatedOrders);
-    
     if (activeOrders.length <= 1) setShowOrdersModal(false);
   };
 
-  if (isLoading) return <div className="min-h-screen bg-background flex items-center justify-center font-bold text-foreground">جاري التحميل...</div>;
+  if (isLoading) {
+    return <div className="flex min-h-screen items-center justify-center bg-white font-bold text-black">{t.loading}</div>;
+  }
 
   return (
-    <div className="min-h-screen bg-background pb-32 relative" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
-      
-      {/* 🌟 لافتة الديمو */}
-      <div className="bg-emerald-500 text-white text-xs font-black text-center py-1.5 tracking-widest uppercase">
-        Live Sync Demo Mode
-      </div>
+    <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-white text-black" dir={dir}>
+      {showLangPopup && <LanguagePopup onSelect={handleLanguageSelect} />}
 
-      {/* 🌟 نافذة الطلبات الحالية */}
       {showOrdersModal && (
-        <div className="fixed inset-0 z-50 bg-background/95 backdrop-blur-sm overflow-y-auto p-6 flex flex-col animate-in fade-in zoom-in-95 duration-200">
-          <div className="flex justify-between items-center mb-8 mt-4 bg-white p-4 rounded-2xl shadow-sm border border-border">
-            <h2 className="text-2xl font-extrabold text-foreground">{t.myOrders}</h2>
-            <button onClick={() => setShowOrdersModal(false)} className="bg-muted p-2 rounded-full text-muted-foreground hover:bg-gray-200 transition-colors">
-              <XIcon size={24} />
-            </button>
-          </div>
-
-          <div className="space-y-4 flex-1">
-            {activeOrders.length === 0 ? (
-              <p className="text-center text-muted-foreground mt-10 font-bold bg-white p-6 rounded-2xl border">{t.emptyOrders}</p>
-            ) : (
-              activeOrders.map(order => (
-                <div key={order.id} className="bg-white p-5 rounded-2xl border border-border shadow-sm flex flex-col gap-4 relative overflow-hidden">
-                  <div className={`absolute top-0 left-0 w-1.5 h-full ${order.status === 'pending' ? 'bg-yellow-400' : order.status === 'accepted' ? 'bg-blue-400' : 'bg-emerald-500'}`} />
-                  
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-xs font-bold text-muted-foreground">{t.orderNum}: #{order.id}</span>
-                      <h3 className="font-extrabold text-xl mt-1 text-foreground">{formatMAD(order.total_amount)} <span className="text-sm font-bold text-muted-foreground">MAD</span></h3>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      {order.status === 'pending' && <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1"><Clock size={12}/> {t.reviewing}</span>}
-                      {order.status === 'accepted' && <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">{t.preparing}</span>}
-                      {order.status === 'ready' && <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 animate-pulse"><CheckCircle size={12}/> {t.ready}</span>}
-                    </div>
-                  </div>
-
-                  <div className="bg-muted/30 p-3 rounded-lg text-sm text-foreground font-bold">
-                    {order.items.map((item:any, i:number) => (
-                      <div key={i} className="flex justify-between">
-                        <span>{item.quantity}x {activeLang === 'en' && item.name_en ? item.name_en : activeLang === 'fr' && item.name_fr ? item.name_fr : item.name_ar}</span>
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end bg-black/40 p-4 backdrop-blur-sm animate-in fade-in sm:justify-center">
+          <div className="mx-auto flex h-[85vh] w-full max-w-lg flex-col rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-gray-100 p-6">
+              <h2 className="flex items-center gap-2 text-xl font-extrabold text-black">
+                <Receipt size={20} />
+                {t.myOrders}
+              </h2>
+              <button onClick={() => setShowOrdersModal(false)} className="rounded-full bg-gray-100 p-2 text-gray-500 hover:bg-gray-200">
+                <XIcon size={20} />
+              </button>
+            </div>
+            <div className="flex-1 space-y-4 overflow-y-auto p-6">
+              {activeOrders.length === 0 ? (
+                <p className="py-10 text-center text-sm font-bold text-gray-400">{t.emptyOrders}</p>
+              ) : (
+                activeOrders.map((order) => (
+                  <div key={order.id} className="flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-gray-500">{t.orderNum}: #{order.id.split("-")[0]}</span>
+                        <h3 className="mt-1 text-xl font-extrabold text-black">{formatMAD(order.total_amount)} MAD</h3>
                       </div>
-                    ))}
+                      <div className="flex flex-col items-end gap-1">
+                        {order.status === "pending" && <span className="rounded-full bg-yellow-100 px-3 py-1 text-xs font-bold text-yellow-700">{t.reviewing}</span>}
+                        {order.status === "accepted" && <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">{t.preparing}</span>}
+                        {order.status === "ready" && <span className="rounded-full bg-green-500 px-3 py-1.5 text-xs font-black text-white">{t.ready}</span>}
+                      </div>
+                    </div>
+                    {order.status === "pending" && (
+                      <button onClick={() => handleCancelOrder(order.id)} className="mt-2 w-full rounded-xl bg-red-50 py-3 font-bold text-red-600 hover:bg-red-100">
+                        {t.cancel}
+                      </button>
+                    )}
                   </div>
-
-                  {order.status === 'pending' && (
-                    <button onClick={() => handleCancelOrder(order.id)} className="w-full bg-red-50 text-red-600 py-3 rounded-xl font-bold hover:bg-red-100 transition-colors mt-2">
-                      {t.cancel}
-                    </button>
-                  )}
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-
-          <button onClick={() => setShowOrdersModal(false)} className="mt-8 bg-foreground text-white py-4 rounded-xl font-bold w-full shadow-lg transition-transform active:scale-95 mb-4">
-            {t.addMore}
-          </button>
         </div>
       )}
 
-      {/* 🌟 الهيدر الكلاسيكي النظيف */}
-      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md px-6 py-4 flex items-center justify-between border-b border-border/50">
-        <div className="flex flex-col">
-          <h1 className="text-2xl font-black text-foreground tracking-tight uppercase">{displayTitle}</h1>
-          <p className="text-xs text-primary font-bold mt-1 uppercase flex items-center gap-1">
-            {t.subtitle} 
-          </p>
-        </div>
-        <div className="flex items-center gap-3" dir="ltr">
-          <div className="flex gap-1 bg-muted p-1 rounded-full border border-border/50">
-            {LANGUAGES.map(lang => (
-              <button key={lang} onClick={() => setActiveLang(lang)} className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase transition-colors ${activeLang === lang ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'}`}>{lang}</button>
-            ))}
-          </div>
-
-          {activeOrders.length > 0 && (
-            <button onClick={() => setShowOrdersModal(true)} className="relative p-2 text-foreground bg-muted rounded-full hover:bg-gray-200 transition-colors animate-bounce">
-              <Receipt size={20} />
-              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
-                {activeOrders.length}
-              </span>
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* 🌟 أقسام المنيو */}
-      <div className="px-5 py-6 overflow-x-auto scrollbar-none flex gap-3 bg-muted/20 border-b border-border/50">
-        {t.categories.map((cat: any) => (
-          <button key={cat.id} onClick={() => setActiveCategoryId(cat.id)} className={`px-6 py-3 rounded-full text-sm font-bold whitespace-nowrap transition-all flex items-center gap-2.5 shadow-sm active:scale-95 ${activeCategoryId === cat.id ? "bg-foreground text-white ring-2 ring-primary ring-offset-2" : "bg-white text-foreground border border-border"}`}>
-            <cat.icon size={18} className={`${activeCategoryId === cat.id ? 'text-primary' : 'text-muted-foreground'}`} /> {cat.name}
-          </button>
-        ))}
+      <div className="relative z-50 shrink-0 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+        <Topbar
+          cafeName={displayTitle}
+          subtitle={t.subtitle}
+          activeLang={activeLang}
+          onSelectLang={handleLanguageSelect}
+        />
       </div>
 
-      <main className="px-6 mt-6 space-y-3">
-        <div className="flex flex-col gap-3">
-          {(() => {
-            const filteredProducts = products.filter(p => {
-              const dbCat = p.category;
-              if (activeCategoryId === 'coffee') return dbCat === 'القهوة';
-              if (activeCategoryId === 'sweets') return dbCat === 'الحلوى';
-              if (activeCategoryId === 'juice') return dbCat === 'عصائر';
-              if (activeCategoryId === 'bakery') return dbCat === 'مخبوزات';
-              return false;
-            });
-
-            if (filteredProducts.length === 0) {
-              return (
-                <div className="bg-white border border-border rounded-2xl p-10 flex flex-col items-center justify-center mt-4 shadow-sm">
-                  <Coffee size={40} className="text-muted-foreground/30 mb-3" />
-                  <p className="text-center text-muted-foreground font-bold">{t.empty}</p>
-                </div>
-              );
-            }
-
-            return filteredProducts.map((product) => (
-              <MenuCard key={product.id} product={product} lang={activeLang} />
-            ));
-          })()}
+      <main className="flex-1 w-full overflow-y-auto pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="flex px-5 gap-3 mt-4 mb-1 items-center">
+          <Searchbar searchQuery={searchQuery} setSearchQuery={setSearchQuery} activeLang={activeLang} />
+          <CartButton
+            cartItemCount={headerBadgeCount}
+            activeLang={activeLang}
+            onClick={() => {
+              if (activeOrders.length > 0 || cartCount > 0) setShowOrdersModal(true);
+            }}
+          />
         </div>
+
+        <div className="mb-1.5">
+          <Navbar
+            categories={categories}
+            activeCategoryId={activeCategoryId}
+            setActiveCategoryId={handleCategorySelect}
+            activeLang={activeLang}
+          />
+        </div>
+
+        {activeCategoryId === "home" && !searchQuery ? (
+          <ClientHome
+            activeLang={activeLang}
+            products={activeProducts}
+            categories={categories}
+            onCategorySelect={handleCategorySelect}
+            onProductClick={handleProductClick}
+          />
+        ) : (
+          <>
+            {uniqueSubCategories.length > 0 && (
+              <div className="mb-2">
+                <SubNavbar
+                  subCategories={uniqueSubCategories}
+                  activeSubCategory={activeSubCategory}
+                  setActiveSubCategory={setActiveSubCategory}
+                  t={t}
+                />
+              </div>
+            )}
+
+            <div className="flex flex-wrap justify-center gap-4 px-5 pb-10 pt-2">
+              {finalFilteredProducts.length === 0 ? (
+                <div className="mt-10 flex w-full flex-col items-center justify-center rounded-3xl p-6 opacity-50">
+                  <Coffee size={40} className="mb-3 text-gray-400" />
+                  <p className="text-center font-bold text-gray-500">{t.empty}</p>
+                </div>
+              ) : (
+                finalFilteredProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="w-[calc(50%-0.5rem)] md:w-[calc(33.333%-0.67rem)] lg:w-[calc(16.666%-0.84rem)] max-w-[260px] flex-shrink-0"
+                  >
+                    <ProductCard
+                      product={product}
+                      activeLang={activeLang}
+                      onClick={() => handleProductClick(product)}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
+
+        {!DEMO_CAFE.is_white_label && (
+          <div className="flex select-none flex-col items-center justify-center pb-8 pt-4 opacity-40">
+            <div className="flex items-center gap-1.5 text-gray-500">
+              <Zap size={14} className="text-amber-500" />
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest">Powered by CafeQR</span>
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* 🌟 شريط السلة السفلي النظيف */}
-      {totalItems() > 0 && (
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-border/50 p-6 shadow-[0_-15px_60px_rgba(0,0,0,0.06)] z-50 rounded-t-[2rem] animate-in slide-in-from-bottom-10">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-6" dir={activeLang === 'ar' ? 'rtl' : 'ltr'}>
-            <button onClick={handleCheckout} disabled={isSubmitting} className={`flex-1 bg-foreground text-white h-16 rounded-[1.5rem] font-bold text-xl transition-transform flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-70' : 'active:scale-[0.97]'}`}>
+      {cartCount > 0 && (
+        <div className="fixed bottom-0 inset-x-0 z-30 bg-white/90 p-4 pb-6 shadow-[0_-12px_40px_rgba(0,0,0,0.1)] backdrop-blur-md">
+          <div className="mx-auto flex max-w-lg items-center justify-between gap-4">
+            <button
+              onClick={handleCheckout}
+              disabled={isSubmitting}
+              className={`h-14 flex-1 rounded-2xl bg-black text-lg font-black text-white shadow-lg transition-transform ${isSubmitting ? "opacity-70" : "active:scale-[0.98]"}`}
+            >
               {isSubmitting ? t.sending : t.confirmOrder}
             </button>
-            <div className={`flex flex-col ${activeLang === 'ar' ? 'items-end pr-3' : 'items-start pl-3'}`}>
-              <span className="text-xs font-bold text-muted-foreground">{totalItems()} {t.itemsCount}</span>
-              <span className="text-2xl font-black text-primary">{formatMAD(totalPrice())}</span>
+            <div className="flex flex-col items-end">
+              <span className="text-xs font-bold text-gray-500">{cartCount} {t.itemsCount}</span>
+              <span className="text-2xl font-black text-[#2A110A]">{formatMAD(totalPrice())} <span className="text-sm font-bold text-gray-500">MAD</span></span>
             </div>
           </div>
         </div>
