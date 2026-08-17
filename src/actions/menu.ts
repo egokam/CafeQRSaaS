@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache, revalidatePath, unstable_noStore as noStore } from "next/cache";
+import { assertAdminCafeAccess } from "./auth"; // 🔒 استيراد التحقق الأمني
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -65,6 +66,7 @@ export async function buildServerPricedOrderItems(cafeId: string, items: any[]) 
 
   if (productIds.length === 0) throw new Error("EMPTY_ORDER");
 
+  // 1. جلب أسعار المنتجات الأساسية
   const { data: products, error } = await supabaseAdmin
     .from("products")
     .select("id, name_ar, name_en, name_fr, price")
@@ -73,28 +75,60 @@ export async function buildServerPricedOrderItems(cafeId: string, items: any[]) 
     .in("id", productIds);
 
   if (error || !products) throw new Error("INVALID_ORDER_ITEMS");
-
   const productsById = new Map(products.map((p) => [p.id, p]));
 
+  // 2. استخراج جميع معرّفات الإضافات (modifier_options) المختارة من قبل العميل لحساب سعرها
+  const allOptionIds = new Set<string>();
+  const extractIds = (val: any) => {
+    if (typeof val === 'string' && val.length > 10) allOptionIds.add(val); // افتراض أن المعرّفات هي UUIDs
+    else if (Array.isArray(val)) val.forEach(extractIds);
+    else if (typeof val === 'object' && val !== null) Object.values(val).forEach(extractIds);
+  };
+  
+  normalizedItems.forEach(item => extractIds(item.modifiers));
+
+  // 3. جلب أسعار الإضافات من قاعدة البيانات لضمان دقتها
+  const optionsMap = new Map<string, number>();
+  if (allOptionIds.size > 0) {
+    const { data: options } = await supabaseAdmin
+      .from('modifier_options')
+      .select('id, price_adjustment')
+      .in('id', Array.from(allOptionIds));
+      
+    if (options) {
+      options.forEach(opt => optionsMap.set(opt.id, Number(opt.price_adjustment || 0)));
+    }
+  }
+
+  // 4. تجميع الطلب وحساب السعر النهائي بشكل آمن
   const serverItems = normalizedItems.map((item) => {
     const product = productsById.get(item.product_id);
     if (!product) throw new Error("INVALID_ORDER_ITEMS");
 
+    // حساب تكلفة الإضافات لهذا المنتج تحديداً
+    let modifiersTotal = 0;
+    const calculateModifiers = (val: any) => {
+      if (typeof val === 'string' && optionsMap.has(val)) modifiersTotal += optionsMap.get(val)!;
+      else if (Array.isArray(val)) val.forEach(calculateModifiers);
+      else if (typeof val === 'object' && val !== null) Object.values(val).forEach(calculateModifiers);
+    };
+    calculateModifiers(item.modifiers);
+
+    // הסعر الآمن = السعر الأساسي للمنتج + تكلفة الإضافات
+    const secureCalculatedPrice = Number(product.price) + modifiersTotal;
+
     return {
       id: item.cart_id, 
       product_id: product.id,
-      // تمرير الاسم القادم من العميل لاحتوائه على نصوص الإضافات
       name_ar: item.client_name_ar || product.name_ar,
       name_en: item.client_name_en || product.name_en,
       name_fr: item.client_name_fr || product.name_fr,
-      // الاعتماد على السعر المحدث الخاص بالعميل (الذي يشمل ثمن الإضافات)
-      price: item.client_price > 0 ? item.client_price : Number(product.price),
+      price: secureCalculatedPrice, // 🔒 استخدام السعر المحسوب في الخادم فقط
       quantity: item.quantity,
       modifiers: item.modifiers
     };
   });
 
-  // 🌟 هذه هي الأسطر التي كانت مفقودة وتسببت في الخطأ
   const totalAmount = serverItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return { serverItems, totalAmount };
@@ -120,7 +154,6 @@ export const getCachedCafeMenu = unstable_cache(
 
       if (!table) return { error: "table_not_found", cafe };
 
-      // Fetch products and their nested modifier relationships
       const { data: products } = await supabaseAdmin
         .from("products")
         .select(`
@@ -148,7 +181,6 @@ export const getCachedCafeMenu = unstable_cache(
         .eq("cafe_id", cafe.id)
         .eq("is_active", true);
 
-      // Transform nested product_modifiers into a flat modifier_groups array
       const formattedProducts = products?.map((p: any) => {
         const { product_modifiers, ...rest } = p;
         const groups = (product_modifiers || [])
@@ -202,6 +234,8 @@ export async function createClientOrder(payload: {
   items: any[];
 }) {
   try {
+    await assertCafeCanAcceptOrders(payload.cafeId); // 🔒 منع الطلب إذا كان المقهى موقوفاً أو انتهى اشتراكه
+
     const { serverItems, totalAmount } = await buildServerPricedOrderItems(
       payload.cafeId,
       payload.items
@@ -214,7 +248,7 @@ export async function createClientOrder(payload: {
           cafe_id: payload.cafeId,
           table_id: payload.tableId,
           session_id: payload.sessionId,
-          items: serverItems, // سيتم إدراج البيانات المحدثة في عمود jsonb هنا
+          items: serverItems,
           total_amount: totalAmount,
           status: "pending",
         },
@@ -262,32 +296,66 @@ export async function getCategories(cafeId: string) {
 }
 
 export async function addCategory(cafeId: string, name_ar: string, name_en: string, name_fr: string, icon: string, subcategories: string[] = []) {
-  const { data, error } = await supabaseAdmin
-    .from('menu_categories')
-    .insert([{ cafe_id: cafeId, name_ar, name_en, name_fr, icon, subcategories }])
-    .select()
-    .single();
+  try {
+    await assertAdminCafeAccess(cafeId); // 🔒 حماية
 
-  if (!error) revalidatePath('/', 'layout');
-  return { success: !error, data, error: error?.message };
+    const { data, error } = await supabaseAdmin
+      .from('menu_categories')
+      .insert([{ cafe_id: cafeId, name_ar, name_en, name_fr, icon, subcategories }])
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    revalidatePath('/', 'layout');
+    return { success: true, data };
+  } catch (error: any) {
+    return { success: false, error: error?.message };
+  }
 }
 
 export async function updateCategory(id: string, name_ar: string, name_en: string, name_fr: string, icon: string, subcategories: string[] = []) {
-  const { error } = await supabaseAdmin
-    .from('menu_categories')
-    .update({ name_ar, name_en, name_fr, icon, subcategories })
-    .eq('id', id);
+  try {
+    // 🔒 جلب المقهى المرتبط للتحقق من الصلاحيات بدون كسر الواجهة الأمامية
+    const { data: cat, error: fetchErr } = await supabaseAdmin.from('menu_categories').select('cafe_id').eq('id', id).single();
+    if (fetchErr || !cat) throw new Error("Category not found");
+    
+    await assertAdminCafeAccess(cat.cafe_id); 
 
-  if (!error) revalidatePath('/', 'layout');
-  return { success: !error, error: error?.message };
+    const { error } = await supabaseAdmin
+      .from('menu_categories')
+      .update({ name_ar, name_en, name_fr, icon, subcategories })
+      .eq('id', id)
+      .eq('cafe_id', cat.cafe_id);
+
+    if (error) throw error;
+
+    revalidatePath('/', 'layout');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message };
+  }
 }
 
 export async function deleteCategory(id: string) {
-  const { error } = await supabaseAdmin
-    .from('menu_categories')
-    .delete()
-    .eq('id', id);
+  try {
+    // 🔒 جلب المقهى المرتبط للتحقق من الصلاحيات بدون كسر الواجهة الأمامية
+    const { data: cat, error: fetchErr } = await supabaseAdmin.from('menu_categories').select('cafe_id').eq('id', id).single();
+    if (fetchErr || !cat) throw new Error("Category not found");
+    
+    await assertAdminCafeAccess(cat.cafe_id); 
 
-  if (!error) revalidatePath('/', 'layout');
-  return { success: !error, error: error?.message };
+    const { error } = await supabaseAdmin
+      .from('menu_categories')
+      .delete()
+      .eq('id', id)
+      .eq('cafe_id', cat.cafe_id);
+
+    if (error) throw error;
+
+    revalidatePath('/', 'layout');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error?.message };
+  }
 }

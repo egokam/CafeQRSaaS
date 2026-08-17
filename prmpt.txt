@@ -1,0 +1,203 @@
+according to all these modifications what files we need to adjust, "i'm just asking if needed, if not just say no need".
+
+ServeQR
+├── README.md
+├── components.json
+├── eslint.config.mjs
+├── middleware.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── public
+│   ├── Modifiers.docx
+│   ├── ads.txt
+│   ├── banners
+│   │   ├── breakfasts.png
+│   │   ├── burgers.png
+│   │   ├── cold_coffee.png
+│   │   ├── default.png
+│   │   ├── desserts.png
+│   │   ├── fried_chicken.png
+│   │   ├── hot_coffee.png
+│   │   ├── juices.png
+│   │   ├── milkshakes.png
+│   │   ├── paninis.png
+│   │   ├── patisserie.png
+│   │   ├── pizzas.png
+│   │   ├── plates.png
+│   │   ├── salads.png
+│   │   ├── sandwiches.png
+│   │   ├── smoothies.png
+│   │   ├── soft_drinks.png
+│   │   ├── tacos.png
+│   │   └── tea.png
+│   ├── demo
+│   │   ├── avocadotoast.jpg
+│   │   ├── berrysmoothie.jpg
+│   │   ├── cheesecake.jpg
+│   │   ├── croissant.jpg
+│   │   ├── espresso.jpg
+│   │   ├── flatwhite.jpg
+│   │   ├── icedlatte.jpg
+│   │   ├── matcha.jpg
+│   │   ├── orangejuice.jpg
+│   │   ├── painauchocolat.jpg
+│   │   ├── shakshuka.jpg
+│   │   └── tiramisu.jpg
+│   ├── file.svg
+│   ├── globe.svg
+│   ├── icons
+│   │   ├── burger.png
+│   │   ├── cat_breakfasts.png
+│   │   ├── cat_burgers.png
+│   │   ├── cat_cold_coffee.png
+│   │   ├── cat_desserts.png
+│   │   ├── cat_fried_chicken.png
+│   │   ├── cat_hot_coffee.png
+│   │   ├── cat_juices.png
+│   │   ├── cat_milkshakes.png
+│   │   ├── cat_paninis.png
+│   │   ├── cat_patisserie.png
+│   │   ├── cat_pizzas.png
+│   │   ├── cat_plats.png
+│   │   ├── cat_salads.png
+│   │   ├── cat_sandwiches.png
+│   │   ├── cat_smoothies.png
+│   │   ├── cat_soft_drinks.png
+│   │   ├── cat_tacos.png
+│   │   └── cat_tea.png
+│   ├── manifest.json
+│   ├── models
+│   │   └── reciept.glb
+│   ├── next.svg
+│   ├── og-image.jpg
+│   ├── print.mp3
+│   ├── products
+│   │   ├── croissant.jpg
+│   │   ├── flatwhite.jpg
+│   │   ├── matcha.jpg
+│   │   ├── tea.jpg
+│   │   ├── tea2.png
+│   │   └── tea3.png
+│   ├── screenshots
+│   │   ├── admin1.png
+│   │   ├── admin2.png
+│   │   ├── admin3.png
+│   │   ├── blueprint
+│   │   │   ├── 1.jpg
+│   │   │   ├── 2.jpg
+│   │   │   └── 3.jpg
+│   │   ├── client.png
+│   │   ├── kitchen.png
+│   │   └── pos.png
+│   ├── tear.mp3
+│   ├── vercel.svg
+│   └── window.svg
+├── schema.sql
+├── src
+│   ├── actions
+│   │   ├── auth.ts
+│   │   ├── menu.ts
+│   │   ├── payment.ts
+│   │   ├── saas.ts
+│   │   └── support.ts
+│   ├── app
+│   │   ├── [cafeSlug]
+│   │   │   ├── [tableId]
+│   │   │   │   └── page.tsx
+│   │   │   ├── admin
+│   │   │   │   ├── layout.tsx
+│   │   │   │   └── page.tsx
+│   │   │   └── cashier
+│   │   │       └── page.tsx
+│   │   ├── api
+│   │   │   └── telegram-webhook
+│   │   │       └── route.ts
+│   │   ├── demo
+│   │   │   ├── admin
+│   │   │   │   └── page.tsx
+│   │   │   ├── client
+│   │   │   │   └── page.tsx
+│   │   │   ├── kitchen
+│   │   │   │   └── page.tsx
+│   │   │   └── pos
+│   │   │       └── page.tsx
+│   │   ├── ego-owner-9539
+│   │   │   ├── login
+│   │   │   │   └── page.tsx
+│   │   │   └── page.tsx
+│   │   ├── favicon.ico
+│   │   ├── get-started
+│   │   │   └── page.tsx
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   └── tutorial
+│   │       └── page.tsx
+│   ├── components
+│   │   ├── KitchenReciept.tsx
+│   │   ├── MenuCard.tsx
+│   │   ├── SecurityShield.tsx
+│   │   ├── admin
+│   │   │   ├── BillingTab.tsx
+│   │   │   ├── DevicesTab.tsx
+│   │   │   ├── MenuTab.tsx
+│   │   │   ├── ModifiersTab.tsx
+│   │   │   ├── PaymentHistory.tsx
+│   │   │   ├── SalesTab.tsx
+│   │   │   ├── SettingsTab.tsx
+│   │   │   ├── SubscriptionWarningBar.tsx
+│   │   │   ├── SupportTab.tsx
+│   │   │   ├── TablesTab.tsx
+│   │   │   └── printingQR.md
+│   │   ├── client
+│   │   │   ├── Cart.tsx
+│   │   │   ├── Home.tsx
+│   │   │   ├── LangSwitch.tsx
+│   │   │   ├── LanguagePopup.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── ProductCard.tsx
+│   │   │   ├── ProductPage
+│   │   │   │   ├── Modifiers.tsx
+│   │   │   │   ├── Overview.tsx
+│   │   │   │   └── Tail.tsx
+│   │   │   ├── ProductPage.tsx
+│   │   │   ├── Searchbar.tsx
+│   │   │   ├── SubNavbar.tsx
+│   │   │   ├── Topbar.tsx
+│   │   │   └── home
+│   │   │       ├── Banner.tsx
+│   │   │       └── TopPicks.tsx
+│   │   ├── landing
+│   │   │   ├── Background3D.tsx
+│   │   │   ├── Features.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   ├── Hero.tsx
+│   │   │   ├── LanguageSwitcher.tsx
+│   │   │   ├── LivePreview.tsx
+│   │   │   ├── MagneticButton.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── ProjectGuide.tsx
+│   │   │   └── Sandbox.tsx
+│   │   ├── s-admin
+│   │   │   └── CafeDossierModal.tsx
+│   │   └── ui
+│   │       ├── button.tsx
+│   │       └── select.tsx
+│   ├── i18n
+│   │   ├── config.ts
+│   │   ├── messages
+│   │   │   ├── ar.json
+│   │   │   ├── en.json
+│   │   │   └── fr.json
+│   │   └── request.ts
+│   ├── lib
+│   │   ├── demoStore.ts
+│   │   ├── supabase.ts
+│   │   └── utils.ts
+│   └── store
+│       └── useCart.ts
+├── supabase
+├── tsconfig.demo-check.json
+└── tsconfig.json

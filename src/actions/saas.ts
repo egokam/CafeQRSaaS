@@ -2,6 +2,8 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { assertAdminCafeAccess } from "./auth"; // 🔒 استيراد قفل الملاك
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -61,6 +63,34 @@ const CAFE_NUMERIC_COLUMNS = new Set([
   "longitude",
 ]);
 
+// 🔒 دالة ذكية للتحقق من هوية المدير العام بدون كسر الواجهة الأمامية
+async function verifySuperAdmin(providedToken?: string) {
+  let token = providedToken;
+
+  // إذا لم يتم تمرير التوكن يدوياً، سنبحث عنه في الكوكيز
+  if (!token) {
+    const cookieStore = await cookies();
+    const authCookie = cookieStore.getAll().find(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'));
+    if (authCookie) {
+      try {
+        const parsed = JSON.parse(authCookie.value);
+        token = Array.isArray(parsed) ? parsed[0] : parsed.access_token;
+      } catch {
+        token = authCookie.value;
+      }
+    }
+  }
+
+  if (!token) throw new Error("SECURITY ALERT: UNAUTHORIZED SUPER ADMIN ACCESS BLOCKED! (No Token)");
+
+  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+  const adminEmail = "elotmanikamal607@gmail.com"; 
+
+  if (error || !user || user.email?.toLowerCase() !== adminEmail.toLowerCase()) {
+    throw new Error("SECURITY ALERT: UNAUTHORIZED SUPER ADMIN ACCESS BLOCKED!");
+  }
+}
+
 const normalizeCafePlan = (plan: string): CafePlan => {
   const normalized = plan?.toLowerCase().trim() as CafePlan;
   return Object.prototype.hasOwnProperty.call(PLAN_LIMITS, normalized) ? normalized : "silver";
@@ -111,7 +141,7 @@ const findCafeUpdateMismatches = (updates: CafeUpdatePayload, row: Record<string
       : [{ column: key, expected, actual }];
   });
 
-// 1. فحص حالة الاشتراك
+// 1. فحص حالة الاشتراك (متاحة للعموم لأنها للقراءة والتحديث التلقائي)
 export async function checkCafeSubscription(cafeSlug: string) {
   const { data: cafe, error } = await supabaseAdmin
     .from('cafes')
@@ -142,9 +172,11 @@ export async function checkCafeSubscription(cafeSlug: string) {
   return { isValid: true, status: cafe.subscription_status, cafeName: cafe.name, cafeId: cafe.id };
 }
 
-// 2. استقبال الوصل البنكي
+// 2. استقبال الوصل البنكي (يجب أن يقوم بها المالك فقط)
 export async function submitBankTransferReceipt(cafeId: string, receiptUrl: string, amount: number) {
   try {
+    await assertAdminCafeAccess(cafeId); // 🔒 حماية: فقط مالك المقهى يمكنه رفع إيصال لمقهاه
+
     const { data: cafeData, error: fetchError } = await supabaseAdmin
       .from('cafes')
       .select('can_use_grace')
@@ -202,14 +234,7 @@ export async function getPlatformBankDetails() {
 
 // 4. جلب خريطة المنصة الشاملة للمدير الأكبر
 export async function getUltimateDashboardData(accessToken?: string) {
-  if (!accessToken) throw new Error("SECURITY ALERT: ACCESS TOKEN MISSING!");
-
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(accessToken);
-  const adminEmail = "elotmanikamal607@gmail.com"; 
-
-  if (error || !user || user.email?.toLowerCase() !== adminEmail.toLowerCase()) {
-    throw new Error("SECURITY ALERT: UNAUTHORIZED ACCESS BLOCKED!");
-  }
+  await verifySuperAdmin(accessToken); // 🔒 حماية
 
   const { data: cafes, error: cafesErr } = await supabaseAdmin
     .from('cafes')
@@ -229,7 +254,6 @@ export async function getUltimateDashboardData(accessToken?: string) {
   const activeCafes = cafeList.filter(c => c.subscription_status === 'active').length;
   const pausedCafes = cafeList.filter(c => c.subscription_status === 'paused').length;
   
-  // 🌟 حساب الـ MRR بناءً على الأسعار الجديدة ودورة الدفع
   const totalMRR = cafeList.reduce((acc, c) => {
     if (c.subscription_status !== 'active') return acc;
     let monthlyVal = 0;
@@ -253,10 +277,13 @@ export async function forceUpdateCafeSub(
   isoDate: string,
   newPlan: string,
   newCycle: string,
-  latitude?: string | null,  // 🌟 إضافة متغير خط العرض
-  longitude?: string | null  // 🌟 إضافة متغير خط الطول
+  latitude?: string | null,
+  longitude?: string | null,
+  accessToken?: string // 🔒 متغير اختياري للتوثيق
 ) {
   try {
+    await verifySuperAdmin(accessToken); // 🔒 حماية
+
     const normalizedPlan = normalizeCafePlan(newPlan);
     const planLimits = getCafePlanLimits(normalizedPlan);
     const updates: CafeUpdatePayload = {
@@ -267,7 +294,6 @@ export async function forceUpdateCafeSub(
       ...planLimits,
     };
 
-    // 🌟 تحويل الإحداثيات من نص (String) إلى رقم (Number) قبل حفظها في قاعدة البيانات
     const parsedLatitude = parseOptionalCoordinate("latitude", latitude);
     const parsedLongitude = parseOptionalCoordinate("longitude", longitude);
     if (parsedLatitude !== undefined) updates.latitude = parsedLatitude;
@@ -289,17 +315,6 @@ export async function forceUpdateCafeSub(
       });
     }
 
-    console.log("[forceUpdateCafeSub] Calculated subscription limits", {
-      cafeId,
-      requestedPlan: newPlan,
-      normalizedPlan,
-      planLimits,
-    });
-    console.log("[forceUpdateCafeSub] Supabase cafes.update payload", {
-      cafeId,
-      updates,
-    });
-
     const { data: existingCafe, error: preflightError } = await supabaseAdmin
       .from("cafes")
       .select(CAFE_FORCE_UPDATE_COLUMNS)
@@ -312,14 +327,8 @@ export async function forceUpdateCafeSub(
     }
 
     if (!existingCafe) {
-      console.error("[forceUpdateCafeSub] Preflight found zero cafes. Update would affect 0 rows.", {
-        cafeId,
-        possibleCause: "Missing cafe id, RLS denying SELECT, or inaccessible row.",
-      });
       return { success: false, error: "Cafe not found or inaccessible" };
     }
-
-    console.log("[forceUpdateCafeSub] Cafe row before update", existingCafe);
 
     const { data: updatedCafe, error, count, status, statusText } = await supabaseAdmin
       .from("cafes")
@@ -334,29 +343,13 @@ export async function forceUpdateCafeSub(
     }
 
     if (count === 0 || !updatedCafe) {
-      console.error("[forceUpdateCafeSub] Supabase update returned no row", {
-        cafeId,
-        count,
-        status,
-        statusText,
-        possibleCause: "RLS silently blocked UPDATE/RETURNING, the id matched no rows, or a policy denied returned rows.",
-        updates,
-      });
       return { success: false, error: "Cafe update affected zero rows" };
     }
 
     const mismatches = findCafeUpdateMismatches(updates, updatedCafe);
     if (mismatches.length > 0) {
-      console.error("[forceUpdateCafeSub] Post-update verification mismatch", {
-        cafeId,
-        mismatches,
-        updates,
-        updatedCafe,
-      });
       return { success: false, error: "Cafe update verification mismatch" };
     }
-
-    console.log("[forceUpdateCafeSub] Verified updated cafe row", updatedCafe);
 
     revalidatePath('/ego-owner-9539');
     if (updatedCafe.slug) revalidatePath(`/${updatedCafe.slug}/admin`);
@@ -364,13 +357,6 @@ export async function forceUpdateCafeSub(
     return { success: true, cafe: updatedCafe };
   } catch (error: unknown) {
     const exception = error as SupabaseLoggableError;
-    console.error("Force Update Exception:", {
-      message: exception?.message,
-      code: exception?.code,
-      details: exception?.details,
-      hint: exception?.hint,
-      stack: exception?.stack,
-    });
     return { success: false, error: exception?.message || "Force update failed", code: exception?.code };
   }
 }
@@ -386,8 +372,11 @@ export async function provisionNewCafe(payload: {
   trialDays: number;
   adminPin: string;
   cashierPin: string;
+  accessToken?: string; // 🔒 متغير اختياري للتوثيق
 }) {
   try {
+    await verifySuperAdmin(payload.accessToken); // 🔒 حماية
+
     const cleanSlug = payload.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-');
     const pass = payload.ownerPassword || "CafeSaaS2026!";
 
@@ -404,7 +393,6 @@ export async function provisionNewCafe(payload: {
 
     const endsAt = new Date(Date.now() + payload.trialDays * 24 * 60 * 60 * 1000).toISOString();
     
-    // 🌟 حساب القيود الديناميكية
     const planType = normalizeCafePlan(payload.planType);
     const planLimits = getCafePlanLimits(planType);
 
@@ -444,8 +432,10 @@ export async function provisionNewCafe(payload: {
 }
 
 // 7. تحديث حساب المالك
-export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: string, newEmail?: string, newPassword?: string) {
+export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: string, newEmail?: string, newPassword?: string, accessToken?: string) {
   try {
+    await verifySuperAdmin(accessToken); // 🔒 حماية
+
     if (!newEmail || newEmail.trim() === '') throw new Error("البريد الإلكتروني مطلوب!");
 
     const cleanEmail = newEmail.trim();
@@ -508,8 +498,10 @@ export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: 
 }
 
 // 8. الإعدام النهائي
-export async function deleteCafeCompletely(cafeId: string, authUserId: string) {
+export async function deleteCafeCompletely(cafeId: string, authUserId: string, accessToken?: string) {
   try {
+    await verifySuperAdmin(accessToken); // 🔒 حماية
+
     await supabaseAdmin.from('payment_receipts').delete().eq('cafe_id', cafeId);
     await supabaseAdmin.from('orders').delete().eq('cafe_id', cafeId);
     await supabaseAdmin.from('tables').delete().eq('cafe_id', cafeId);

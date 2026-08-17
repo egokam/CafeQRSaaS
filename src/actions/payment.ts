@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { assertAdminCafeAccess } from "./auth"; // 🔒 استيراد قفل الأمان
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -16,6 +17,8 @@ export async function sendTelegramReceipt(data: {
   planId: string;
   billingCycle: string;
 }) {
+  await assertAdminCafeAccess(data.cafeId); // 🔒 حماية: فقط مالك المقهى يمكنه إرسال إشعار الدفع
+
   const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
@@ -68,6 +71,8 @@ export async function sendTelegramReceipt(data: {
 
 export async function getPaymentHistory(cafeId: string) {
   try {
+    await assertAdminCafeAccess(cafeId); // 🔒 حماية: منع جلب سجلات مقهى آخر
+
     const { data, error } = await supabaseAdmin
       .from("payment_receipts")
       .select("*")
@@ -85,6 +90,8 @@ export async function getPaymentHistory(cafeId: string) {
 
 export async function clearPaymentHistory(cafeId: string) {
   try {
+    await assertAdminCafeAccess(cafeId); // 🔒 حماية: منع مسح سجلات مقهى آخر
+
     if (!process.env.RESEND_API) {
       throw new Error("مفتاح RESEND_API مفقود");
     }

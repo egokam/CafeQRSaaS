@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict gc4V8YSSag8vY3t883yIYCXZSf3mQvII0MM8ZOIFsF4DhMK6lZEMUQFqI9CTKLo
+\restrict 55AqvnaFDcSOoXHxKUcegkihb8mohPV2vBsOp8zI51uSkhYhh21DhYJDHSokxua
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -72,7 +72,7 @@ CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
 
 --
--- Name: EXTENSION pg_net; Type: COMMENT; Schema: -; Owner:
+-- Name: EXTENSION pg_net; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION pg_net IS 'Async HTTP';
@@ -131,7 +131,7 @@ CREATE EXTENSION IF NOT EXISTS pg_stat_statements WITH SCHEMA extensions;
 
 
 --
--- Name: EXTENSION pg_stat_statements; Type: COMMENT; Schema: -; Owner:
+-- Name: EXTENSION pg_stat_statements; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION pg_stat_statements IS 'track planning and execution statistics of all SQL statements executed';
@@ -145,7 +145,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 
 
 --
--- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner:
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
@@ -159,7 +159,7 @@ CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
 
 
 --
--- Name: EXTENSION supabase_vault; Type: COMMENT; Schema: -; Owner:
+-- Name: EXTENSION supabase_vault; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION supabase_vault IS 'Supabase Vault Extension';
@@ -173,7 +173,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
 
 
 --
--- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner:
+-- Name: EXTENSION "uuid-ossp"; Type: COMMENT; Schema: -; Owner: 
 --
 
 COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UUIDs)';
@@ -184,9 +184,9 @@ COMMENT ON EXTENSION "uuid-ossp" IS 'generate universally unique identifiers (UU
 --
 
 CREATE TYPE auth.aal_level AS ENUM (
-    'aal1',
-    'aal2',
-    'aal3'
+    'aal1',
+    'aal2',
+    'aal3'
 );
 
 
@@ -197,8 +197,8 @@ ALTER TYPE auth.aal_level OWNER TO supabase_auth_admin;
 --
 
 CREATE TYPE auth.code_challenge_method AS ENUM (
-    's256',
-    'plain'
+    's256',
+    'plain'
 );
 
 
@@ -209,8 +209,8 @@ ALTER TYPE auth.code_challenge_method OWNER TO supabase_auth_admin;
 --
 
 CREATE TYPE auth.factor_status AS ENUM (
-    'unverified',
-    'verified'
+    'unverified',
+    'verified'
 );
 
 
@@ -221,9 +221,9 @@ ALTER TYPE auth.factor_status OWNER TO supabase_auth_admin;
 --
 
 CREATE TYPE auth.factor_type AS ENUM (
-    'totp',
-    'webauthn',
-    'phone'
+    'totp',
+    'webauthn',
+    'phone'
 );
 
 
@@ -234,10 +234,10 @@ ALTER TYPE auth.factor_type OWNER TO supabase_auth_admin;
 --
 
 CREATE TYPE auth.oauth_authorization_status AS ENUM (
-    'pending',
-    'approved',
-    'denied',
-    'expired'
+    'pending',
+    'approved',
+    'denied',
+    'expired'
 );
 
 
@@ -248,8 +248,8 @@ ALTER TYPE auth.oauth_authorization_status OWNER TO supabase_auth_admin;
 --
 
 CREATE TYPE auth.oauth_client_type AS ENUM (
-    'public',
-    'confidential'
+    'public',
+    'confidential'
 );
 
 
@@ -260,8 +260,8 @@ ALTER TYPE auth.oauth_client_type OWNER TO supabase_auth_admin;
 --
 
 CREATE TYPE auth.oauth_registration_type AS ENUM (
-    'dynamic',
-    'manual'
+    'dynamic',
+    'manual'
 );
 
 
@@ -272,7 +272,7 @@ ALTER TYPE auth.oauth_registration_type OWNER TO supabase_auth_admin;
 --
 
 CREATE TYPE auth.oauth_response_type AS ENUM (
-    'code'
+    'code'
 );
 
 
@@ -283,27 +283,41 @@ ALTER TYPE auth.oauth_response_type OWNER TO supabase_auth_admin;
 --
 
 CREATE TYPE auth.one_time_token_type AS ENUM (
-    'confirmation_token',
-    'reauthentication_token',
-    'recovery_token',
-    'email_change_token_new',
-    'email_change_token_current',
-    'phone_change_token'
+    'confirmation_token',
+    'reauthentication_token',
+    'recovery_token',
+    'email_change_token_new',
+    'email_change_token_current',
+    'phone_change_token'
 );
 
 
 ALTER TYPE auth.one_time_token_type OWNER TO supabase_auth_admin;
 
 --
+-- Name: modifier_type; Type: TYPE; Schema: public; Owner: postgres
+--
+
+CREATE TYPE public.modifier_type AS ENUM (
+    'single_choice',
+    'multiple_choice',
+    'incremental',
+    'slider'
+);
+
+
+ALTER TYPE public.modifier_type OWNER TO postgres;
+
+--
 -- Name: action; Type: TYPE; Schema: realtime; Owner: supabase_admin
 --
 
 CREATE TYPE realtime.action AS ENUM (
-    'INSERT',
-    'UPDATE',
-    'DELETE',
-    'TRUNCATE',
-    'ERROR'
+    'INSERT',
+    'UPDATE',
+    'DELETE',
+    'TRUNCATE',
+    'ERROR'
 );
 
 
@@ -314,13 +328,13 @@ ALTER TYPE realtime.action OWNER TO supabase_admin;
 --
 
 CREATE TYPE realtime.equality_op AS ENUM (
-    'eq',
-    'neq',
-    'lt',
-    'lte',
-    'gt',
-    'gte',
-    'in'
+    'eq',
+    'neq',
+    'lt',
+    'lte',
+    'gt',
+    'gte',
+    'in'
 );
 
 
@@ -331,9 +345,9 @@ ALTER TYPE realtime.equality_op OWNER TO supabase_admin;
 --
 
 CREATE TYPE realtime.user_defined_filter AS (
-        column_name text,
-        op realtime.equality_op,
-        value text
+	column_name text,
+	op realtime.equality_op,
+	value text
 );
 
 
@@ -344,12 +358,12 @@ ALTER TYPE realtime.user_defined_filter OWNER TO supabase_admin;
 --
 
 CREATE TYPE realtime.wal_column AS (
-        name text,
-        type_name text,
-        type_oid oid,
-        value jsonb,
-        is_pkey boolean,
-        is_selectable boolean
+	name text,
+	type_name text,
+	type_oid oid,
+	value jsonb,
+	is_pkey boolean,
+	is_selectable boolean
 );
 
 
@@ -360,10 +374,10 @@ ALTER TYPE realtime.wal_column OWNER TO supabase_admin;
 --
 
 CREATE TYPE realtime.wal_rls AS (
-        wal jsonb,
-        is_rls_enabled boolean,
-        subscription_ids uuid[],
-        errors text[]
+	wal jsonb,
+	is_rls_enabled boolean,
+	subscription_ids uuid[],
+	errors text[]
 );
 
 
@@ -374,9 +388,9 @@ ALTER TYPE realtime.wal_rls OWNER TO supabase_admin;
 --
 
 CREATE TYPE storage.buckettype AS ENUM (
-    'STANDARD',
-    'ANALYTICS',
-    'VECTOR'
+    'STANDARD',
+    'ANALYTICS',
+    'VECTOR'
 );
 
 
@@ -387,13 +401,13 @@ ALTER TYPE storage.buckettype OWNER TO supabase_storage_admin;
 --
 
 CREATE FUNCTION auth.email() RETURNS text
-    LANGUAGE sql STABLE
-    AS $$
-  select
-  coalesce(
-    nullif(current_setting('request.jwt.claim.email', true), ''),
-    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
-  )::text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.email', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'email')
+  )::text
 $$;
 
 
@@ -411,13 +425,13 @@ COMMENT ON FUNCTION auth.email() IS 'Deprecated. Use auth.jwt() -> ''email'' ins
 --
 
 CREATE FUNCTION auth.jwt() RETURNS jsonb
-    LANGUAGE sql STABLE
-    AS $$
-  select
-    coalesce(
-        nullif(current_setting('request.jwt.claim', true), ''),
-        nullif(current_setting('request.jwt.claims', true), '')
-    )::jsonb
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+    coalesce(
+        nullif(current_setting('request.jwt.claim', true), ''),
+        nullif(current_setting('request.jwt.claims', true), '')
+    )::jsonb
 $$;
 
 
@@ -428,13 +442,13 @@ ALTER FUNCTION auth.jwt() OWNER TO supabase_auth_admin;
 --
 
 CREATE FUNCTION auth.role() RETURNS text
-    LANGUAGE sql STABLE
-    AS $$
-  select
-  coalesce(
-    nullif(current_setting('request.jwt.claim.role', true), ''),
-    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
-  )::text
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.role', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role')
+  )::text
 $$;
 
 
@@ -452,13 +466,13 @@ COMMENT ON FUNCTION auth.role() IS 'Deprecated. Use auth.jwt() -> ''role'' inste
 --
 
 CREATE FUNCTION auth.uid() RETURNS uuid
-    LANGUAGE sql STABLE
-    AS $$
-  select
-  coalesce(
-    nullif(current_setting('request.jwt.claim.sub', true), ''),
-    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
-  )::uuid
+    LANGUAGE sql STABLE
+    AS $$
+  select 
+  coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')
+  )::uuid
 $$;
 
 
@@ -476,34 +490,34 @@ COMMENT ON FUNCTION auth.uid() IS 'Deprecated. Use auth.jwt() -> ''sub'' instead
 --
 
 CREATE FUNCTION extensions.grant_pg_cron_access() RETURNS event_trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-  IF EXISTS (
-    SELECT
-    FROM pg_event_trigger_ddl_commands() AS ev
-    JOIN pg_extension AS ext
-    ON ev.objid = ext.oid
-    WHERE ext.extname = 'pg_cron'
-  )
-  THEN
-    grant usage on schema cron to postgres with grant option;
+  IF EXISTS (
+    SELECT
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_cron'
+  )
+  THEN
+    grant usage on schema cron to postgres with grant option;
 
-    alter default privileges in schema cron grant all on tables to postgres with grant option;
-    alter default privileges in schema cron grant all on functions to postgres with grant option;
-    alter default privileges in schema cron grant all on sequences to postgres with grant option;
+    alter default privileges in schema cron grant all on tables to postgres with grant option;
+    alter default privileges in schema cron grant all on functions to postgres with grant option;
+    alter default privileges in schema cron grant all on sequences to postgres with grant option;
 
-    alter default privileges for user supabase_admin in schema cron grant all
-        on sequences to postgres with grant option;
-    alter default privileges for user supabase_admin in schema cron grant all
-        on tables to postgres with grant option;
-    alter default privileges for user supabase_admin in schema cron grant all
-        on functions to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on sequences to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on tables to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on functions to postgres with grant option;
 
-    grant all privileges on all tables in schema cron to postgres with grant option;
-    revoke all on table cron.job from postgres;
-    grant select on table cron.job to postgres with grant option;
-  END IF;
+    grant all privileges on all tables in schema cron to postgres with grant option;
+    revoke all on table cron.job from postgres;
+    grant select on table cron.job to postgres with grant option;
+  END IF;
 END;
 $$;
 
@@ -522,44 +536,44 @@ COMMENT ON FUNCTION extensions.grant_pg_cron_access() IS 'Grants access to pg_cr
 --
 
 CREATE FUNCTION extensions.grant_pg_graphql_access() RETURNS event_trigger
-    LANGUAGE plpgsql
-    AS $_$
+    LANGUAGE plpgsql
+    AS $_$
 begin
-    if not exists (
-        select 1
-        from pg_event_trigger_ddl_commands() ev
-        join pg_catalog.pg_extension e on ev.objid = e.oid
-        where e.extname = 'pg_graphql'
-    ) then
-        return;
-    end if;
+    if not exists (
+        select 1
+        from pg_event_trigger_ddl_commands() ev
+        join pg_catalog.pg_extension e on ev.objid = e.oid
+        where e.extname = 'pg_graphql'
+    ) then
+        return;
+    end if;
 
-    drop function if exists graphql_public.graphql;
-    create or replace function graphql_public.graphql(
-        "operationName" text default null,
-        query text default null,
-        variables jsonb default null,
-        extensions jsonb default null
-    )
-        returns jsonb
-        language sql
-    as $$
-        select graphql.resolve(
-            query := query,
-            variables := coalesce(variables, '{}'),
-            "operationName" := "operationName",
-            extensions := extensions
-        );
-    $$;
+    drop function if exists graphql_public.graphql;
+    create or replace function graphql_public.graphql(
+        "operationName" text default null,
+        query text default null,
+        variables jsonb default null,
+        extensions jsonb default null
+    )
+        returns jsonb
+        language sql
+    as $$
+        select graphql.resolve(
+            query := query,
+            variables := coalesce(variables, '{}'),
+            "operationName" := "operationName",
+            extensions := extensions
+        );
+    $$;
 
-    -- Attach the wrapper to the extension so DROP EXTENSION cascades to it,
-    -- which in turn triggers set_graphql_placeholder to reinstall the "not enabled" stub.
-    alter extension pg_graphql add function graphql_public.graphql(text, text, jsonb, jsonb);
+    -- Attach the wrapper to the extension so DROP EXTENSION cascades to it,
+    -- which in turn triggers set_graphql_placeholder to reinstall the "not enabled" stub.
+    alter extension pg_graphql add function graphql_public.graphql(text, text, jsonb, jsonb);
 
-    grant usage on schema graphql to postgres, anon, authenticated, service_role;
-    grant execute on function graphql.resolve to postgres, anon, authenticated, service_role;
-    grant usage on schema graphql to postgres with grant option;
-    grant usage on schema graphql_public to postgres with grant option;
+    grant usage on schema graphql to postgres, anon, authenticated, service_role;
+    grant execute on function graphql.resolve to postgres, anon, authenticated, service_role;
+    grant usage on schema graphql to postgres with grant option;
+    grant usage on schema graphql_public to postgres with grant option;
 end;
 $_$;
 
@@ -578,48 +592,48 @@ COMMENT ON FUNCTION extensions.grant_pg_graphql_access() IS 'Grants access to pg
 --
 
 CREATE FUNCTION extensions.grant_pg_net_access() RETURNS event_trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-  IF EXISTS (
-    SELECT 1
-    FROM pg_event_trigger_ddl_commands() AS ev
-    JOIN pg_extension AS ext
-    ON ev.objid = ext.oid
-    WHERE ext.extname = 'pg_net'
-  )
-  THEN
-    IF NOT EXISTS (
-      SELECT 1
-      FROM pg_roles
-      WHERE rolname = 'supabase_functions_admin'
-    )
-    THEN
-      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
-    END IF;
+  IF EXISTS (
+    SELECT 1
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_net'
+  )
+  THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_roles
+      WHERE rolname = 'supabase_functions_admin'
+    )
+    THEN
+      CREATE USER supabase_functions_admin NOINHERIT CREATEROLE LOGIN NOREPLICATION;
+    END IF;
 
-    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+    GRANT USAGE ON SCHEMA net TO supabase_functions_admin, postgres, anon, authenticated, service_role;
 
-    IF EXISTS (
-      SELECT FROM pg_extension
-      WHERE extname = 'pg_net'
-      -- all versions in use on existing projects as of 2025-02-20
-      -- version 0.12.0 onwards don't need these applied
-      AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')
-    ) THEN
-      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
-      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+    IF EXISTS (
+      SELECT FROM pg_extension
+      WHERE extname = 'pg_net'
+      -- all versions in use on existing projects as of 2025-02-20
+      -- version 0.12.0 onwards don't need these applied
+      AND extversion IN ('0.2', '0.6', '0.7', '0.7.1', '0.8', '0.10.0', '0.11.0')
+    ) THEN
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SECURITY DEFINER;
 
-      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
-      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+      ALTER function net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
+      ALTER function net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) SET search_path = net;
 
-      REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
-      REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) FROM PUBLIC;
 
-      GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
-      GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
-    END IF;
-  END IF;
+      GRANT EXECUTE ON FUNCTION net.http_get(url text, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+      GRANT EXECUTE ON FUNCTION net.http_post(url text, body jsonb, params jsonb, headers jsonb, timeout_milliseconds integer) TO supabase_functions_admin, postgres, anon, authenticated, service_role;
+    END IF;
+  END IF;
 END;
 $$;
 
@@ -638,31 +652,31 @@ COMMENT ON FUNCTION extensions.grant_pg_net_access() IS 'Grants access to pg_net
 --
 
 CREATE FUNCTION extensions.pgrst_ddl_watch() RETURNS event_trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 DECLARE
-  cmd record;
+  cmd record;
 BEGIN
-  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()
-  LOOP
-    IF cmd.command_tag IN (
-      'CREATE SCHEMA', 'ALTER SCHEMA'
-    , 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE'
-    , 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE'
-    , 'CREATE VIEW', 'ALTER VIEW'
-    , 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW'
-    , 'CREATE FUNCTION', 'ALTER FUNCTION'
-    , 'CREATE TRIGGER'
-    , 'CREATE TYPE', 'ALTER TYPE'
-    , 'CREATE RULE'
-    , 'COMMENT'
-    )
-    -- don't notify in case of CREATE TEMP table or other objects created on pg_temp
-    AND cmd.schema_name is distinct from 'pg_temp'
-    THEN
-      NOTIFY pgrst, 'reload schema';
-    END IF;
-  END LOOP;
+  FOR cmd IN SELECT * FROM pg_event_trigger_ddl_commands()
+  LOOP
+    IF cmd.command_tag IN (
+      'CREATE SCHEMA', 'ALTER SCHEMA'
+    , 'CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO', 'ALTER TABLE'
+    , 'CREATE FOREIGN TABLE', 'ALTER FOREIGN TABLE'
+    , 'CREATE VIEW', 'ALTER VIEW'
+    , 'CREATE MATERIALIZED VIEW', 'ALTER MATERIALIZED VIEW'
+    , 'CREATE FUNCTION', 'ALTER FUNCTION'
+    , 'CREATE TRIGGER'
+    , 'CREATE TYPE', 'ALTER TYPE'
+    , 'CREATE RULE'
+    , 'COMMENT'
+    )
+    -- don't notify in case of CREATE TEMP table or other objects created on pg_temp
+    AND cmd.schema_name is distinct from 'pg_temp'
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
 END; $$;
 
 
@@ -673,29 +687,29 @@ ALTER FUNCTION extensions.pgrst_ddl_watch() OWNER TO supabase_admin;
 --
 
 CREATE FUNCTION extensions.pgrst_drop_watch() RETURNS event_trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 DECLARE
-  obj record;
+  obj record;
 BEGIN
-  FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()
-  LOOP
-    IF obj.object_type IN (
-      'schema'
-    , 'table'
-    , 'foreign table'
-    , 'view'
-    , 'materialized view'
-    , 'function'
-    , 'trigger'
-    , 'type'
-    , 'rule'
-    )
-    AND obj.is_temporary IS false -- no pg_temp objects
-    THEN
-      NOTIFY pgrst, 'reload schema';
-    END IF;
-  END LOOP;
+  FOR obj IN SELECT * FROM pg_event_trigger_dropped_objects()
+  LOOP
+    IF obj.object_type IN (
+      'schema'
+    , 'table'
+    , 'foreign table'
+    , 'view'
+    , 'materialized view'
+    , 'function'
+    , 'trigger'
+    , 'type'
+    , 'rule'
+    )
+    AND obj.is_temporary IS false -- no pg_temp objects
+    THEN
+      NOTIFY pgrst, 'reload schema';
+    END IF;
+  END LOOP;
 END; $$;
 
 
@@ -706,55 +720,55 @@ ALTER FUNCTION extensions.pgrst_drop_watch() OWNER TO supabase_admin;
 --
 
 CREATE FUNCTION extensions.set_graphql_placeholder() RETURNS event_trigger
-    LANGUAGE plpgsql
-    AS $_$
-    DECLARE
-    graphql_is_dropped bool;
-    BEGIN
-    graphql_is_dropped = (
-        SELECT ev.schema_name = 'graphql_public'
-        FROM pg_event_trigger_dropped_objects() AS ev
-        WHERE ev.schema_name = 'graphql_public'
-    );
+    LANGUAGE plpgsql
+    AS $_$
+    DECLARE
+    graphql_is_dropped bool;
+    BEGIN
+    graphql_is_dropped = (
+        SELECT ev.schema_name = 'graphql_public'
+        FROM pg_event_trigger_dropped_objects() AS ev
+        WHERE ev.schema_name = 'graphql_public'
+    );
 
-    IF graphql_is_dropped
-    THEN
-        create or replace function graphql_public.graphql(
-            "operationName" text default null,
-            query text default null,
-            variables jsonb default null,
-            extensions jsonb default null
-        )
-            returns jsonb
-            language plpgsql
-        as $$
-            DECLARE
-                server_version float;
-            BEGIN
-                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
+    IF graphql_is_dropped
+    THEN
+        create or replace function graphql_public.graphql(
+            "operationName" text default null,
+            query text default null,
+            variables jsonb default null,
+            extensions jsonb default null
+        )
+            returns jsonb
+            language plpgsql
+        as $$
+            DECLARE
+                server_version float;
+            BEGIN
+                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
 
-                IF server_version >= 14 THEN
-                    RETURN jsonb_build_object(
-                        'errors', jsonb_build_array(
-                            jsonb_build_object(
-                                'message', 'pg_graphql extension is not enabled.'
-                            )
-                        )
-                    );
-                ELSE
-                    RETURN jsonb_build_object(
-                        'errors', jsonb_build_array(
-                            jsonb_build_object(
-                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
-                            )
-                        )
-                    );
-                END IF;
-            END;
-        $$;
-    END IF;
+                IF server_version >= 14 THEN
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql extension is not enabled.'
+                            )
+                        )
+                    );
+                ELSE
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
+                            )
+                        )
+                    );
+                END IF;
+            END;
+        $$;
+    END IF;
 
-    END;
+    END;
 $_$;
 
 
@@ -772,32 +786,32 @@ COMMENT ON FUNCTION extensions.set_graphql_placeholder() IS 'Reintroduces placeh
 --
 
 CREATE FUNCTION graphql_public.graphql("operationName" text DEFAULT NULL::text, query text DEFAULT NULL::text, variables jsonb DEFAULT NULL::jsonb, extensions jsonb DEFAULT NULL::jsonb) RETURNS jsonb
-    LANGUAGE plpgsql
-    AS $$
-            DECLARE
-                server_version float;
-            BEGIN
-                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
+    LANGUAGE plpgsql
+    AS $$
+            DECLARE
+                server_version float;
+            BEGIN
+                server_version = (SELECT (SPLIT_PART((select version()), ' ', 2))::float);
 
-                IF server_version >= 14 THEN
-                    RETURN jsonb_build_object(
-                        'errors', jsonb_build_array(
-                            jsonb_build_object(
-                                'message', 'pg_graphql extension is not enabled.'
-                            )
-                        )
-                    );
-                ELSE
-                    RETURN jsonb_build_object(
-                        'errors', jsonb_build_array(
-                            jsonb_build_object(
-                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
-                            )
-                        )
-                    );
-                END IF;
-            END;
-        $$;
+                IF server_version >= 14 THEN
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql extension is not enabled.'
+                            )
+                        )
+                    );
+                ELSE
+                    RETURN jsonb_build_object(
+                        'errors', jsonb_build_array(
+                            jsonb_build_object(
+                                'message', 'pg_graphql is only available on projects running Postgres 14 onwards.'
+                            )
+                        )
+                    );
+                END IF;
+            END;
+        $$;
 
 
 ALTER FUNCTION graphql_public.graphql("operationName" text, query text, variables jsonb, extensions jsonb) OWNER TO supabase_admin;
@@ -807,21 +821,21 @@ ALTER FUNCTION graphql_public.graphql("operationName" text, query text, variable
 --
 
 CREATE FUNCTION pgbouncer.get_auth(p_usename text) RETURNS TABLE(username text, password text)
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO ''
-    AS $_$
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO ''
+    AS $_$
 begin
-    raise debug 'PgBouncer auth request: %', p_usename;
+    raise debug 'PgBouncer auth request: %', p_usename;
 
-    return query
-    select
-        rolname::text,
-        case when rolvaliduntil < now()
-            then null
-            else rolpassword::text
-        end
-    from pg_authid
-    where rolname=$1 and rolcanlogin;
+    return query
+    select 
+        rolname::text, 
+        case when rolvaliduntil < now() 
+            then null 
+            else rolpassword::text 
+        end 
+    from pg_authid 
+    where rolname=$1 and rolcanlogin;
 end;
 $_$;
 
@@ -833,16 +847,25 @@ ALTER FUNCTION pgbouncer.get_auth(p_usename text) OWNER TO supabase_admin;
 --
 
 CREATE FUNCTION public.check_order_rate_limit() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
+
 BEGIN
-  IF (SELECT count(*) FROM orders
-      WHERE session_id = NEW.session_id
-      AND created_at > NOW() - INTERVAL '1 minute') >= 3 THEN
-    RAISE EXCEPTION 'هدئ اللعب! لا يمكنك طلب أكثر من 3 مرات في الدقيقة.';
-  END IF;
-  RETURN NEW;
+
+  IF (SELECT count(*) FROM orders 
+
+      WHERE session_id = NEW.session_id 
+
+      AND created_at > NOW() - INTERVAL '1 minute') >= 3 THEN
+
+    RAISE EXCEPTION 'هدئ اللعب! لا يمكنك طلب أكثر من 3 مرات في الدقيقة.';
+
+  END IF;
+
+  RETURN NEW;
+
 END;
+
 $$;
 
 
@@ -853,360 +876,360 @@ ALTER FUNCTION public.check_order_rate_limit() OWNER TO postgres;
 --
 
 CREATE FUNCTION realtime.apply_rls(wal jsonb, max_record_bytes integer DEFAULT (1024 * 1024)) RETURNS SETOF realtime.wal_rls
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 declare
-    -- Regclass of the table e.g. public.notes
-    entity_ regclass = (quote_ident(wal ->> 'schema') || '.' || quote_ident(wal ->> 'table'))::regclass;
+    -- Regclass of the table e.g. public.notes
+    entity_ regclass = (quote_ident(wal ->> 'schema') || '.' || quote_ident(wal ->> 'table'))::regclass;
 
-    -- I, U, D, T: insert, update ...
-    action realtime.action = (
-        case wal ->> 'action'
-            when 'I' then 'INSERT'
-            when 'U' then 'UPDATE'
-            when 'D' then 'DELETE'
-            else 'ERROR'
-        end
-    );
+    -- I, U, D, T: insert, update ...
+    action realtime.action = (
+        case wal ->> 'action'
+            when 'I' then 'INSERT'
+            when 'U' then 'UPDATE'
+            when 'D' then 'DELETE'
+            else 'ERROR'
+        end
+    );
 
-    -- Is row level security enabled for the table
-    is_rls_enabled bool = relrowsecurity from pg_class where oid = entity_;
+    -- Is row level security enabled for the table
+    is_rls_enabled bool = relrowsecurity from pg_class where oid = entity_;
 
-    subscriptions realtime.subscription[] = array_agg(subs)
-        from
-            realtime.subscription subs
-        where
-            subs.entity = entity_
-            -- Filter by action early - only get subscriptions interested in this action
-            -- action_filter column can be: '*' (all), 'INSERT', 'UPDATE', or 'DELETE'
-            and (subs.action_filter = '*' or subs.action_filter = action::text);
+    subscriptions realtime.subscription[] = array_agg(subs)
+        from
+            realtime.subscription subs
+        where
+            subs.entity = entity_
+            -- Filter by action early - only get subscriptions interested in this action
+            -- action_filter column can be: '*' (all), 'INSERT', 'UPDATE', or 'DELETE'
+            and (subs.action_filter = '*' or subs.action_filter = action::text);
 
-    -- Subscription vars
-    working_role regrole;
-    working_selected_columns text[];
-    claimed_role regrole;
-    claims jsonb;
+    -- Subscription vars
+    working_role regrole;
+    working_selected_columns text[];
+    claimed_role regrole;
+    claims jsonb;
 
-    subscription_id uuid;
-    subscription_has_access bool;
-    visible_to_subscription_ids uuid[] = '{}';
+    subscription_id uuid;
+    subscription_has_access bool;
+    visible_to_subscription_ids uuid[] = '{}';
 
-    -- structured info for wal's columns
-    columns realtime.wal_column[];
-    -- previous identity values for update/delete
-    old_columns realtime.wal_column[];
+    -- structured info for wal's columns
+    columns realtime.wal_column[];
+    -- previous identity values for update/delete
+    old_columns realtime.wal_column[];
 
-    error_record_exceeds_max_size boolean = octet_length(wal::text) > max_record_bytes;
+    error_record_exceeds_max_size boolean = octet_length(wal::text) > max_record_bytes;
 
-    -- Primary jsonb output for record
-    output jsonb;
+    -- Primary jsonb output for record
+    output jsonb;
 
-    -- Loop record for iterating unique roles (outer loop)
-    role_record record;
-    -- Loop record for iterating unique selected_columns within a role (inner loop)
-    cols_record record;
-    -- Subscription ids visible at the role level (before fanning out by selected_columns)
-    visible_role_sub_ids uuid[] = '{}';
+    -- Loop record for iterating unique roles (outer loop)
+    role_record record;
+    -- Loop record for iterating unique selected_columns within a role (inner loop)
+    cols_record record;
+    -- Subscription ids visible at the role level (before fanning out by selected_columns)
+    visible_role_sub_ids uuid[] = '{}';
 
 begin
-    perform set_config('role', null, true);
+    perform set_config('role', null, true);
 
-    columns =
-        array_agg(
-            (
-                x->>'name',
-                x->>'type',
-                x->>'typeoid',
-                realtime.cast(
-                    (x->'value') #>> '{}',
-                    coalesce(
-                        (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
-                        (x->>'type')::regtype
-                    )
-                ),
-                (pks ->> 'name') is not null,
-                true
-            )::realtime.wal_column
-        )
-        from
-            jsonb_array_elements(wal -> 'columns') x
-            left join jsonb_array_elements(wal -> 'pk') pks
-                on (x ->> 'name') = (pks ->> 'name');
+    columns =
+        array_agg(
+            (
+                x->>'name',
+                x->>'type',
+                x->>'typeoid',
+                realtime.cast(
+                    (x->'value') #>> '{}',
+                    coalesce(
+                        (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
+                        (x->>'type')::regtype
+                    )
+                ),
+                (pks ->> 'name') is not null,
+                true
+            )::realtime.wal_column
+        )
+        from
+            jsonb_array_elements(wal -> 'columns') x
+            left join jsonb_array_elements(wal -> 'pk') pks
+                on (x ->> 'name') = (pks ->> 'name');
 
-    old_columns =
-        array_agg(
-            (
-                x->>'name',
-                x->>'type',
-                x->>'typeoid',
-                realtime.cast(
-                    (x->'value') #>> '{}',
-                    coalesce(
-                        (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
-                        (x->>'type')::regtype
-                    )
-                ),
-                (pks ->> 'name') is not null,
-                true
-            )::realtime.wal_column
-        )
-        from
-            jsonb_array_elements(wal -> 'identity') x
-            left join jsonb_array_elements(wal -> 'pk') pks
-                on (x ->> 'name') = (pks ->> 'name');
+    old_columns =
+        array_agg(
+            (
+                x->>'name',
+                x->>'type',
+                x->>'typeoid',
+                realtime.cast(
+                    (x->'value') #>> '{}',
+                    coalesce(
+                        (x->>'typeoid')::regtype, -- null when wal2json version <= 2.4
+                        (x->>'type')::regtype
+                    )
+                ),
+                (pks ->> 'name') is not null,
+                true
+            )::realtime.wal_column
+        )
+        from
+            jsonb_array_elements(wal -> 'identity') x
+            left join jsonb_array_elements(wal -> 'pk') pks
+                on (x ->> 'name') = (pks ->> 'name');
 
-    for role_record in
-        select claims_role
-        from (select distinct claims_role from unnest(subscriptions)) t
-        order by claims_role::text
-    loop
-        working_role := role_record.claims_role;
+    for role_record in
+        select claims_role
+        from (select distinct claims_role from unnest(subscriptions)) t
+        order by claims_role::text
+    loop
+        working_role := role_record.claims_role;
 
-        -- Update `is_selectable` for columns and old_columns (once per role)
-        columns =
-            array_agg(
-                (
-                    c.name,
-                    c.type_name,
-                    c.type_oid,
-                    c.value,
-                    c.is_pkey,
-                    pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
-                )::realtime.wal_column
-            )
-            from
-                unnest(columns) c;
+        -- Update `is_selectable` for columns and old_columns (once per role)
+        columns =
+            array_agg(
+                (
+                    c.name,
+                    c.type_name,
+                    c.type_oid,
+                    c.value,
+                    c.is_pkey,
+                    pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
+                )::realtime.wal_column
+            )
+            from
+                unnest(columns) c;
 
-        old_columns =
-                array_agg(
-                    (
-                        c.name,
-                        c.type_name,
-                        c.type_oid,
-                        c.value,
-                        c.is_pkey,
-                        pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
-                    )::realtime.wal_column
-                )
-                from
-                    unnest(old_columns) c;
+        old_columns =
+                array_agg(
+                    (
+                        c.name,
+                        c.type_name,
+                        c.type_oid,
+                        c.value,
+                        c.is_pkey,
+                        pg_catalog.has_column_privilege(working_role, entity_, c.name, 'SELECT')
+                    )::realtime.wal_column
+                )
+                from
+                    unnest(old_columns) c;
 
-        if action <> 'DELETE' and count(1) = 0 from unnest(columns) c where c.is_pkey then
-            -- Fan out 400 error per distinct selected_columns for this role
-            for cols_record in
-                select selected_columns
-                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
-                order by coalesce(array_to_string(selected_columns, ','), '')
-            loop
-                working_selected_columns := cols_record.selected_columns;
-                return next (
-                    jsonb_build_object(
-                        'schema', wal ->> 'schema',
-                        'table', wal ->> 'table',
-                        'type', action
-                    ),
-                    is_rls_enabled,
-                    (select array_agg(s.subscription_id) from unnest(subscriptions) as s where s.claims_role = working_role and (s.selected_columns is not distinct from working_selected_columns)),
-                    array['Error 400: Bad Request, no primary key']
-                )::realtime.wal_rls;
-            end loop;
+        if action <> 'DELETE' and count(1) = 0 from unnest(columns) c where c.is_pkey then
+            -- Fan out 400 error per distinct selected_columns for this role
+            for cols_record in
+                select selected_columns
+                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
+                order by coalesce(array_to_string(selected_columns, ','), '')
+            loop
+                working_selected_columns := cols_record.selected_columns;
+                return next (
+                    jsonb_build_object(
+                        'schema', wal ->> 'schema',
+                        'table', wal ->> 'table',
+                        'type', action
+                    ),
+                    is_rls_enabled,
+                    (select array_agg(s.subscription_id) from unnest(subscriptions) as s where s.claims_role = working_role and (s.selected_columns is not distinct from working_selected_columns)),
+                    array['Error 400: Bad Request, no primary key']
+                )::realtime.wal_rls;
+            end loop;
 
-        -- The claims role does not have SELECT permission to the primary key of entity
-        elsif action <> 'DELETE' and sum(c.is_selectable::int) <> count(1) from unnest(columns) c where c.is_pkey then
-            -- Fan out 401 error per distinct selected_columns for this role
-            for cols_record in
-                select selected_columns
-                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
-                order by coalesce(array_to_string(selected_columns, ','), '')
-            loop
-                working_selected_columns := cols_record.selected_columns;
-                return next (
-                    jsonb_build_object(
-                        'schema', wal ->> 'schema',
-                        'table', wal ->> 'table',
-                        'type', action
-                    ),
-                    is_rls_enabled,
-                    (select array_agg(s.subscription_id) from unnest(subscriptions) as s where s.claims_role = working_role and (s.selected_columns is not distinct from working_selected_columns)),
-                    array['Error 401: Unauthorized']
-                )::realtime.wal_rls;
-            end loop;
+        -- The claims role does not have SELECT permission to the primary key of entity
+        elsif action <> 'DELETE' and sum(c.is_selectable::int) <> count(1) from unnest(columns) c where c.is_pkey then
+            -- Fan out 401 error per distinct selected_columns for this role
+            for cols_record in
+                select selected_columns
+                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
+                order by coalesce(array_to_string(selected_columns, ','), '')
+            loop
+                working_selected_columns := cols_record.selected_columns;
+                return next (
+                    jsonb_build_object(
+                        'schema', wal ->> 'schema',
+                        'table', wal ->> 'table',
+                        'type', action
+                    ),
+                    is_rls_enabled,
+                    (select array_agg(s.subscription_id) from unnest(subscriptions) as s where s.claims_role = working_role and (s.selected_columns is not distinct from working_selected_columns)),
+                    array['Error 401: Unauthorized']
+                )::realtime.wal_rls;
+            end loop;
 
-        else
-            -- Create the prepared statement (once per role)
-            if is_rls_enabled and action <> 'DELETE' then
-                if (select 1 from pg_prepared_statements where name = 'walrus_rls_stmt' limit 1) > 0 then
-                    deallocate walrus_rls_stmt;
-                end if;
-                execute realtime.build_prepared_statement_sql('walrus_rls_stmt', entity_, columns);
-            end if;
+        else
+            -- Create the prepared statement (once per role)
+            if is_rls_enabled and action <> 'DELETE' then
+                if (select 1 from pg_prepared_statements where name = 'walrus_rls_stmt' limit 1) > 0 then
+                    deallocate walrus_rls_stmt;
+                end if;
+                execute realtime.build_prepared_statement_sql('walrus_rls_stmt', entity_, columns);
+            end if;
 
-            -- Collect all visible subscription IDs for this role (filter check + RLS check)
-            visible_role_sub_ids = '{}';
+            -- Collect all visible subscription IDs for this role (filter check + RLS check)
+            visible_role_sub_ids = '{}';
 
-            for subscription_id, claims in (
-                    select
-                        subs.subscription_id,
-                        subs.claims
-                    from
-                        unnest(subscriptions) subs
-                    where
-                        subs.entity = entity_
-                        and subs.claims_role = working_role
-                        and (
-                            realtime.is_visible_through_filters(columns, subs.filters)
-                            or (
-                              action = 'DELETE'
-                              and realtime.is_visible_through_filters(old_columns, subs.filters)
-                            )
-                        )
-            ) loop
+            for subscription_id, claims in (
+                    select
+                        subs.subscription_id,
+                        subs.claims
+                    from
+                        unnest(subscriptions) subs
+                    where
+                        subs.entity = entity_
+                        and subs.claims_role = working_role
+                        and (
+                            realtime.is_visible_through_filters(columns, subs.filters)
+                            or (
+                              action = 'DELETE'
+                              and realtime.is_visible_through_filters(old_columns, subs.filters)
+                            )
+                        )
+            ) loop
 
-                if not is_rls_enabled or action = 'DELETE' then
-                    visible_role_sub_ids = visible_role_sub_ids || subscription_id;
-                else
-                    -- Check if RLS allows the role to see the record
-                    perform
-                        -- Trim leading and trailing quotes from working_role because set_config
-                        -- doesn't recognize the role as valid if they are included
-                        set_config('role', trim(both '"' from working_role::text), true),
-                        set_config('request.jwt.claims', claims::text, true);
+                if not is_rls_enabled or action = 'DELETE' then
+                    visible_role_sub_ids = visible_role_sub_ids || subscription_id;
+                else
+                    -- Check if RLS allows the role to see the record
+                    perform
+                        -- Trim leading and trailing quotes from working_role because set_config
+                        -- doesn't recognize the role as valid if they are included
+                        set_config('role', trim(both '"' from working_role::text), true),
+                        set_config('request.jwt.claims', claims::text, true);
 
-                    execute 'execute walrus_rls_stmt' into subscription_has_access;
+                    execute 'execute walrus_rls_stmt' into subscription_has_access;
 
-                    if subscription_has_access then
-                        visible_role_sub_ids = visible_role_sub_ids || subscription_id;
-                    end if;
-                end if;
-            end loop;
+                    if subscription_has_access then
+                        visible_role_sub_ids = visible_role_sub_ids || subscription_id;
+                    end if;
+                end if;
+            end loop;
 
-            perform set_config('role', null, true);
+            perform set_config('role', null, true);
 
-            -- Inner loop: per distinct selected_columns for this role
-            for cols_record in
-                select selected_columns
-                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
-                order by coalesce(array_to_string(selected_columns, ','), '')
-            loop
-                working_selected_columns := cols_record.selected_columns;
+            -- Inner loop: per distinct selected_columns for this role
+            for cols_record in
+                select selected_columns
+                from (select distinct selected_columns from unnest(subscriptions) s where s.claims_role = working_role) t
+                order by coalesce(array_to_string(selected_columns, ','), '')
+            loop
+                working_selected_columns := cols_record.selected_columns;
 
-                output = jsonb_build_object(
-                    'schema', wal ->> 'schema',
-                    'table', wal ->> 'table',
-                    'type', action,
-                    'commit_timestamp', to_char(
-                        ((wal ->> 'timestamp')::timestamptz at time zone 'utc'),
-                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
-                    ),
-                    'columns', (
-                        select
-                            jsonb_agg(
-                                jsonb_build_object(
-                                    'name', pa.attname,
-                                    'type', pt.typname
-                                )
-                                order by pa.attnum asc
-                            )
-                        from
-                            pg_attribute pa
-                            join pg_type pt
-                                on pa.atttypid = pt.oid
-                            left join (
-                                select unnest(conkey) as pkey_attnum
-                                from pg_constraint
-                                where conrelid = entity_ and contype = 'p'
-                            ) pk on pk.pkey_attnum = pa.attnum
-                        where
-                            attrelid = entity_
-                            and attnum > 0
-                            and pg_catalog.has_column_privilege(working_role, entity_, pa.attname, 'SELECT')
-                            and (working_selected_columns is null or pa.attname = any(working_selected_columns) or pk.pkey_attnum is not null)
-                    )
-                )
-                -- Add "record" key for insert and update
-                || case
-                    when action in ('INSERT', 'UPDATE') then
-                        jsonb_build_object(
-                            'record',
-                            (
-                                select
-                                    jsonb_object_agg(
-                                        -- if unchanged toast, get column name and value from old record
-                                        coalesce((c).name, (oc).name),
-                                        case
-                                            when (c).name is null then (oc).value
-                                            else (c).value
-                                        end
-                                    )
-                                from
-                                    unnest(columns) c
-                                    full outer join unnest(old_columns) oc
-                                        on (c).name = (oc).name
-                                where
-                                    coalesce((c).is_selectable, (oc).is_selectable)
-                                    and (working_selected_columns is null or coalesce((c).name, (oc).name) = any(working_selected_columns) or coalesce((c).is_pkey, (oc).is_pkey))
-                                    and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
-                            )
-                        )
-                    else '{}'::jsonb
-                end
-                -- Add "old_record" key for update and delete
-                || case
-                    when action = 'UPDATE' then
-                        jsonb_build_object(
-                                'old_record',
-                                (
-                                    select jsonb_object_agg((c).name, (c).value)
-                                    from unnest(old_columns) c
-                                    where
-                                        (c).is_selectable
-                                        and (working_selected_columns is null or (c).name = any(working_selected_columns) or (c).is_pkey)
-                                        and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
-                                )
-                            )
-                    when action = 'DELETE' then
-                        jsonb_build_object(
-                            'old_record',
-                            (
-                                select jsonb_object_agg((c).name, (c).value)
-                                from unnest(old_columns) c
-                                where
-                                    (c).is_selectable
-                                    and (working_selected_columns is null or (c).name = any(working_selected_columns) or (c).is_pkey)
-                                    and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
-                                    and ( not is_rls_enabled or (c).is_pkey ) -- if RLS enabled, we can't secure deletes so filter to pkey
-                            )
-                        )
-                    else '{}'::jsonb
-                end;
+                output = jsonb_build_object(
+                    'schema', wal ->> 'schema',
+                    'table', wal ->> 'table',
+                    'type', action,
+                    'commit_timestamp', to_char(
+                        ((wal ->> 'timestamp')::timestamptz at time zone 'utc'),
+                        'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'
+                    ),
+                    'columns', (
+                        select
+                            jsonb_agg(
+                                jsonb_build_object(
+                                    'name', pa.attname,
+                                    'type', pt.typname
+                                )
+                                order by pa.attnum asc
+                            )
+                        from
+                            pg_attribute pa
+                            join pg_type pt
+                                on pa.atttypid = pt.oid
+                            left join (
+                                select unnest(conkey) as pkey_attnum
+                                from pg_constraint
+                                where conrelid = entity_ and contype = 'p'
+                            ) pk on pk.pkey_attnum = pa.attnum
+                        where
+                            attrelid = entity_
+                            and attnum > 0
+                            and pg_catalog.has_column_privilege(working_role, entity_, pa.attname, 'SELECT')
+                            and (working_selected_columns is null or pa.attname = any(working_selected_columns) or pk.pkey_attnum is not null)
+                    )
+                )
+                -- Add "record" key for insert and update
+                || case
+                    when action in ('INSERT', 'UPDATE') then
+                        jsonb_build_object(
+                            'record',
+                            (
+                                select
+                                    jsonb_object_agg(
+                                        -- if unchanged toast, get column name and value from old record
+                                        coalesce((c).name, (oc).name),
+                                        case
+                                            when (c).name is null then (oc).value
+                                            else (c).value
+                                        end
+                                    )
+                                from
+                                    unnest(columns) c
+                                    full outer join unnest(old_columns) oc
+                                        on (c).name = (oc).name
+                                where
+                                    coalesce((c).is_selectable, (oc).is_selectable)
+                                    and (working_selected_columns is null or coalesce((c).name, (oc).name) = any(working_selected_columns) or coalesce((c).is_pkey, (oc).is_pkey))
+                                    and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                            )
+                        )
+                    else '{}'::jsonb
+                end
+                -- Add "old_record" key for update and delete
+                || case
+                    when action = 'UPDATE' then
+                        jsonb_build_object(
+                                'old_record',
+                                (
+                                    select jsonb_object_agg((c).name, (c).value)
+                                    from unnest(old_columns) c
+                                    where
+                                        (c).is_selectable
+                                        and (working_selected_columns is null or (c).name = any(working_selected_columns) or (c).is_pkey)
+                                        and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                                )
+                            )
+                    when action = 'DELETE' then
+                        jsonb_build_object(
+                            'old_record',
+                            (
+                                select jsonb_object_agg((c).name, (c).value)
+                                from unnest(old_columns) c
+                                where
+                                    (c).is_selectable
+                                    and (working_selected_columns is null or (c).name = any(working_selected_columns) or (c).is_pkey)
+                                    and ( not error_record_exceeds_max_size or (octet_length((c).value::text) <= 64))
+                                    and ( not is_rls_enabled or (c).is_pkey ) -- if RLS enabled, we can't secure deletes so filter to pkey
+                            )
+                        )
+                    else '{}'::jsonb
+                end;
 
-                -- Filter visible_role_sub_ids to those matching the current selected_columns group
-                visible_to_subscription_ids = coalesce(
-                    (
-                        select array_agg(s.subscription_id)
-                        from unnest(subscriptions) s
-                        where s.claims_role = working_role
-                          and (s.selected_columns is not distinct from working_selected_columns)
-                          and s.subscription_id = any(visible_role_sub_ids)
-                    ),
-                    '{}'::uuid[]
-                );
+                -- Filter visible_role_sub_ids to those matching the current selected_columns group
+                visible_to_subscription_ids = coalesce(
+                    (
+                        select array_agg(s.subscription_id)
+                        from unnest(subscriptions) s
+                        where s.claims_role = working_role
+                          and (s.selected_columns is not distinct from working_selected_columns)
+                          and s.subscription_id = any(visible_role_sub_ids)
+                    ),
+                    '{}'::uuid[]
+                );
 
-                return next (
-                    output,
-                    is_rls_enabled,
-                    visible_to_subscription_ids,
-                    case
-                        when error_record_exceeds_max_size then array['Error 413: Payload Too Large']
-                        else '{}'
-                    end
-                )::realtime.wal_rls;
-            end loop;
+                return next (
+                    output,
+                    is_rls_enabled,
+                    visible_to_subscription_ids,
+                    case
+                        when error_record_exceeds_max_size then array['Error 413: Payload Too Large']
+                        else '{}'
+                    end
+                )::realtime.wal_rls;
+            end loop;
 
-        end if;
-    end loop;
+        end if;
+    end loop;
 
-    perform set_config('role', null, true);
+    perform set_config('role', null, true);
 end;
 $$;
 
@@ -1218,25 +1241,25 @@ ALTER FUNCTION realtime.apply_rls(wal jsonb, max_record_bytes integer) OWNER TO 
 --
 
 CREATE FUNCTION realtime.broadcast_changes(topic_name text, event_name text, operation text, table_name text, table_schema text, new record, old record, level text DEFAULT 'ROW'::text) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 DECLARE
-    -- Declare a variable to hold the JSONB representation of the row
-    row_data jsonb := '{}'::jsonb;
+    -- Declare a variable to hold the JSONB representation of the row
+    row_data jsonb := '{}'::jsonb;
 BEGIN
-    IF level = 'STATEMENT' THEN
-        RAISE EXCEPTION 'function can only be triggered for each row, not for each statement';
-    END IF;
-    -- Check the operation type and handle accordingly
-    IF operation = 'INSERT' OR operation = 'UPDATE' OR operation = 'DELETE' THEN
-        row_data := jsonb_build_object('old_record', OLD, 'record', NEW, 'operation', operation, 'table', table_name, 'schema', table_schema);
-        PERFORM realtime.send (row_data, event_name, topic_name);
-    ELSE
-        RAISE EXCEPTION 'Unexpected operation type: %', operation;
-    END IF;
+    IF level = 'STATEMENT' THEN
+        RAISE EXCEPTION 'function can only be triggered for each row, not for each statement';
+    END IF;
+    -- Check the operation type and handle accordingly
+    IF operation = 'INSERT' OR operation = 'UPDATE' OR operation = 'DELETE' THEN
+        row_data := jsonb_build_object('old_record', OLD, 'record', NEW, 'operation', operation, 'table', table_name, 'schema', table_schema);
+        PERFORM realtime.send (row_data, event_name, topic_name);
+    ELSE
+        RAISE EXCEPTION 'Unexpected operation type: %', operation;
+    END IF;
 EXCEPTION
-    WHEN OTHERS THEN
-        RAISE EXCEPTION 'Failed to process the row: %', SQLERRM;
+    WHEN OTHERS THEN
+        RAISE EXCEPTION 'Failed to process the row: %', SQLERRM;
 END;
 
 $$;
@@ -1249,32 +1272,32 @@ ALTER FUNCTION realtime.broadcast_changes(topic_name text, event_name text, oper
 --
 
 CREATE FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name text, entity regclass, columns realtime.wal_column[]) RETURNS text
-    LANGUAGE sql
-    AS $$
-      /*
-      Builds a sql string that, if executed, creates a prepared statement to
-      tests retrive a row from *entity* by its primary key columns.
-      Example
-          select realtime.build_prepared_statement_sql('public.notes', '{"id"}'::text[], '{"bigint"}'::text[])
-      */
-          select
-      'prepare ' || prepared_statement_name || ' as
-          select
-              exists(
-                  select
-                      1
-                  from
-                      ' || entity || '
-                  where
-                      ' || string_agg(quote_ident(pkc.name) || '=' || quote_nullable(pkc.value #>> '{}') , ' and ') || '
-              )'
-          from
-              unnest(columns) pkc
-          where
-              pkc.is_pkey
-          group by
-              entity
-      $$;
+    LANGUAGE sql
+    AS $$
+      /*
+      Builds a sql string that, if executed, creates a prepared statement to
+      tests retrive a row from *entity* by its primary key columns.
+      Example
+          select realtime.build_prepared_statement_sql('public.notes', '{"id"}'::text[], '{"bigint"}'::text[])
+      */
+          select
+      'prepare ' || prepared_statement_name || ' as
+          select
+              exists(
+                  select
+                      1
+                  from
+                      ' || entity || '
+                  where
+                      ' || string_agg(quote_ident(pkc.name) || '=' || quote_nullable(pkc.value #>> '{}') , ' and ') || '
+              )'
+          from
+              unnest(columns) pkc
+          where
+              pkc.is_pkey
+          group by
+              entity
+      $$;
 
 
 ALTER FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name text, entity regclass, columns realtime.wal_column[]) OWNER TO supabase_admin;
@@ -1284,16 +1307,16 @@ ALTER FUNCTION realtime.build_prepared_statement_sql(prepared_statement_name tex
 --
 
 CREATE FUNCTION realtime."cast"(val text, type_ regtype) RETURNS jsonb
-    LANGUAGE plpgsql IMMUTABLE
-    AS $$
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
 declare
-  res jsonb;
+  res jsonb;
 begin
-  if type_::text = 'bytea' then
-    return to_jsonb(val);
-  end if;
-  execute format('select to_jsonb(%L::'|| type_::text || ')', val) into res;
-  return res;
+  if type_::text = 'bytea' then
+    return to_jsonb(val);
+  end if;
+  execute format('select to_jsonb(%L::'|| type_::text || ')', val) into res;
+  return res;
 end
 $$;
 
@@ -1305,38 +1328,38 @@ ALTER FUNCTION realtime."cast"(val text, type_ regtype) OWNER TO supabase_admin;
 --
 
 CREATE FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtype, val_1 text, val_2 text) RETURNS boolean
-    LANGUAGE plpgsql IMMUTABLE
-    AS $$
-      /*
-      Casts *val_1* and *val_2* as type *type_* and check the *op* condition for truthiness
-      */
-      declare
-          op_symbol text = (
-              case
-                  when op = 'eq' then '='
-                  when op = 'neq' then '!='
-                  when op = 'lt' then '<'
-                  when op = 'lte' then '<='
-                  when op = 'gt' then '>'
-                  when op = 'gte' then '>='
-                  when op = 'in' then '= any'
-                  else 'UNKNOWN OP'
-              end
-          );
-          res boolean;
-      begin
-          execute format(
-              'select %L::'|| type_::text || ' ' || op_symbol
-              || ' ( %L::'
-              || (
-                  case
-                      when op = 'in' then type_::text || '[]'
-                      else type_::text end
-              )
-              || ')', val_1, val_2) into res;
-          return res;
-      end;
-      $$;
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
+      /*
+      Casts *val_1* and *val_2* as type *type_* and check the *op* condition for truthiness
+      */
+      declare
+          op_symbol text = (
+              case
+                  when op = 'eq' then '='
+                  when op = 'neq' then '!='
+                  when op = 'lt' then '<'
+                  when op = 'lte' then '<='
+                  when op = 'gt' then '>'
+                  when op = 'gte' then '>='
+                  when op = 'in' then '= any'
+                  else 'UNKNOWN OP'
+              end
+          );
+          res boolean;
+      begin
+          execute format(
+              'select %L::'|| type_::text || ' ' || op_symbol
+              || ' ( %L::'
+              || (
+                  case
+                      when op = 'in' then type_::text || '[]'
+                      else type_::text end
+              )
+              || ')', val_1, val_2) into res;
+          return res;
+      end;
+      $$;
 
 
 ALTER FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtype, val_1 text, val_2 text) OWNER TO supabase_admin;
@@ -1346,35 +1369,35 @@ ALTER FUNCTION realtime.check_equality_op(op realtime.equality_op, type_ regtype
 --
 
 CREATE FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[], filters realtime.user_defined_filter[]) RETURNS boolean
-    LANGUAGE sql IMMUTABLE
-    AS $_$
-    /*
-    Should the record be visible (true) or filtered out (false) after *filters* are applied
-    */
-        select
-            -- Default to allowed when no filters present
-            $2 is null -- no filters. this should not happen because subscriptions has a default
-            or array_length($2, 1) is null -- array length of an empty array is null
-            or bool_and(
-                coalesce(
-                    realtime.check_equality_op(
-                        op:=f.op,
-                        type_:=coalesce(
-                            col.type_oid::regtype, -- null when wal2json version <= 2.4
-                            col.type_name::regtype
-                        ),
-                        -- cast jsonb to text
-                        val_1:=col.value #>> '{}',
-                        val_2:=f.value
-                    ),
-                    false -- if null, filter does not match
-                )
-            )
-        from
-            unnest(filters) f
-            join unnest(columns) col
-                on f.column_name = col.name;
-    $_$;
+    LANGUAGE sql IMMUTABLE
+    AS $_$
+    /*
+    Should the record be visible (true) or filtered out (false) after *filters* are applied
+    */
+        select
+            -- Default to allowed when no filters present
+            $2 is null -- no filters. this should not happen because subscriptions has a default
+            or array_length($2, 1) is null -- array length of an empty array is null
+            or bool_and(
+                coalesce(
+                    realtime.check_equality_op(
+                        op:=f.op,
+                        type_:=coalesce(
+                            col.type_oid::regtype, -- null when wal2json version <= 2.4
+                            col.type_name::regtype
+                        ),
+                        -- cast jsonb to text
+                        val_1:=col.value #>> '{}',
+                        val_2:=f.value
+                    ),
+                    false -- if null, filter does not match
+                )
+            )
+        from
+            unnest(filters) f
+            join unnest(columns) col
+                on f.column_name = col.name;
+    $_$;
 
 
 ALTER FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[], filters realtime.user_defined_filter[]) OWNER TO supabase_admin;
@@ -1384,68 +1407,68 @@ ALTER FUNCTION realtime.is_visible_through_filters(columns realtime.wal_column[]
 --
 
 CREATE FUNCTION realtime.list_changes(publication name, slot_name name, max_changes integer, max_record_bytes integer) RETURNS TABLE(wal jsonb, is_rls_enabled boolean, subscription_ids uuid[], errors text[], slot_changes_count bigint)
-    LANGUAGE sql
-    SET log_min_messages TO 'fatal'
-    AS $$
-  WITH pub AS (
-    SELECT
-      concat_ws(
-        ',',
-        CASE WHEN bool_or(pubinsert) THEN 'insert' ELSE NULL END,
-        CASE WHEN bool_or(pubupdate) THEN 'update' ELSE NULL END,
-        CASE WHEN bool_or(pubdelete) THEN 'delete' ELSE NULL END
-      ) AS w2j_actions,
-      coalesce(
-        string_agg(
-          realtime.quote_wal2json(format('%I.%I', schemaname, tablename)::regclass),
-          ','
-        ) filter (WHERE ppt.tablename IS NOT NULL),
-        ''
-      ) AS w2j_add_tables
-    FROM pg_publication pp
-    LEFT JOIN pg_publication_tables ppt ON pp.pubname = ppt.pubname
-    WHERE pp.pubname = publication
-    GROUP BY pp.pubname
-    LIMIT 1
-  ),
-  -- MATERIALIZED ensures pg_logical_slot_get_changes is called exactly once
-  w2j AS MATERIALIZED (
-    SELECT x.*, pub.w2j_add_tables
-    FROM pub,
-         pg_logical_slot_get_changes(
-           slot_name, null, max_changes,
-           'include-pk', 'true',
-           'include-transaction', 'false',
-           'include-timestamp', 'true',
-           'include-type-oids', 'true',
-           'format-version', '2',
-           'actions', pub.w2j_actions,
-           'add-tables', pub.w2j_add_tables
-         ) x
-  ),
-  slot_count AS (
-    SELECT count(*)::bigint AS cnt
-    FROM w2j
-    WHERE w2j.w2j_add_tables <> ''
-  ),
-  rls_filtered AS (
-    SELECT xyz.wal, xyz.is_rls_enabled, xyz.subscription_ids, xyz.errors
-    FROM w2j,
-         realtime.apply_rls(
-           wal := w2j.data::jsonb,
-           max_record_bytes := max_record_bytes
-         ) xyz(wal, is_rls_enabled, subscription_ids, errors)
-    WHERE w2j.w2j_add_tables <> ''
-      AND xyz.subscription_ids[1] IS NOT NULL
-  )
-  SELECT rf.wal, rf.is_rls_enabled, rf.subscription_ids, rf.errors, sc.cnt
-  FROM rls_filtered rf, slot_count sc
+    LANGUAGE sql
+    SET log_min_messages TO 'fatal'
+    AS $$
+  WITH pub AS (
+    SELECT
+      concat_ws(
+        ',',
+        CASE WHEN bool_or(pubinsert) THEN 'insert' ELSE NULL END,
+        CASE WHEN bool_or(pubupdate) THEN 'update' ELSE NULL END,
+        CASE WHEN bool_or(pubdelete) THEN 'delete' ELSE NULL END
+      ) AS w2j_actions,
+      coalesce(
+        string_agg(
+          realtime.quote_wal2json(format('%I.%I', schemaname, tablename)::regclass),
+          ','
+        ) filter (WHERE ppt.tablename IS NOT NULL),
+        ''
+      ) AS w2j_add_tables
+    FROM pg_publication pp
+    LEFT JOIN pg_publication_tables ppt ON pp.pubname = ppt.pubname
+    WHERE pp.pubname = publication
+    GROUP BY pp.pubname
+    LIMIT 1
+  ),
+  -- MATERIALIZED ensures pg_logical_slot_get_changes is called exactly once
+  w2j AS MATERIALIZED (
+    SELECT x.*, pub.w2j_add_tables
+    FROM pub,
+         pg_logical_slot_get_changes(
+           slot_name, null, max_changes,
+           'include-pk', 'true',
+           'include-transaction', 'false',
+           'include-timestamp', 'true',
+           'include-type-oids', 'true',
+           'format-version', '2',
+           'actions', pub.w2j_actions,
+           'add-tables', pub.w2j_add_tables
+         ) x
+  ),
+  slot_count AS (
+    SELECT count(*)::bigint AS cnt
+    FROM w2j
+    WHERE w2j.w2j_add_tables <> ''
+  ),
+  rls_filtered AS (
+    SELECT xyz.wal, xyz.is_rls_enabled, xyz.subscription_ids, xyz.errors
+    FROM w2j,
+         realtime.apply_rls(
+           wal := w2j.data::jsonb,
+           max_record_bytes := max_record_bytes
+         ) xyz(wal, is_rls_enabled, subscription_ids, errors)
+    WHERE w2j.w2j_add_tables <> ''
+      AND xyz.subscription_ids[1] IS NOT NULL
+  )
+  SELECT rf.wal, rf.is_rls_enabled, rf.subscription_ids, rf.errors, sc.cnt
+  FROM rls_filtered rf, slot_count sc
 
-  UNION ALL
+  UNION ALL
 
-  SELECT null, null, null, null, sc.cnt
-  FROM slot_count sc
-  WHERE NOT EXISTS (SELECT 1 FROM rls_filtered)
+  SELECT null, null, null, null, sc.cnt
+  FROM slot_count sc
+  WHERE NOT EXISTS (SELECT 1 FROM rls_filtered)
 $$;
 
 
@@ -1456,15 +1479,15 @@ ALTER FUNCTION realtime.list_changes(publication name, slot_name name, max_chang
 --
 
 CREATE FUNCTION realtime.quote_wal2json(entity regclass) RETURNS text
-    LANGUAGE sql IMMUTABLE STRICT
-    AS $$
-  SELECT
-    realtime.wal2json_escape_identifier(nsp.nspname::text)
-    || '.'
-    || realtime.wal2json_escape_identifier(pc.relname::text)
-  FROM pg_class pc
-  JOIN pg_namespace nsp ON pc.relnamespace = nsp.oid
-  WHERE pc.oid = entity
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $$
+  SELECT
+    realtime.wal2json_escape_identifier(nsp.nspname::text)
+    || '.'
+    || realtime.wal2json_escape_identifier(pc.relname::text)
+  FROM pg_class pc
+  JOIN pg_namespace nsp ON pc.relnamespace = nsp.oid
+  WHERE pc.oid = entity
 $$;
 
 
@@ -1475,22 +1498,22 @@ ALTER FUNCTION realtime.quote_wal2json(entity regclass) OWNER TO supabase_admin;
 --
 
 CREATE FUNCTION realtime.send(payload bytea, event text, topic text, private boolean DEFAULT true) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 DECLARE
-  generated_id uuid;
+  generated_id uuid;
 BEGIN
-  BEGIN
-    generated_id := gen_random_uuid();
+  BEGIN
+    generated_id := gen_random_uuid();
 
-    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);
+    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);
 
-    INSERT INTO realtime.messages (id, binary_payload, event, topic, private, extension)
-    VALUES (generated_id, payload, event, topic, private, 'broadcast');
-  EXCEPTION
-    WHEN OTHERS THEN
-      RAISE WARNING 'ErrorSendingBroadcastMessage: %', SQLERRM;
-  END;
+    INSERT INTO realtime.messages (id, binary_payload, event, topic, private, extension)
+    VALUES (generated_id, payload, event, topic, private, 'broadcast');
+  EXCEPTION
+    WHEN OTHERS THEN
+      RAISE WARNING 'ErrorSendingBroadcastMessage: %', SQLERRM;
+  END;
 END;
 $$;
 
@@ -1502,34 +1525,34 @@ ALTER FUNCTION realtime.send(payload bytea, event text, topic text, private bool
 --
 
 CREATE FUNCTION realtime.send(payload jsonb, event text, topic text, private boolean DEFAULT true) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 DECLARE
-  generated_id uuid;
-  final_payload jsonb;
+  generated_id uuid;
+  final_payload jsonb;
 BEGIN
-  BEGIN
-    -- Generate a new UUID for the id
-    generated_id := gen_random_uuid();
+  BEGIN
+    -- Generate a new UUID for the id
+    generated_id := gen_random_uuid();
 
-    -- Check if payload has an 'id' key, if not, add the generated UUID
-    IF payload ? 'id' THEN
-      final_payload := payload;
-    ELSE
-      final_payload := jsonb_set(payload, '{id}', to_jsonb(generated_id));
-    END IF;
+    -- Check if payload has an 'id' key, if not, add the generated UUID
+    IF payload ? 'id' THEN
+      final_payload := payload;
+    ELSE
+      final_payload := jsonb_set(payload, '{id}', to_jsonb(generated_id));
+    END IF;
 
-    -- Set the topic configuration
-    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);
+    -- Set the topic configuration
+    EXECUTE format('SET LOCAL realtime.topic TO %L', topic);
 
-    -- Attempt to insert the message
-    INSERT INTO realtime.messages (id, payload, event, topic, private, extension)
-    VALUES (generated_id, final_payload, event, topic, private, 'broadcast');
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Capture and notify the error
-      RAISE WARNING 'ErrorSendingBroadcastMessage: %', SQLERRM;
-  END;
+    -- Attempt to insert the message
+    INSERT INTO realtime.messages (id, payload, event, topic, private, extension)
+    VALUES (generated_id, final_payload, event, topic, private, 'broadcast');
+  EXCEPTION
+    WHEN OTHERS THEN
+      -- Capture and notify the error
+      RAISE WARNING 'ErrorSendingBroadcastMessage: %', SQLERRM;
+  END;
 END;
 $$;
 
@@ -1541,88 +1564,88 @@ ALTER FUNCTION realtime.send(payload jsonb, event text, topic text, private bool
 --
 
 CREATE FUNCTION realtime.subscription_check_filters() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 declare
-    col_names text[] = coalesce(
-            array_agg(c.column_name order by c.ordinal_position),
-            '{}'::text[]
-        )
-        from
-            information_schema.columns c
-        where
-            format('%I.%I', c.table_schema, c.table_name)::regclass = new.entity
-            and pg_catalog.has_column_privilege(
-                (new.claims ->> 'role'),
-                format('%I.%I', c.table_schema, c.table_name)::regclass,
-                c.column_name,
-                'SELECT'
-            );
-    table_col_names text[] = coalesce(
-            array_agg(pa.attname),
-            '{}'::text[]
-        )
-        from
-            pg_attribute pa
-        where
-            pa.attrelid = new.entity
-            and pa.attnum > 0;
-    filter realtime.user_defined_filter;
-    col_type regtype;
-    in_val jsonb;
-    selected_col text;
+    col_names text[] = coalesce(
+            array_agg(c.column_name order by c.ordinal_position),
+            '{}'::text[]
+        )
+        from
+            information_schema.columns c
+        where
+            format('%I.%I', c.table_schema, c.table_name)::regclass = new.entity
+            and pg_catalog.has_column_privilege(
+                (new.claims ->> 'role'),
+                format('%I.%I', c.table_schema, c.table_name)::regclass,
+                c.column_name,
+                'SELECT'
+            );
+    table_col_names text[] = coalesce(
+            array_agg(pa.attname),
+            '{}'::text[]
+        )
+        from
+            pg_attribute pa
+        where
+            pa.attrelid = new.entity
+            and pa.attnum > 0;
+    filter realtime.user_defined_filter;
+    col_type regtype;
+    in_val jsonb;
+    selected_col text;
 begin
-    for filter in select * from unnest(new.filters) loop
-        -- Filtered column is valid
-        if not filter.column_name = any(col_names) then
-            raise exception 'invalid column for filter %', filter.column_name;
-        end if;
+    for filter in select * from unnest(new.filters) loop
+        -- Filtered column is valid
+        if not filter.column_name = any(col_names) then
+            raise exception 'invalid column for filter %', filter.column_name;
+        end if;
 
-        -- Type is sanitized and safe for string interpolation
-        col_type = (
-            select atttypid::regtype
-            from pg_catalog.pg_attribute
-            where attrelid = new.entity
-                  and attname = filter.column_name
-        );
-        if col_type is null then
-            raise exception 'failed to lookup type for column %', filter.column_name;
-        end if;
-        if filter.op = 'in'::realtime.equality_op then
-            in_val = realtime.cast(filter.value, (col_type::text || '[]')::regtype);
-            if coalesce(jsonb_array_length(in_val), 0) > 100 then
-                raise exception 'too many values for `in` filter. Maximum 100';
-            end if;
-        else
-            -- raises an exception if value is not coercable to type
-            perform realtime.cast(filter.value, col_type);
-        end if;
-    end loop;
+        -- Type is sanitized and safe for string interpolation
+        col_type = (
+            select atttypid::regtype
+            from pg_catalog.pg_attribute
+            where attrelid = new.entity
+                  and attname = filter.column_name
+        );
+        if col_type is null then
+            raise exception 'failed to lookup type for column %', filter.column_name;
+        end if;
+        if filter.op = 'in'::realtime.equality_op then
+            in_val = realtime.cast(filter.value, (col_type::text || '[]')::regtype);
+            if coalesce(jsonb_array_length(in_val), 0) > 100 then
+                raise exception 'too many values for `in` filter. Maximum 100';
+            end if;
+        else
+            -- raises an exception if value is not coercable to type
+            perform realtime.cast(filter.value, col_type);
+        end if;
+    end loop;
 
-    -- Validate that selected_columns reference columns the role can SELECT
-    if new.selected_columns is not null then
-        for selected_col in select * from unnest(new.selected_columns) loop
-            if not selected_col = any(col_names) then
-                raise exception 'invalid column for select %', selected_col;
-            end if;
-        end loop;
-    end if;
+    -- Validate that selected_columns reference columns the role can SELECT
+    if new.selected_columns is not null then
+        for selected_col in select * from unnest(new.selected_columns) loop
+            if not selected_col = any(col_names) then
+                raise exception 'invalid column for select %', selected_col;
+            end if;
+        end loop;
+    end if;
 
-    -- Apply consistent order to filters so the unique constraint on
-    -- (subscription_id, entity, filters) can't be tricked by a different filter order
-    new.filters = coalesce(
-        array_agg(f order by f.column_name, f.op, f.value),
-        '{}'
-    ) from unnest(new.filters) f;
+    -- Apply consistent order to filters so the unique constraint on
+    -- (subscription_id, entity, filters) can't be tricked by a different filter order
+    new.filters = coalesce(
+        array_agg(f order by f.column_name, f.op, f.value),
+        '{}'
+    ) from unnest(new.filters) f;
 
-    -- Normalize selected_columns order so ARRAY['a','b'] and ARRAY['b','a'] are
-    -- treated as the same subscription group in apply_rls
-    new.selected_columns = (
-        select array_agg(c order by c)
-        from unnest(new.selected_columns) c
-    );
+    -- Normalize selected_columns order so ARRAY['a','b'] and ARRAY['b','a'] are
+    -- treated as the same subscription group in apply_rls
+    new.selected_columns = (
+        select array_agg(c order by c)
+        from unnest(new.selected_columns) c
+    );
 
-    return new;
+    return new;
 end;
 $$;
 
@@ -1634,8 +1657,8 @@ ALTER FUNCTION realtime.subscription_check_filters() OWNER TO supabase_admin;
 --
 
 CREATE FUNCTION realtime.to_regrole(role_name text) RETURNS regrole
-    LANGUAGE sql IMMUTABLE
-    AS $$ select role_name::regrole $$;
+    LANGUAGE sql IMMUTABLE
+    AS $$ select role_name::regrole $$;
 
 
 ALTER FUNCTION realtime.to_regrole(role_name text) OWNER TO supabase_admin;
@@ -1645,8 +1668,8 @@ ALTER FUNCTION realtime.to_regrole(role_name text) OWNER TO supabase_admin;
 --
 
 CREATE FUNCTION realtime.topic() RETURNS text
-    LANGUAGE sql STABLE
-    AS $$
+    LANGUAGE sql STABLE
+    AS $$
 select nullif(current_setting('realtime.topic', true), '')::text;
 $$;
 
@@ -1658,10 +1681,10 @@ ALTER FUNCTION realtime.topic() OWNER TO supabase_realtime_admin;
 --
 
 CREATE FUNCTION realtime.wal2json_escape_identifier(name text) RETURNS text
-    LANGUAGE sql IMMUTABLE STRICT
-    AS $$
-  -- Prefix `\`, `,`, `.`, and any whitespace with `\`
-  SELECT regexp_replace(name, '([\\,.[:space:]])', '\\\1', 'g')
+    LANGUAGE sql IMMUTABLE STRICT
+    AS $$
+  -- Prefix `\`, `,`, `.`, and any whitespace with `\`
+  SELECT regexp_replace(name, '([\\,.[:space:]])', '\\\1', 'g')
 $$;
 
 
@@ -1672,29 +1695,29 @@ ALTER FUNCTION realtime.wal2json_escape_identifier(name text) OWNER TO supabase_
 --
 
 CREATE FUNCTION storage.allow_any_operation(expected_operations text[]) RETURNS boolean
-    LANGUAGE sql STABLE
-    AS $$
-  WITH current_operation AS (
-    SELECT storage.operation() AS raw_operation
-  ),
-  normalized AS (
-    SELECT CASE
-      WHEN raw_operation LIKE 'storage.%' THEN substr(raw_operation, 9)
-      ELSE raw_operation
-    END AS current_operation
-    FROM current_operation
-  )
-  SELECT EXISTS (
-    SELECT 1
-    FROM normalized n
-    CROSS JOIN LATERAL unnest(expected_operations) AS expected_operation
-    WHERE expected_operation IS NOT NULL
-      AND expected_operation <> ''
-      AND n.current_operation = CASE
-        WHEN expected_operation LIKE 'storage.%' THEN substr(expected_operation, 9)
-        ELSE expected_operation
-      END
-  );
+    LANGUAGE sql STABLE
+    AS $$
+  WITH current_operation AS (
+    SELECT storage.operation() AS raw_operation
+  ),
+  normalized AS (
+    SELECT CASE
+      WHEN raw_operation LIKE 'storage.%' THEN substr(raw_operation, 9)
+      ELSE raw_operation
+    END AS current_operation
+    FROM current_operation
+  )
+  SELECT EXISTS (
+    SELECT 1
+    FROM normalized n
+    CROSS JOIN LATERAL unnest(expected_operations) AS expected_operation
+    WHERE expected_operation IS NOT NULL
+      AND expected_operation <> ''
+      AND n.current_operation = CASE
+        WHEN expected_operation LIKE 'storage.%' THEN substr(expected_operation, 9)
+        ELSE expected_operation
+      END
+  );
 $$;
 
 
@@ -1705,28 +1728,28 @@ ALTER FUNCTION storage.allow_any_operation(expected_operations text[]) OWNER TO 
 --
 
 CREATE FUNCTION storage.allow_only_operation(expected_operation text) RETURNS boolean
-    LANGUAGE sql STABLE
-    AS $$
-  WITH current_operation AS (
-    SELECT storage.operation() AS raw_operation
-  ),
-  normalized AS (
-    SELECT
-      CASE
-        WHEN raw_operation LIKE 'storage.%' THEN substr(raw_operation, 9)
-        ELSE raw_operation
-      END AS current_operation,
-      CASE
-        WHEN expected_operation LIKE 'storage.%' THEN substr(expected_operation, 9)
-        ELSE expected_operation
-      END AS requested_operation
-    FROM current_operation
-  )
-  SELECT CASE
-    WHEN requested_operation IS NULL OR requested_operation = '' THEN FALSE
-    ELSE COALESCE(current_operation = requested_operation, FALSE)
-  END
-  FROM normalized;
+    LANGUAGE sql STABLE
+    AS $$
+  WITH current_operation AS (
+    SELECT storage.operation() AS raw_operation
+  ),
+  normalized AS (
+    SELECT
+      CASE
+        WHEN raw_operation LIKE 'storage.%' THEN substr(raw_operation, 9)
+        ELSE raw_operation
+      END AS current_operation,
+      CASE
+        WHEN expected_operation LIKE 'storage.%' THEN substr(expected_operation, 9)
+        ELSE expected_operation
+      END AS requested_operation
+    FROM current_operation
+  )
+  SELECT CASE
+    WHEN requested_operation IS NULL OR requested_operation = '' THEN FALSE
+    ELSE COALESCE(current_operation = requested_operation, FALSE)
+  END
+  FROM normalized;
 $$;
 
 
@@ -1737,14 +1760,14 @@ ALTER FUNCTION storage.allow_only_operation(expected_operation text) OWNER TO su
 --
 
 CREATE FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, metadata jsonb) RETURNS void
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-  INSERT INTO "storage"."objects" ("bucket_id", "name", "owner", "metadata") VALUES (bucketid, name, owner, metadata);
-  -- hack to rollback the successful insert
-  RAISE sqlstate 'PT200' using
-  message = 'ROLLBACK',
-  detail = 'rollback successful insert';
+  INSERT INTO "storage"."objects" ("bucket_id", "name", "owner", "metadata") VALUES (bucketid, name, owner, metadata);
+  -- hack to rollback the successful insert
+  RAISE sqlstate 'PT200' using
+  message = 'ROLLBACK',
+  detail = 'rollback successful insert';
 END
 $$;
 
@@ -1756,13 +1779,13 @@ ALTER FUNCTION storage.can_insert_object(bucketid text, name text, owner uuid, m
 --
 
 CREATE FUNCTION storage.enforce_bucket_name_length() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 begin
-    if length(new.name) > 100 then
-        raise exception 'bucket name "%" is too long (% characters). Max is 100.', new.name, length(new.name);
-    end if;
-    return new;
+    if length(new.name) > 100 then
+        raise exception 'bucket name "%" is too long (% characters). Max is 100.', new.name, length(new.name);
+    end if;
+    return new;
 end;
 $$;
 
@@ -1774,18 +1797,18 @@ ALTER FUNCTION storage.enforce_bucket_name_length() OWNER TO supabase_storage_ad
 --
 
 CREATE FUNCTION storage.extension(name text) RETURNS text
-    LANGUAGE plpgsql IMMUTABLE
-    AS $$
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
 DECLARE
-    _parts text[];
-    _filename text;
+    _parts text[];
+    _filename text;
 BEGIN
-    -- Split on "/" to get path segments
-    SELECT string_to_array(name, '/') INTO _parts;
-    -- Get the last path segment (the actual filename)
-    SELECT _parts[array_length(_parts, 1)] INTO _filename;
-    -- Extract extension: reverse, split on '.', then reverse again
-    RETURN reverse(split_part(reverse(_filename), '.', 1));
+    -- Split on "/" to get path segments
+    SELECT string_to_array(name, '/') INTO _parts;
+    -- Get the last path segment (the actual filename)
+    SELECT _parts[array_length(_parts, 1)] INTO _filename;
+    -- Extract extension: reverse, split on '.', then reverse again
+    RETURN reverse(split_part(reverse(_filename), '.', 1));
 END
 $$;
 
@@ -1797,13 +1820,13 @@ ALTER FUNCTION storage.extension(name text) OWNER TO supabase_storage_admin;
 --
 
 CREATE FUNCTION storage.filename(name text) RETURNS text
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 DECLARE
 _parts text[];
 BEGIN
-        select string_to_array(name, '/') into _parts;
-        return _parts[array_length(_parts,1)];
+	select string_to_array(name, '/') into _parts;
+	return _parts[array_length(_parts,1)];
 END
 $$;
 
@@ -1815,15 +1838,15 @@ ALTER FUNCTION storage.filename(name text) OWNER TO supabase_storage_admin;
 --
 
 CREATE FUNCTION storage.foldername(name text) RETURNS text[]
-    LANGUAGE plpgsql IMMUTABLE
-    AS $$
+    LANGUAGE plpgsql IMMUTABLE
+    AS $$
 DECLARE
-    _parts text[];
+    _parts text[];
 BEGIN
-    -- Split on "/" to get path segments
-    SELECT string_to_array(name, '/') INTO _parts;
-    -- Return everything except the last segment
-    RETURN _parts[1 : array_length(_parts,1) - 1];
+    -- Split on "/" to get path segments
+    SELECT string_to_array(name, '/') INTO _parts;
+    -- Return everything except the last segment
+    RETURN _parts[1 : array_length(_parts,1) - 1];
 END
 $$;
 
@@ -1835,12 +1858,12 @@ ALTER FUNCTION storage.foldername(name text) OWNER TO supabase_storage_admin;
 --
 
 CREATE FUNCTION storage.get_common_prefix(p_key text, p_prefix text, p_delimiter text) RETURNS text
-    LANGUAGE sql IMMUTABLE
-    AS $$
+    LANGUAGE sql IMMUTABLE
+    AS $$
 SELECT CASE
-    WHEN position(p_delimiter IN substring(p_key FROM length(p_prefix) + 1)) > 0
-    THEN left(p_key, length(p_prefix) + position(p_delimiter IN substring(p_key FROM length(p_prefix) + 1)))
-    ELSE NULL
+    WHEN position(p_delimiter IN substring(p_key FROM length(p_prefix) + 1)) > 0
+    THEN left(p_key, length(p_prefix) + position(p_delimiter IN substring(p_key FROM length(p_prefix) + 1)))
+    ELSE NULL
 END;
 $$;
 
@@ -1852,13 +1875,13 @@ ALTER FUNCTION storage.get_common_prefix(p_key text, p_prefix text, p_delimiter 
 --
 
 CREATE FUNCTION storage.get_size_by_bucket() RETURNS TABLE(size bigint, bucket_id text)
-    LANGUAGE plpgsql STABLE
-    AS $$
+    LANGUAGE plpgsql STABLE
+    AS $$
 BEGIN
-    return query
-        select sum((metadata->>'size')::bigint)::bigint as size, obj.bucket_id
-        from "storage".objects as obj
-        group by obj.bucket_id;
+    return query
+        select sum((metadata->>'size')::bigint)::bigint as size, obj.bucket_id
+        from "storage".objects as obj
+        group by obj.bucket_id;
 END
 $$;
 
@@ -1870,43 +1893,43 @@ ALTER FUNCTION storage.get_size_by_bucket() OWNER TO supabase_storage_admin;
 --
 
 CREATE FUNCTION storage.list_multipart_uploads_with_delimiter(bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, next_key_token text DEFAULT ''::text, next_upload_token text DEFAULT ''::text) RETURNS TABLE(key text, id text, created_at timestamp with time zone)
-    LANGUAGE plpgsql
-    AS $_$
+    LANGUAGE plpgsql
+    AS $_$
 BEGIN
-    RETURN QUERY EXECUTE
-        'SELECT DISTINCT ON(key COLLATE "C") * from (
-            SELECT
-                CASE
-                    WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
-                        substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1)))
-                    ELSE
-                        key
-                END AS key, id, created_at
-            FROM
-                storage.s3_multipart_uploads
-            WHERE
-                bucket_id = $5 AND
-                key ILIKE $1 || ''%'' AND
-                CASE
-                    WHEN $4 != '''' AND $6 = '''' THEN
-                        CASE
-                            WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
-                                substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1))) COLLATE "C" > $4
-                            ELSE
-                                key COLLATE "C" > $4
-                            END
-                    ELSE
-                        true
-                END AND
-                CASE
-                    WHEN $6 != '''' THEN
-                        id COLLATE "C" > $6
-                    ELSE
-                        true
-                    END
-            ORDER BY
-                key COLLATE "C" ASC, created_at ASC) as e order by key COLLATE "C" LIMIT $3'
-        USING prefix_param, delimiter_param, max_keys, next_key_token, bucket_id, next_upload_token;
+    RETURN QUERY EXECUTE
+        'SELECT DISTINCT ON(key COLLATE "C") * from (
+            SELECT
+                CASE
+                    WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
+                        substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1)))
+                    ELSE
+                        key
+                END AS key, id, created_at
+            FROM
+                storage.s3_multipart_uploads
+            WHERE
+                bucket_id = $5 AND
+                key ILIKE $1 || ''%'' AND
+                CASE
+                    WHEN $4 != '''' AND $6 = '''' THEN
+                        CASE
+                            WHEN position($2 IN substring(key from length($1) + 1)) > 0 THEN
+                                substring(key from 1 for length($1) + position($2 IN substring(key from length($1) + 1))) COLLATE "C" > $4
+                            ELSE
+                                key COLLATE "C" > $4
+                            END
+                    ELSE
+                        true
+                END AND
+                CASE
+                    WHEN $6 != '''' THEN
+                        id COLLATE "C" > $6
+                    ELSE
+                        true
+                    END
+            ORDER BY
+                key COLLATE "C" ASC, created_at ASC) as e order by key COLLATE "C" LIMIT $3'
+        USING prefix_param, delimiter_param, max_keys, next_key_token, bucket_id, next_upload_token;
 END;
 $_$;
 
@@ -1918,212 +1941,212 @@ ALTER FUNCTION storage.list_multipart_uploads_with_delimiter(bucket_id text, pre
 --
 
 CREATE FUNCTION storage.list_objects_with_delimiter(_bucket_id text, prefix_param text, delimiter_param text, max_keys integer DEFAULT 100, start_after text DEFAULT ''::text, next_token text DEFAULT ''::text, sort_order text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, metadata jsonb, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone)
-    LANGUAGE plpgsql STABLE
-    AS $_$
+    LANGUAGE plpgsql STABLE
+    AS $_$
 DECLARE
-    v_peek_name TEXT;
-    v_current RECORD;
-    v_common_prefix TEXT;
+    v_peek_name TEXT;
+    v_current RECORD;
+    v_common_prefix TEXT;
 
-    -- Configuration
-    v_is_asc BOOLEAN;
-    v_prefix TEXT;
-    v_start TEXT;
-    v_upper_bound TEXT;
-    v_file_batch_size INT;
+    -- Configuration
+    v_is_asc BOOLEAN;
+    v_prefix TEXT;
+    v_start TEXT;
+    v_upper_bound TEXT;
+    v_file_batch_size INT;
 
-    -- Seek state
-    v_next_seek TEXT;
-    v_count INT := 0;
+    -- Seek state
+    v_next_seek TEXT;
+    v_count INT := 0;
 
-    -- Dynamic SQL for batch query only
-    v_batch_query TEXT;
+    -- Dynamic SQL for batch query only
+    v_batch_query TEXT;
 
 BEGIN
-    -- ========================================================================
-    -- INITIALIZATION
-    -- ========================================================================
-    v_is_asc := lower(coalesce(sort_order, 'asc')) = 'asc';
-    v_prefix := coalesce(prefix_param, '');
-    v_start := CASE WHEN coalesce(next_token, '') <> '' THEN next_token ELSE coalesce(start_after, '') END;
-    v_file_batch_size := LEAST(GREATEST(max_keys * 2, 100), 1000);
+    -- ========================================================================
+    -- INITIALIZATION
+    -- ========================================================================
+    v_is_asc := lower(coalesce(sort_order, 'asc')) = 'asc';
+    v_prefix := coalesce(prefix_param, '');
+    v_start := CASE WHEN coalesce(next_token, '') <> '' THEN next_token ELSE coalesce(start_after, '') END;
+    v_file_batch_size := LEAST(GREATEST(max_keys * 2, 100), 1000);
 
-    -- Calculate upper bound for prefix filtering (bytewise, using COLLATE "C")
-    IF v_prefix = '' THEN
-        v_upper_bound := NULL;
-    ELSIF right(v_prefix, 1) = delimiter_param THEN
-        v_upper_bound := left(v_prefix, -1) || chr(ascii(delimiter_param) + 1);
-    ELSE
-        v_upper_bound := left(v_prefix, -1) || chr(ascii(right(v_prefix, 1)) + 1);
-    END IF;
+    -- Calculate upper bound for prefix filtering (bytewise, using COLLATE "C")
+    IF v_prefix = '' THEN
+        v_upper_bound := NULL;
+    ELSIF right(v_prefix, 1) = delimiter_param THEN
+        v_upper_bound := left(v_prefix, -1) || chr(ascii(delimiter_param) + 1);
+    ELSE
+        v_upper_bound := left(v_prefix, -1) || chr(ascii(right(v_prefix, 1)) + 1);
+    END IF;
 
-    -- Build batch query (dynamic SQL - called infrequently, amortized over many rows)
-    IF v_is_asc THEN
-        IF v_upper_bound IS NOT NULL THEN
-            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
-                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" >= $2 ' ||
-                'AND o.name COLLATE "C" < $3 ORDER BY o.name COLLATE "C" ASC LIMIT $4';
-        ELSE
-            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
-                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" >= $2 ' ||
-                'ORDER BY o.name COLLATE "C" ASC LIMIT $4';
-        END IF;
-    ELSE
-        IF v_upper_bound IS NOT NULL THEN
-            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
-                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" < $2 ' ||
-                'AND o.name COLLATE "C" >= $3 ORDER BY o.name COLLATE "C" DESC LIMIT $4';
-        ELSE
-            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
-                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" < $2 ' ||
-                'ORDER BY o.name COLLATE "C" DESC LIMIT $4';
-        END IF;
-    END IF;
+    -- Build batch query (dynamic SQL - called infrequently, amortized over many rows)
+    IF v_is_asc THEN
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" >= $2 ' ||
+                'AND o.name COLLATE "C" < $3 ORDER BY o.name COLLATE "C" ASC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" >= $2 ' ||
+                'ORDER BY o.name COLLATE "C" ASC LIMIT $4';
+        END IF;
+    ELSE
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" < $2 ' ||
+                'AND o.name COLLATE "C" >= $3 ORDER BY o.name COLLATE "C" DESC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND o.name COLLATE "C" < $2 ' ||
+                'ORDER BY o.name COLLATE "C" DESC LIMIT $4';
+        END IF;
+    END IF;
 
-    -- ========================================================================
-    -- SEEK INITIALIZATION: Determine starting position
-    -- ========================================================================
-    IF v_start = '' THEN
-        IF v_is_asc THEN
-            v_next_seek := v_prefix;
-        ELSE
-            -- DESC without cursor: find the last item in range
-            IF v_upper_bound IS NOT NULL THEN
-                SELECT o.name INTO v_next_seek FROM storage.objects o
-                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_prefix AND o.name COLLATE "C" < v_upper_bound
-                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
-            ELSIF v_prefix <> '' THEN
-                SELECT o.name INTO v_next_seek FROM storage.objects o
-                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_prefix
-                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
-            ELSE
-                SELECT o.name INTO v_next_seek FROM storage.objects o
-                WHERE o.bucket_id = _bucket_id
-                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
-            END IF;
+    -- ========================================================================
+    -- SEEK INITIALIZATION: Determine starting position
+    -- ========================================================================
+    IF v_start = '' THEN
+        IF v_is_asc THEN
+            v_next_seek := v_prefix;
+        ELSE
+            -- DESC without cursor: find the last item in range
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_prefix AND o.name COLLATE "C" < v_upper_bound
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix <> '' THEN
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_next_seek FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            END IF;
 
-            IF v_next_seek IS NOT NULL THEN
-                v_next_seek := v_next_seek || delimiter_param;
-            ELSE
-                RETURN;
-            END IF;
-        END IF;
-    ELSE
-        -- Cursor provided: determine if it refers to a folder or leaf
-        IF EXISTS (
-            SELECT 1 FROM storage.objects o
-            WHERE o.bucket_id = _bucket_id
-              AND o.name COLLATE "C" LIKE v_start || delimiter_param || '%'
-            LIMIT 1
-        ) THEN
-            -- Cursor refers to a folder
-            IF v_is_asc THEN
-                v_next_seek := v_start || chr(ascii(delimiter_param) + 1);
-            ELSE
-                v_next_seek := v_start || delimiter_param;
-            END IF;
-        ELSE
-            -- Cursor refers to a leaf object
-            IF v_is_asc THEN
-                v_next_seek := v_start || delimiter_param;
-            ELSE
-                v_next_seek := v_start;
-            END IF;
-        END IF;
-    END IF;
+            IF v_next_seek IS NOT NULL THEN
+                v_next_seek := v_next_seek || delimiter_param;
+            ELSE
+                RETURN;
+            END IF;
+        END IF;
+    ELSE
+        -- Cursor provided: determine if it refers to a folder or leaf
+        IF EXISTS (
+            SELECT 1 FROM storage.objects o
+            WHERE o.bucket_id = _bucket_id
+              AND o.name COLLATE "C" LIKE v_start || delimiter_param || '%'
+            LIMIT 1
+        ) THEN
+            -- Cursor refers to a folder
+            IF v_is_asc THEN
+                v_next_seek := v_start || chr(ascii(delimiter_param) + 1);
+            ELSE
+                v_next_seek := v_start || delimiter_param;
+            END IF;
+        ELSE
+            -- Cursor refers to a leaf object
+            IF v_is_asc THEN
+                v_next_seek := v_start || delimiter_param;
+            ELSE
+                v_next_seek := v_start;
+            END IF;
+        END IF;
+    END IF;
 
-    -- ========================================================================
-    -- MAIN LOOP: Hybrid peek-then-batch algorithm
-    -- Uses STATIC SQL for peek (hot path) and DYNAMIC SQL for batch
-    -- ========================================================================
-    LOOP
-        EXIT WHEN v_count >= max_keys;
+    -- ========================================================================
+    -- MAIN LOOP: Hybrid peek-then-batch algorithm
+    -- Uses STATIC SQL for peek (hot path) and DYNAMIC SQL for batch
+    -- ========================================================================
+    LOOP
+        EXIT WHEN v_count >= max_keys;
 
-        -- STEP 1: PEEK using STATIC SQL (plan cached, very fast)
-        IF v_is_asc THEN
-            IF v_upper_bound IS NOT NULL THEN
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_next_seek AND o.name COLLATE "C" < v_upper_bound
-                ORDER BY o.name COLLATE "C" ASC LIMIT 1;
-            ELSE
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_next_seek
-                ORDER BY o.name COLLATE "C" ASC LIMIT 1;
-            END IF;
-        ELSE
-            IF v_upper_bound IS NOT NULL THEN
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek AND o.name COLLATE "C" >= v_prefix
-                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
-            ELSIF v_prefix <> '' THEN
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek AND o.name COLLATE "C" >= v_prefix
-                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
-            ELSE
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek
-                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
-            END IF;
-        END IF;
+        -- STEP 1: PEEK using STATIC SQL (plan cached, very fast)
+        IF v_is_asc THEN
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_next_seek AND o.name COLLATE "C" < v_upper_bound
+                ORDER BY o.name COLLATE "C" ASC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" >= v_next_seek
+                ORDER BY o.name COLLATE "C" ASC LIMIT 1;
+            END IF;
+        ELSE
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix <> '' THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek AND o.name COLLATE "C" >= v_prefix
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = _bucket_id AND o.name COLLATE "C" < v_next_seek
+                ORDER BY o.name COLLATE "C" DESC LIMIT 1;
+            END IF;
+        END IF;
 
-        EXIT WHEN v_peek_name IS NULL;
+        EXIT WHEN v_peek_name IS NULL;
 
-        -- STEP 2: Check if this is a FOLDER or FILE
-        v_common_prefix := storage.get_common_prefix(v_peek_name, v_prefix, delimiter_param);
+        -- STEP 2: Check if this is a FOLDER or FILE
+        v_common_prefix := storage.get_common_prefix(v_peek_name, v_prefix, delimiter_param);
 
-        IF v_common_prefix IS NOT NULL THEN
-            -- FOLDER: Emit and skip to next folder (no heap access needed)
-            name := rtrim(v_common_prefix, delimiter_param);
-            id := NULL;
-            updated_at := NULL;
-            created_at := NULL;
-            last_accessed_at := NULL;
-            metadata := NULL;
-            RETURN NEXT;
-            v_count := v_count + 1;
+        IF v_common_prefix IS NOT NULL THEN
+            -- FOLDER: Emit and skip to next folder (no heap access needed)
+            name := rtrim(v_common_prefix, delimiter_param);
+            id := NULL;
+            updated_at := NULL;
+            created_at := NULL;
+            last_accessed_at := NULL;
+            metadata := NULL;
+            RETURN NEXT;
+            v_count := v_count + 1;
 
-            -- Advance seek past the folder range
-            IF v_is_asc THEN
-                v_next_seek := left(v_common_prefix, -1) || chr(ascii(delimiter_param) + 1);
-            ELSE
-                v_next_seek := v_common_prefix;
-            END IF;
-        ELSE
-            -- FILE: Batch fetch using DYNAMIC SQL (overhead amortized over many rows)
-            -- For ASC: upper_bound is the exclusive upper limit (< condition)
-            -- For DESC: prefix is the inclusive lower limit (>= condition)
-            FOR v_current IN EXECUTE v_batch_query USING _bucket_id, v_next_seek,
-                CASE WHEN v_is_asc THEN COALESCE(v_upper_bound, v_prefix) ELSE v_prefix END, v_file_batch_size
-            LOOP
-                v_common_prefix := storage.get_common_prefix(v_current.name, v_prefix, delimiter_param);
+            -- Advance seek past the folder range
+            IF v_is_asc THEN
+                v_next_seek := left(v_common_prefix, -1) || chr(ascii(delimiter_param) + 1);
+            ELSE
+                v_next_seek := v_common_prefix;
+            END IF;
+        ELSE
+            -- FILE: Batch fetch using DYNAMIC SQL (overhead amortized over many rows)
+            -- For ASC: upper_bound is the exclusive upper limit (< condition)
+            -- For DESC: prefix is the inclusive lower limit (>= condition)
+            FOR v_current IN EXECUTE v_batch_query USING _bucket_id, v_next_seek,
+                CASE WHEN v_is_asc THEN COALESCE(v_upper_bound, v_prefix) ELSE v_prefix END, v_file_batch_size
+            LOOP
+                v_common_prefix := storage.get_common_prefix(v_current.name, v_prefix, delimiter_param);
 
-                IF v_common_prefix IS NOT NULL THEN
-                    -- Hit a folder: exit batch, let peek handle it
-                    v_next_seek := v_current.name;
-                    EXIT;
-                END IF;
+                IF v_common_prefix IS NOT NULL THEN
+                    -- Hit a folder: exit batch, let peek handle it
+                    v_next_seek := v_current.name;
+                    EXIT;
+                END IF;
 
-                -- Emit file
-                name := v_current.name;
-                id := v_current.id;
-                updated_at := v_current.updated_at;
-                created_at := v_current.created_at;
-                last_accessed_at := v_current.last_accessed_at;
-                metadata := v_current.metadata;
-                RETURN NEXT;
-                v_count := v_count + 1;
+                -- Emit file
+                name := v_current.name;
+                id := v_current.id;
+                updated_at := v_current.updated_at;
+                created_at := v_current.created_at;
+                last_accessed_at := v_current.last_accessed_at;
+                metadata := v_current.metadata;
+                RETURN NEXT;
+                v_count := v_count + 1;
 
-                -- Advance seek past this file
-                IF v_is_asc THEN
-                    v_next_seek := v_current.name || delimiter_param;
-                ELSE
-                    v_next_seek := v_current.name;
-                END IF;
+                -- Advance seek past this file
+                IF v_is_asc THEN
+                    v_next_seek := v_current.name || delimiter_param;
+                ELSE
+                    v_next_seek := v_current.name;
+                END IF;
 
-                EXIT WHEN v_count >= max_keys;
-            END LOOP;
-        END IF;
-    END LOOP;
+                EXIT WHEN v_count >= max_keys;
+            END LOOP;
+        END IF;
+    END LOOP;
 END;
 $_$;
 
@@ -2135,10 +2158,10 @@ ALTER FUNCTION storage.list_objects_with_delimiter(_bucket_id text, prefix_param
 --
 
 CREATE FUNCTION storage.operation() RETURNS text
-    LANGUAGE plpgsql STABLE
-    AS $$
+    LANGUAGE plpgsql STABLE
+    AS $$
 BEGIN
-    RETURN current_setting('storage.operation', true);
+    RETURN current_setting('storage.operation', true);
 END;
 $$;
 
@@ -2150,16 +2173,16 @@ ALTER FUNCTION storage.operation() OWNER TO supabase_storage_admin;
 --
 
 CREATE FUNCTION storage.protect_delete() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    -- Check if storage.allow_delete_query is set to 'true'
-    IF COALESCE(current_setting('storage.allow_delete_query', true), 'false') != 'true' THEN
-        RAISE EXCEPTION 'Direct deletion from storage tables is not allowed. Use the Storage API instead.'
-            USING HINT = 'This prevents accidental data loss from orphaned objects.',
-                  ERRCODE = '42501';
-    END IF;
-    RETURN NULL;
+    -- Check if storage.allow_delete_query is set to 'true'
+    IF COALESCE(current_setting('storage.allow_delete_query', true), 'false') != 'true' THEN
+        RAISE EXCEPTION 'Direct deletion from storage tables is not allowed. Use the Storage API instead.'
+            USING HINT = 'This prevents accidental data loss from orphaned objects.',
+                  ERRCODE = '42501';
+    END IF;
+    RETURN NULL;
 END;
 $$;
 
@@ -2171,251 +2194,251 @@ ALTER FUNCTION storage.protect_delete() OWNER TO supabase_storage_admin;
 --
 
 CREATE FUNCTION storage.search(prefix text, bucketname text, limits integer DEFAULT 100, levels integer DEFAULT 1, offsets integer DEFAULT 0, search text DEFAULT ''::text, sortcolumn text DEFAULT 'name'::text, sortorder text DEFAULT 'asc'::text) RETURNS TABLE(name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
-    LANGUAGE plpgsql STABLE
-    AS $_$
+    LANGUAGE plpgsql STABLE
+    AS $_$
 DECLARE
-    v_peek_name TEXT;
-    v_current RECORD;
-    v_common_prefix TEXT;
-    v_delimiter CONSTANT TEXT := '/';
+    v_peek_name TEXT;
+    v_current RECORD;
+    v_common_prefix TEXT;
+    v_delimiter CONSTANT TEXT := '/';
 
-    -- Configuration
-    v_limit INT;
-    v_prefix TEXT;
-    v_prefix_lower TEXT;
-    v_is_asc BOOLEAN;
-    v_order_by TEXT;
-    v_sort_order TEXT;
-    v_upper_bound TEXT;
-    v_file_batch_size INT;
+    -- Configuration
+    v_limit INT;
+    v_prefix TEXT;
+    v_prefix_lower TEXT;
+    v_is_asc BOOLEAN;
+    v_order_by TEXT;
+    v_sort_order TEXT;
+    v_upper_bound TEXT;
+    v_file_batch_size INT;
 
-    -- Dynamic SQL for batch query only
-    v_batch_query TEXT;
+    -- Dynamic SQL for batch query only
+    v_batch_query TEXT;
 
-    -- Seek state
-    v_next_seek TEXT;
-    v_count INT := 0;
-    v_skipped INT := 0;
+    -- Seek state
+    v_next_seek TEXT;
+    v_count INT := 0;
+    v_skipped INT := 0;
 BEGIN
-    -- ========================================================================
-    -- INITIALIZATION
-    -- ========================================================================
-    v_limit := LEAST(coalesce(limits, 100), 1500);
-    v_prefix := coalesce(prefix, '') || coalesce(search, '');
-    v_prefix_lower := lower(v_prefix);
-    v_is_asc := lower(coalesce(sortorder, 'asc')) = 'asc';
-    v_file_batch_size := LEAST(GREATEST(v_limit * 2, 100), 1000);
+    -- ========================================================================
+    -- INITIALIZATION
+    -- ========================================================================
+    v_limit := LEAST(coalesce(limits, 100), 1500);
+    v_prefix := coalesce(prefix, '') || coalesce(search, '');
+    v_prefix_lower := lower(v_prefix);
+    v_is_asc := lower(coalesce(sortorder, 'asc')) = 'asc';
+    v_file_batch_size := LEAST(GREATEST(v_limit * 2, 100), 1000);
 
-    -- Validate sort column
-    CASE lower(coalesce(sortcolumn, 'name'))
-        WHEN 'name' THEN v_order_by := 'name';
-        WHEN 'updated_at' THEN v_order_by := 'updated_at';
-        WHEN 'created_at' THEN v_order_by := 'created_at';
-        WHEN 'last_accessed_at' THEN v_order_by := 'last_accessed_at';
-        ELSE v_order_by := 'name';
-    END CASE;
+    -- Validate sort column
+    CASE lower(coalesce(sortcolumn, 'name'))
+        WHEN 'name' THEN v_order_by := 'name';
+        WHEN 'updated_at' THEN v_order_by := 'updated_at';
+        WHEN 'created_at' THEN v_order_by := 'created_at';
+        WHEN 'last_accessed_at' THEN v_order_by := 'last_accessed_at';
+        ELSE v_order_by := 'name';
+    END CASE;
 
-    v_sort_order := CASE WHEN v_is_asc THEN 'asc' ELSE 'desc' END;
+    v_sort_order := CASE WHEN v_is_asc THEN 'asc' ELSE 'desc' END;
 
-    -- ========================================================================
-    -- NON-NAME SORTING: Use path_tokens approach (unchanged)
-    -- ========================================================================
-    IF v_order_by != 'name' THEN
-        RETURN QUERY EXECUTE format(
-            $sql$
-            WITH folders AS (
-                SELECT path_tokens[$1] AS folder
-                FROM storage.objects
-                WHERE objects.name ILIKE $2 || '%%'
-                  AND bucket_id = $3
-                  AND array_length(objects.path_tokens, 1) <> $1
-                GROUP BY folder
-                ORDER BY folder %s
-            )
-            (SELECT folder AS "name",
-                   NULL::uuid AS id,
-                   NULL::timestamptz AS updated_at,
-                   NULL::timestamptz AS created_at,
-                   NULL::timestamptz AS last_accessed_at,
-                   NULL::jsonb AS metadata FROM folders)
-            UNION ALL
-            (SELECT path_tokens[$1] AS "name",
-                   id, updated_at, created_at, last_accessed_at, metadata
-             FROM storage.objects
-             WHERE objects.name ILIKE $2 || '%%'
-               AND bucket_id = $3
-               AND array_length(objects.path_tokens, 1) = $1
-             ORDER BY %I %s)
-            LIMIT $4 OFFSET $5
-            $sql$, v_sort_order, v_order_by, v_sort_order
-        ) USING levels, v_prefix, bucketname, v_limit, offsets;
-        RETURN;
-    END IF;
+    -- ========================================================================
+    -- NON-NAME SORTING: Use path_tokens approach (unchanged)
+    -- ========================================================================
+    IF v_order_by != 'name' THEN
+        RETURN QUERY EXECUTE format(
+            $sql$
+            WITH folders AS (
+                SELECT path_tokens[$1] AS folder
+                FROM storage.objects
+                WHERE objects.name ILIKE $2 || '%%'
+                  AND bucket_id = $3
+                  AND array_length(objects.path_tokens, 1) <> $1
+                GROUP BY folder
+                ORDER BY folder %s
+            )
+            (SELECT folder AS "name",
+                   NULL::uuid AS id,
+                   NULL::timestamptz AS updated_at,
+                   NULL::timestamptz AS created_at,
+                   NULL::timestamptz AS last_accessed_at,
+                   NULL::jsonb AS metadata FROM folders)
+            UNION ALL
+            (SELECT path_tokens[$1] AS "name",
+                   id, updated_at, created_at, last_accessed_at, metadata
+             FROM storage.objects
+             WHERE objects.name ILIKE $2 || '%%'
+               AND bucket_id = $3
+               AND array_length(objects.path_tokens, 1) = $1
+             ORDER BY %I %s)
+            LIMIT $4 OFFSET $5
+            $sql$, v_sort_order, v_order_by, v_sort_order
+        ) USING levels, v_prefix, bucketname, v_limit, offsets;
+        RETURN;
+    END IF;
 
-    -- ========================================================================
-    -- NAME SORTING: Hybrid skip-scan with batch optimization
-    -- ========================================================================
+    -- ========================================================================
+    -- NAME SORTING: Hybrid skip-scan with batch optimization
+    -- ========================================================================
 
-    -- Calculate upper bound for prefix filtering
-    IF v_prefix_lower = '' THEN
-        v_upper_bound := NULL;
-    ELSIF right(v_prefix_lower, 1) = v_delimiter THEN
-        v_upper_bound := left(v_prefix_lower, -1) || chr(ascii(v_delimiter) + 1);
-    ELSE
-        v_upper_bound := left(v_prefix_lower, -1) || chr(ascii(right(v_prefix_lower, 1)) + 1);
-    END IF;
+    -- Calculate upper bound for prefix filtering
+    IF v_prefix_lower = '' THEN
+        v_upper_bound := NULL;
+    ELSIF right(v_prefix_lower, 1) = v_delimiter THEN
+        v_upper_bound := left(v_prefix_lower, -1) || chr(ascii(v_delimiter) + 1);
+    ELSE
+        v_upper_bound := left(v_prefix_lower, -1) || chr(ascii(right(v_prefix_lower, 1)) + 1);
+    END IF;
 
-    -- Build batch query (dynamic SQL - called infrequently, amortized over many rows)
-    IF v_is_asc THEN
-        IF v_upper_bound IS NOT NULL THEN
-            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
-                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" >= $2 ' ||
-                'AND lower(o.name) COLLATE "C" < $3 ORDER BY lower(o.name) COLLATE "C" ASC LIMIT $4';
-        ELSE
-            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
-                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" >= $2 ' ||
-                'ORDER BY lower(o.name) COLLATE "C" ASC LIMIT $4';
-        END IF;
-    ELSE
-        IF v_upper_bound IS NOT NULL THEN
-            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
-                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" < $2 ' ||
-                'AND lower(o.name) COLLATE "C" >= $3 ORDER BY lower(o.name) COLLATE "C" DESC LIMIT $4';
-        ELSE
-            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
-                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" < $2 ' ||
-                'ORDER BY lower(o.name) COLLATE "C" DESC LIMIT $4';
-        END IF;
-    END IF;
+    -- Build batch query (dynamic SQL - called infrequently, amortized over many rows)
+    IF v_is_asc THEN
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" >= $2 ' ||
+                'AND lower(o.name) COLLATE "C" < $3 ORDER BY lower(o.name) COLLATE "C" ASC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" >= $2 ' ||
+                'ORDER BY lower(o.name) COLLATE "C" ASC LIMIT $4';
+        END IF;
+    ELSE
+        IF v_upper_bound IS NOT NULL THEN
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" < $2 ' ||
+                'AND lower(o.name) COLLATE "C" >= $3 ORDER BY lower(o.name) COLLATE "C" DESC LIMIT $4';
+        ELSE
+            v_batch_query := 'SELECT o.name, o.id, o.updated_at, o.created_at, o.last_accessed_at, o.metadata ' ||
+                'FROM storage.objects o WHERE o.bucket_id = $1 AND lower(o.name) COLLATE "C" < $2 ' ||
+                'ORDER BY lower(o.name) COLLATE "C" DESC LIMIT $4';
+        END IF;
+    END IF;
 
-    -- Initialize seek position
-    IF v_is_asc THEN
-        v_next_seek := v_prefix_lower;
-    ELSE
-        -- DESC: find the last item in range first (static SQL)
-        IF v_upper_bound IS NOT NULL THEN
-            SELECT o.name INTO v_peek_name FROM storage.objects o
-            WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_prefix_lower AND lower(o.name) COLLATE "C" < v_upper_bound
-            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
-        ELSIF v_prefix_lower <> '' THEN
-            SELECT o.name INTO v_peek_name FROM storage.objects o
-            WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_prefix_lower
-            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
-        ELSE
-            SELECT o.name INTO v_peek_name FROM storage.objects o
-            WHERE o.bucket_id = bucketname
-            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
-        END IF;
+    -- Initialize seek position
+    IF v_is_asc THEN
+        v_next_seek := v_prefix_lower;
+    ELSE
+        -- DESC: find the last item in range first (static SQL)
+        IF v_upper_bound IS NOT NULL THEN
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_prefix_lower AND lower(o.name) COLLATE "C" < v_upper_bound
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        ELSIF v_prefix_lower <> '' THEN
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_prefix_lower
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        ELSE
+            SELECT o.name INTO v_peek_name FROM storage.objects o
+            WHERE o.bucket_id = bucketname
+            ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+        END IF;
 
-        IF v_peek_name IS NOT NULL THEN
-            v_next_seek := lower(v_peek_name) || v_delimiter;
-        ELSE
-            RETURN;
-        END IF;
-    END IF;
+        IF v_peek_name IS NOT NULL THEN
+            v_next_seek := lower(v_peek_name) || v_delimiter;
+        ELSE
+            RETURN;
+        END IF;
+    END IF;
 
-    -- ========================================================================
-    -- MAIN LOOP: Hybrid peek-then-batch algorithm
-    -- Uses STATIC SQL for peek (hot path) and DYNAMIC SQL for batch
-    -- ========================================================================
-    LOOP
-        EXIT WHEN v_count >= v_limit;
+    -- ========================================================================
+    -- MAIN LOOP: Hybrid peek-then-batch algorithm
+    -- Uses STATIC SQL for peek (hot path) and DYNAMIC SQL for batch
+    -- ========================================================================
+    LOOP
+        EXIT WHEN v_count >= v_limit;
 
-        -- STEP 1: PEEK using STATIC SQL (plan cached, very fast)
-        IF v_is_asc THEN
-            IF v_upper_bound IS NOT NULL THEN
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_next_seek AND lower(o.name) COLLATE "C" < v_upper_bound
-                ORDER BY lower(o.name) COLLATE "C" ASC LIMIT 1;
-            ELSE
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_next_seek
-                ORDER BY lower(o.name) COLLATE "C" ASC LIMIT 1;
-            END IF;
-        ELSE
-            IF v_upper_bound IS NOT NULL THEN
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek AND lower(o.name) COLLATE "C" >= v_prefix_lower
-                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
-            ELSIF v_prefix_lower <> '' THEN
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek AND lower(o.name) COLLATE "C" >= v_prefix_lower
-                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
-            ELSE
-                SELECT o.name INTO v_peek_name FROM storage.objects o
-                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek
-                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
-            END IF;
-        END IF;
+        -- STEP 1: PEEK using STATIC SQL (plan cached, very fast)
+        IF v_is_asc THEN
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_next_seek AND lower(o.name) COLLATE "C" < v_upper_bound
+                ORDER BY lower(o.name) COLLATE "C" ASC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" >= v_next_seek
+                ORDER BY lower(o.name) COLLATE "C" ASC LIMIT 1;
+            END IF;
+        ELSE
+            IF v_upper_bound IS NOT NULL THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek AND lower(o.name) COLLATE "C" >= v_prefix_lower
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            ELSIF v_prefix_lower <> '' THEN
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek AND lower(o.name) COLLATE "C" >= v_prefix_lower
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            ELSE
+                SELECT o.name INTO v_peek_name FROM storage.objects o
+                WHERE o.bucket_id = bucketname AND lower(o.name) COLLATE "C" < v_next_seek
+                ORDER BY lower(o.name) COLLATE "C" DESC LIMIT 1;
+            END IF;
+        END IF;
 
-        EXIT WHEN v_peek_name IS NULL;
+        EXIT WHEN v_peek_name IS NULL;
 
-        -- STEP 2: Check if this is a FOLDER or FILE
-        v_common_prefix := storage.get_common_prefix(lower(v_peek_name), v_prefix_lower, v_delimiter);
+        -- STEP 2: Check if this is a FOLDER or FILE
+        v_common_prefix := storage.get_common_prefix(lower(v_peek_name), v_prefix_lower, v_delimiter);
 
-        IF v_common_prefix IS NOT NULL THEN
-            -- FOLDER: Handle offset, emit if needed, skip to next folder
-            IF v_skipped < offsets THEN
-                v_skipped := v_skipped + 1;
-            ELSE
-                name := split_part(rtrim(storage.get_common_prefix(v_peek_name, v_prefix, v_delimiter), v_delimiter), v_delimiter, levels);
-                id := NULL;
-                updated_at := NULL;
-                created_at := NULL;
-                last_accessed_at := NULL;
-                metadata := NULL;
-                RETURN NEXT;
-                v_count := v_count + 1;
-            END IF;
+        IF v_common_prefix IS NOT NULL THEN
+            -- FOLDER: Handle offset, emit if needed, skip to next folder
+            IF v_skipped < offsets THEN
+                v_skipped := v_skipped + 1;
+            ELSE
+                name := split_part(rtrim(storage.get_common_prefix(v_peek_name, v_prefix, v_delimiter), v_delimiter), v_delimiter, levels);
+                id := NULL;
+                updated_at := NULL;
+                created_at := NULL;
+                last_accessed_at := NULL;
+                metadata := NULL;
+                RETURN NEXT;
+                v_count := v_count + 1;
+            END IF;
 
-            -- Advance seek past the folder range
-            IF v_is_asc THEN
-                v_next_seek := lower(left(v_common_prefix, -1)) || chr(ascii(v_delimiter) + 1);
-            ELSE
-                v_next_seek := lower(v_common_prefix);
-            END IF;
-        ELSE
-            -- FILE: Batch fetch using DYNAMIC SQL (overhead amortized over many rows)
-            -- For ASC: upper_bound is the exclusive upper limit (< condition)
-            -- For DESC: prefix_lower is the inclusive lower limit (>= condition)
-            FOR v_current IN EXECUTE v_batch_query
-                USING bucketname, v_next_seek,
-                    CASE WHEN v_is_asc THEN COALESCE(v_upper_bound, v_prefix_lower) ELSE v_prefix_lower END, v_file_batch_size
-            LOOP
-                v_common_prefix := storage.get_common_prefix(lower(v_current.name), v_prefix_lower, v_delimiter);
+            -- Advance seek past the folder range
+            IF v_is_asc THEN
+                v_next_seek := lower(left(v_common_prefix, -1)) || chr(ascii(v_delimiter) + 1);
+            ELSE
+                v_next_seek := lower(v_common_prefix);
+            END IF;
+        ELSE
+            -- FILE: Batch fetch using DYNAMIC SQL (overhead amortized over many rows)
+            -- For ASC: upper_bound is the exclusive upper limit (< condition)
+            -- For DESC: prefix_lower is the inclusive lower limit (>= condition)
+            FOR v_current IN EXECUTE v_batch_query
+                USING bucketname, v_next_seek,
+                    CASE WHEN v_is_asc THEN COALESCE(v_upper_bound, v_prefix_lower) ELSE v_prefix_lower END, v_file_batch_size
+            LOOP
+                v_common_prefix := storage.get_common_prefix(lower(v_current.name), v_prefix_lower, v_delimiter);
 
-                IF v_common_prefix IS NOT NULL THEN
-                    -- Hit a folder: exit batch, let peek handle it
-                    v_next_seek := lower(v_current.name);
-                    EXIT;
-                END IF;
+                IF v_common_prefix IS NOT NULL THEN
+                    -- Hit a folder: exit batch, let peek handle it
+                    v_next_seek := lower(v_current.name);
+                    EXIT;
+                END IF;
 
-                -- Handle offset skipping
-                IF v_skipped < offsets THEN
-                    v_skipped := v_skipped + 1;
-                ELSE
-                    -- Emit file
-                    name := split_part(v_current.name, v_delimiter, levels);
-                    id := v_current.id;
-                    updated_at := v_current.updated_at;
-                    created_at := v_current.created_at;
-                    last_accessed_at := v_current.last_accessed_at;
-                    metadata := v_current.metadata;
-                    RETURN NEXT;
-                    v_count := v_count + 1;
-                END IF;
+                -- Handle offset skipping
+                IF v_skipped < offsets THEN
+                    v_skipped := v_skipped + 1;
+                ELSE
+                    -- Emit file
+                    name := split_part(v_current.name, v_delimiter, levels);
+                    id := v_current.id;
+                    updated_at := v_current.updated_at;
+                    created_at := v_current.created_at;
+                    last_accessed_at := v_current.last_accessed_at;
+                    metadata := v_current.metadata;
+                    RETURN NEXT;
+                    v_count := v_count + 1;
+                END IF;
 
-                -- Advance seek past this file
-                IF v_is_asc THEN
-                    v_next_seek := lower(v_current.name) || v_delimiter;
-                ELSE
-                    v_next_seek := lower(v_current.name);
-                END IF;
+                -- Advance seek past this file
+                IF v_is_asc THEN
+                    v_next_seek := lower(v_current.name) || v_delimiter;
+                ELSE
+                    v_next_seek := lower(v_current.name);
+                END IF;
 
-                EXIT WHEN v_count >= v_limit;
-            END LOOP;
-        END IF;
-    END LOOP;
+                EXIT WHEN v_count >= v_limit;
+            END LOOP;
+        END IF;
+    END LOOP;
 END;
 $_$;
 
@@ -2427,104 +2450,104 @@ ALTER FUNCTION storage.search(prefix text, bucketname text, limits integer, leve
 --
 
 CREATE FUNCTION storage.search_by_timestamp(p_prefix text, p_bucket_id text, p_limit integer, p_level integer, p_start_after text, p_sort_order text, p_sort_column text, p_sort_column_after text) RETURNS TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
-    LANGUAGE plpgsql STABLE
-    AS $_$
+    LANGUAGE plpgsql STABLE
+    AS $_$
 DECLARE
-    v_cursor_op text;
-    v_query text;
-    v_prefix text;
+    v_cursor_op text;
+    v_query text;
+    v_prefix text;
 BEGIN
-    v_prefix := coalesce(p_prefix, '');
+    v_prefix := coalesce(p_prefix, '');
 
-    IF p_sort_order = 'asc' THEN
-        v_cursor_op := '>';
-    ELSE
-        v_cursor_op := '<';
-    END IF;
+    IF p_sort_order = 'asc' THEN
+        v_cursor_op := '>';
+    ELSE
+        v_cursor_op := '<';
+    END IF;
 
-    v_query := format($sql$
-        WITH raw_objects AS (
-            SELECT
-                o.name AS obj_name,
-                o.id AS obj_id,
-                o.updated_at AS obj_updated_at,
-                o.created_at AS obj_created_at,
-                o.last_accessed_at AS obj_last_accessed_at,
-                o.metadata AS obj_metadata,
-                storage.get_common_prefix(o.name, $1, '/') AS common_prefix
-            FROM storage.objects o
-            WHERE o.bucket_id = $2
-              AND o.name COLLATE "C" LIKE $1 || '%%'
-        ),
-        -- Aggregate common prefixes (folders)
-        -- Both created_at and updated_at use MIN(obj_created_at) to match the old prefixes table behavior
-        aggregated_prefixes AS (
-            SELECT
-                rtrim(common_prefix, '/') AS name,
-                NULL::uuid AS id,
-                MIN(obj_created_at) AS updated_at,
-                MIN(obj_created_at) AS created_at,
-                NULL::timestamptz AS last_accessed_at,
-                NULL::jsonb AS metadata,
-                TRUE AS is_prefix
-            FROM raw_objects
-            WHERE common_prefix IS NOT NULL
-            GROUP BY common_prefix
-        ),
-        leaf_objects AS (
-            SELECT
-                obj_name AS name,
-                obj_id AS id,
-                obj_updated_at AS updated_at,
-                obj_created_at AS created_at,
-                obj_last_accessed_at AS last_accessed_at,
-                obj_metadata AS metadata,
-                FALSE AS is_prefix
-            FROM raw_objects
-            WHERE common_prefix IS NULL
-        ),
-        combined AS (
-            SELECT * FROM aggregated_prefixes
-            UNION ALL
-            SELECT * FROM leaf_objects
-        ),
-        filtered AS (
-            SELECT *
-            FROM combined
-            WHERE (
-                $5 = ''
-                OR ROW(
-                    date_trunc('milliseconds', %I),
-                    name COLLATE "C"
-                ) %s ROW(
-                    COALESCE(NULLIF($6, '')::timestamptz, 'epoch'::timestamptz),
-                    $5
-                )
-            )
-        )
-        SELECT
-            split_part(name, '/', $3) AS key,
-            name,
-            id,
-            updated_at,
-            created_at,
-            last_accessed_at,
-            metadata
-        FROM filtered
-        ORDER BY
-            COALESCE(date_trunc('milliseconds', %I), 'epoch'::timestamptz) %s,
-            name COLLATE "C" %s
-        LIMIT $4
-    $sql$,
-        p_sort_column,
-        v_cursor_op,
-        p_sort_column,
-        p_sort_order,
-        p_sort_order
-    );
+    v_query := format($sql$
+        WITH raw_objects AS (
+            SELECT
+                o.name AS obj_name,
+                o.id AS obj_id,
+                o.updated_at AS obj_updated_at,
+                o.created_at AS obj_created_at,
+                o.last_accessed_at AS obj_last_accessed_at,
+                o.metadata AS obj_metadata,
+                storage.get_common_prefix(o.name, $1, '/') AS common_prefix
+            FROM storage.objects o
+            WHERE o.bucket_id = $2
+              AND o.name COLLATE "C" LIKE $1 || '%%'
+        ),
+        -- Aggregate common prefixes (folders)
+        -- Both created_at and updated_at use MIN(obj_created_at) to match the old prefixes table behavior
+        aggregated_prefixes AS (
+            SELECT
+                rtrim(common_prefix, '/') AS name,
+                NULL::uuid AS id,
+                MIN(obj_created_at) AS updated_at,
+                MIN(obj_created_at) AS created_at,
+                NULL::timestamptz AS last_accessed_at,
+                NULL::jsonb AS metadata,
+                TRUE AS is_prefix
+            FROM raw_objects
+            WHERE common_prefix IS NOT NULL
+            GROUP BY common_prefix
+        ),
+        leaf_objects AS (
+            SELECT
+                obj_name AS name,
+                obj_id AS id,
+                obj_updated_at AS updated_at,
+                obj_created_at AS created_at,
+                obj_last_accessed_at AS last_accessed_at,
+                obj_metadata AS metadata,
+                FALSE AS is_prefix
+            FROM raw_objects
+            WHERE common_prefix IS NULL
+        ),
+        combined AS (
+            SELECT * FROM aggregated_prefixes
+            UNION ALL
+            SELECT * FROM leaf_objects
+        ),
+        filtered AS (
+            SELECT *
+            FROM combined
+            WHERE (
+                $5 = ''
+                OR ROW(
+                    date_trunc('milliseconds', %I),
+                    name COLLATE "C"
+                ) %s ROW(
+                    COALESCE(NULLIF($6, '')::timestamptz, 'epoch'::timestamptz),
+                    $5
+                )
+            )
+        )
+        SELECT
+            split_part(name, '/', $3) AS key,
+            name,
+            id,
+            updated_at,
+            created_at,
+            last_accessed_at,
+            metadata
+        FROM filtered
+        ORDER BY
+            COALESCE(date_trunc('milliseconds', %I), 'epoch'::timestamptz) %s,
+            name COLLATE "C" %s
+        LIMIT $4
+    $sql$,
+        p_sort_column,
+        v_cursor_op,
+        p_sort_column,
+        p_sort_order,
+        p_sort_order
+    );
 
-    RETURN QUERY EXECUTE v_query
-    USING v_prefix, p_bucket_id, p_level, p_limit, p_start_after, p_sort_column_after;
+    RETURN QUERY EXECUTE v_query
+    USING v_prefix, p_bucket_id, p_level, p_limit, p_start_after, p_sort_column_after;
 END;
 $_$;
 
@@ -2536,57 +2559,57 @@ ALTER FUNCTION storage.search_by_timestamp(p_prefix text, p_bucket_id text, p_li
 --
 
 CREATE FUNCTION storage.search_v2(prefix text, bucket_name text, limits integer DEFAULT 100, levels integer DEFAULT 1, start_after text DEFAULT ''::text, sort_order text DEFAULT 'asc'::text, sort_column text DEFAULT 'name'::text, sort_column_after text DEFAULT ''::text) RETURNS TABLE(key text, name text, id uuid, updated_at timestamp with time zone, created_at timestamp with time zone, last_accessed_at timestamp with time zone, metadata jsonb)
-    LANGUAGE plpgsql STABLE
-    AS $$
+    LANGUAGE plpgsql STABLE
+    AS $$
 DECLARE
-    v_sort_col text;
-    v_sort_ord text;
-    v_limit int;
+    v_sort_col text;
+    v_sort_ord text;
+    v_limit int;
 BEGIN
-    -- Cap limit to maximum of 1500 records
-    v_limit := LEAST(coalesce(limits, 100), 1500);
+    -- Cap limit to maximum of 1500 records
+    v_limit := LEAST(coalesce(limits, 100), 1500);
 
-    -- Validate and normalize sort_order
-    v_sort_ord := lower(coalesce(sort_order, 'asc'));
-    IF v_sort_ord NOT IN ('asc', 'desc') THEN
-        v_sort_ord := 'asc';
-    END IF;
+    -- Validate and normalize sort_order
+    v_sort_ord := lower(coalesce(sort_order, 'asc'));
+    IF v_sort_ord NOT IN ('asc', 'desc') THEN
+        v_sort_ord := 'asc';
+    END IF;
 
-    -- Validate and normalize sort_column
-    v_sort_col := lower(coalesce(sort_column, 'name'));
-    IF v_sort_col NOT IN ('name', 'updated_at', 'created_at') THEN
-        v_sort_col := 'name';
-    END IF;
+    -- Validate and normalize sort_column
+    v_sort_col := lower(coalesce(sort_column, 'name'));
+    IF v_sort_col NOT IN ('name', 'updated_at', 'created_at') THEN
+        v_sort_col := 'name';
+    END IF;
 
-    -- Route to appropriate implementation
-    IF v_sort_col = 'name' THEN
-        -- Use list_objects_with_delimiter for name sorting (most efficient: O(k * log n))
-        RETURN QUERY
-        SELECT
-            split_part(l.name, '/', levels) AS key,
-            l.name AS name,
-            l.id,
-            l.updated_at,
-            l.created_at,
-            l.last_accessed_at,
-            l.metadata
-        FROM storage.list_objects_with_delimiter(
-            bucket_name,
-            coalesce(prefix, ''),
-            '/',
-            v_limit,
-            start_after,
-            '',
-            v_sort_ord
-        ) l;
-    ELSE
-        -- Use aggregation approach for timestamp sorting
-        -- Not efficient for large datasets but supports correct pagination
-        RETURN QUERY SELECT * FROM storage.search_by_timestamp(
-            prefix, bucket_name, v_limit, levels, start_after,
-            v_sort_ord, v_sort_col, sort_column_after
-        );
-    END IF;
+    -- Route to appropriate implementation
+    IF v_sort_col = 'name' THEN
+        -- Use list_objects_with_delimiter for name sorting (most efficient: O(k * log n))
+        RETURN QUERY
+        SELECT
+            split_part(l.name, '/', levels) AS key,
+            l.name AS name,
+            l.id,
+            l.updated_at,
+            l.created_at,
+            l.last_accessed_at,
+            l.metadata
+        FROM storage.list_objects_with_delimiter(
+            bucket_name,
+            coalesce(prefix, ''),
+            '/',
+            v_limit,
+            start_after,
+            '',
+            v_sort_ord
+        ) l;
+    ELSE
+        -- Use aggregation approach for timestamp sorting
+        -- Not efficient for large datasets but supports correct pagination
+        RETURN QUERY SELECT * FROM storage.search_by_timestamp(
+            prefix, bucket_name, v_limit, levels, start_after,
+            v_sort_ord, v_sort_col, sort_column_after
+        );
+    END IF;
 END;
 $$;
 
@@ -2598,11 +2621,11 @@ ALTER FUNCTION storage.search_v2(prefix text, bucket_name text, limits integer, 
 --
 
 CREATE FUNCTION storage.update_updated_at_column() RETURNS trigger
-    LANGUAGE plpgsql
-    AS $$
+    LANGUAGE plpgsql
+    AS $$
 BEGIN
-    NEW.updated_at = now();
-    RETURN NEW;
+    NEW.updated_at = now();
+    RETURN NEW; 
 END;
 $$;
 
@@ -2614,80 +2637,80 @@ ALTER FUNCTION storage.update_updated_at_column() OWNER TO supabase_storage_admi
 --
 
 CREATE FUNCTION supabase_functions.http_request() RETURNS trigger
-    LANGUAGE plpgsql SECURITY DEFINER
-    SET search_path TO 'supabase_functions'
-    AS $$
-    DECLARE
-      request_id bigint;
-      payload jsonb;
-      url text := TG_ARGV[0]::text;
-      method text := TG_ARGV[1]::text;
-      headers jsonb DEFAULT '{}'::jsonb;
-      params jsonb DEFAULT '{}'::jsonb;
-      timeout_ms integer DEFAULT 1000;
-    BEGIN
-      IF url IS NULL OR url = 'null' THEN
-        RAISE EXCEPTION 'url argument is missing';
-      END IF;
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'supabase_functions'
+    AS $$
+    DECLARE
+      request_id bigint;
+      payload jsonb;
+      url text := TG_ARGV[0]::text;
+      method text := TG_ARGV[1]::text;
+      headers jsonb DEFAULT '{}'::jsonb;
+      params jsonb DEFAULT '{}'::jsonb;
+      timeout_ms integer DEFAULT 1000;
+    BEGIN
+      IF url IS NULL OR url = 'null' THEN
+        RAISE EXCEPTION 'url argument is missing';
+      END IF;
 
-      IF method IS NULL OR method = 'null' THEN
-        RAISE EXCEPTION 'method argument is missing';
-      END IF;
+      IF method IS NULL OR method = 'null' THEN
+        RAISE EXCEPTION 'method argument is missing';
+      END IF;
 
-      IF TG_ARGV[2] IS NULL OR TG_ARGV[2] = 'null' THEN
-        headers = '{"Content-Type": "application/json"}'::jsonb;
-      ELSE
-        headers = TG_ARGV[2]::jsonb;
-      END IF;
+      IF TG_ARGV[2] IS NULL OR TG_ARGV[2] = 'null' THEN
+        headers = '{"Content-Type": "application/json"}'::jsonb;
+      ELSE
+        headers = TG_ARGV[2]::jsonb;
+      END IF;
 
-      IF TG_ARGV[3] IS NULL OR TG_ARGV[3] = 'null' THEN
-        params = '{}'::jsonb;
-      ELSE
-        params = TG_ARGV[3]::jsonb;
-      END IF;
+      IF TG_ARGV[3] IS NULL OR TG_ARGV[3] = 'null' THEN
+        params = '{}'::jsonb;
+      ELSE
+        params = TG_ARGV[3]::jsonb;
+      END IF;
 
-      IF TG_ARGV[4] IS NULL OR TG_ARGV[4] = 'null' THEN
-        timeout_ms = 1000;
-      ELSE
-        timeout_ms = TG_ARGV[4]::integer;
-      END IF;
+      IF TG_ARGV[4] IS NULL OR TG_ARGV[4] = 'null' THEN
+        timeout_ms = 1000;
+      ELSE
+        timeout_ms = TG_ARGV[4]::integer;
+      END IF;
 
-      CASE
-        WHEN method = 'GET' THEN
-          SELECT http_get INTO request_id FROM net.http_get(
-            url,
-            params,
-            headers,
-            timeout_ms
-          );
-        WHEN method = 'POST' THEN
-          payload = jsonb_build_object(
-            'old_record', OLD,
-            'record', NEW,
-            'type', TG_OP,
-            'table', TG_TABLE_NAME,
-            'schema', TG_TABLE_SCHEMA
-          );
+      CASE
+        WHEN method = 'GET' THEN
+          SELECT http_get INTO request_id FROM net.http_get(
+            url,
+            params,
+            headers,
+            timeout_ms
+          );
+        WHEN method = 'POST' THEN
+          payload = jsonb_build_object(
+            'old_record', OLD,
+            'record', NEW,
+            'type', TG_OP,
+            'table', TG_TABLE_NAME,
+            'schema', TG_TABLE_SCHEMA
+          );
 
-          SELECT http_post INTO request_id FROM net.http_post(
-            url,
-            payload,
-            params,
-            headers,
-            timeout_ms
-          );
-        ELSE
-          RAISE EXCEPTION 'method argument % is invalid', method;
-      END CASE;
+          SELECT http_post INTO request_id FROM net.http_post(
+            url,
+            payload,
+            params,
+            headers,
+            timeout_ms
+          );
+        ELSE
+          RAISE EXCEPTION 'method argument % is invalid', method;
+      END CASE;
 
-      INSERT INTO supabase_functions.hooks
-        (hook_table_id, hook_name, request_id)
-      VALUES
-        (TG_RELID, TG_NAME, request_id);
+      INSERT INTO supabase_functions.hooks
+        (hook_table_id, hook_name, request_id)
+      VALUES
+        (TG_RELID, TG_NAME, request_id);
 
-      RETURN NEW;
-    END
-  $$;
+      RETURN NEW;
+    END
+  $$;
 
 
 ALTER FUNCTION supabase_functions.http_request() OWNER TO supabase_functions_admin;
@@ -2701,12 +2724,12 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE _realtime.extensions (
-    id uuid NOT NULL,
-    type text,
-    settings jsonb,
-    tenant_external_id text,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    id uuid NOT NULL,
+    type text,
+    settings jsonb,
+    tenant_external_id text,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -2717,11 +2740,11 @@ ALTER TABLE _realtime.extensions OWNER TO supabase_admin;
 --
 
 CREATE TABLE _realtime.feature_flags (
-    id uuid NOT NULL,
-    name character varying(255) NOT NULL,
-    enabled boolean DEFAULT false NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL
+    id uuid NOT NULL,
+    name character varying(255) NOT NULL,
+    enabled boolean DEFAULT false NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL
 );
 
 
@@ -2732,8 +2755,8 @@ ALTER TABLE _realtime.feature_flags OWNER TO supabase_admin;
 --
 
 CREATE TABLE _realtime.schema_migrations (
-    version bigint NOT NULL,
-    inserted_at timestamp(0) without time zone
+    version bigint NOT NULL,
+    inserted_at timestamp(0) without time zone
 );
 
 
@@ -2744,31 +2767,31 @@ ALTER TABLE _realtime.schema_migrations OWNER TO supabase_admin;
 --
 
 CREATE TABLE _realtime.tenants (
-    id uuid NOT NULL,
-    name text,
-    external_id text,
-    jwt_secret text,
-    max_concurrent_users integer DEFAULT 200 NOT NULL,
-    inserted_at timestamp(0) without time zone NOT NULL,
-    updated_at timestamp(0) without time zone NOT NULL,
-    max_events_per_second integer DEFAULT 100 NOT NULL,
-    postgres_cdc_default text DEFAULT 'postgres_cdc_rls'::text,
-    max_bytes_per_second integer DEFAULT 100000 NOT NULL,
-    max_channels_per_client integer DEFAULT 100 NOT NULL,
-    max_joins_per_second integer DEFAULT 500 NOT NULL,
-    suspend boolean DEFAULT false,
-    jwt_jwks jsonb,
-    notify_private_alpha boolean DEFAULT false,
-    private_only boolean DEFAULT false NOT NULL,
-    migrations_ran integer DEFAULT 0,
-    broadcast_adapter character varying(255) DEFAULT 'gen_rpc'::character varying,
-    max_presence_events_per_second integer DEFAULT 1000,
-    max_payload_size_in_kb integer DEFAULT 3000,
-    max_client_presence_events_per_window integer,
-    client_presence_window_ms integer,
-    presence_enabled boolean DEFAULT false NOT NULL,
-    feature_flags jsonb DEFAULT '{}'::jsonb NOT NULL,
-    CONSTRAINT jwt_secret_or_jwt_jwks_required CHECK (((jwt_secret IS NOT NULL) OR (jwt_jwks IS NOT NULL)))
+    id uuid NOT NULL,
+    name text,
+    external_id text,
+    jwt_secret text,
+    max_concurrent_users integer DEFAULT 200 NOT NULL,
+    inserted_at timestamp(0) without time zone NOT NULL,
+    updated_at timestamp(0) without time zone NOT NULL,
+    max_events_per_second integer DEFAULT 100 NOT NULL,
+    postgres_cdc_default text DEFAULT 'postgres_cdc_rls'::text,
+    max_bytes_per_second integer DEFAULT 100000 NOT NULL,
+    max_channels_per_client integer DEFAULT 100 NOT NULL,
+    max_joins_per_second integer DEFAULT 500 NOT NULL,
+    suspend boolean DEFAULT false,
+    jwt_jwks jsonb,
+    notify_private_alpha boolean DEFAULT false,
+    private_only boolean DEFAULT false NOT NULL,
+    migrations_ran integer DEFAULT 0,
+    broadcast_adapter character varying(255) DEFAULT 'gen_rpc'::character varying,
+    max_presence_events_per_second integer DEFAULT 1000,
+    max_payload_size_in_kb integer DEFAULT 3000,
+    max_client_presence_events_per_window integer,
+    client_presence_window_ms integer,
+    presence_enabled boolean DEFAULT false NOT NULL,
+    feature_flags jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT jwt_secret_or_jwt_jwks_required CHECK (((jwt_secret IS NOT NULL) OR (jwt_jwks IS NOT NULL)))
 );
 
 
@@ -2779,11 +2802,11 @@ ALTER TABLE _realtime.tenants OWNER TO supabase_admin;
 --
 
 CREATE TABLE auth.audit_log_entries (
-    instance_id uuid,
-    id uuid NOT NULL,
-    payload json,
-    created_at timestamp with time zone,
-    ip_address character varying(64) DEFAULT ''::character varying NOT NULL
+    instance_id uuid,
+    id uuid NOT NULL,
+    payload json,
+    created_at timestamp with time zone,
+    ip_address character varying(64) DEFAULT ''::character varying NOT NULL
 );
 
 
@@ -2801,48 +2824,48 @@ COMMENT ON TABLE auth.audit_log_entries IS 'Auth: Audit trail for user actions.'
 --
 
 CREATE TABLE auth.custom_oauth_providers (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    provider_type text NOT NULL,
-    identifier text NOT NULL,
-    name text NOT NULL,
-    client_id text NOT NULL,
-    client_secret text NOT NULL,
-    acceptable_client_ids text[] DEFAULT '{}'::text[] NOT NULL,
-    scopes text[] DEFAULT '{}'::text[] NOT NULL,
-    pkce_enabled boolean DEFAULT true NOT NULL,
-    attribute_mapping jsonb DEFAULT '{}'::jsonb NOT NULL,
-    authorization_params jsonb DEFAULT '{}'::jsonb NOT NULL,
-    enabled boolean DEFAULT true NOT NULL,
-    email_optional boolean DEFAULT false NOT NULL,
-    issuer text,
-    discovery_url text,
-    skip_nonce_check boolean DEFAULT false NOT NULL,
-    cached_discovery jsonb,
-    discovery_cached_at timestamp with time zone,
-    authorization_url text,
-    token_url text,
-    userinfo_url text,
-    jwks_uri text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT custom_oauth_providers_authorization_url_https CHECK (((authorization_url IS NULL) OR (authorization_url ~~ 'https://%'::text))),
-    CONSTRAINT custom_oauth_providers_authorization_url_length CHECK (((authorization_url IS NULL) OR (char_length(authorization_url) <= 2048))),
-    CONSTRAINT custom_oauth_providers_client_id_length CHECK (((char_length(client_id) >= 1) AND (char_length(client_id) <= 512))),
-    CONSTRAINT custom_oauth_providers_discovery_url_length CHECK (((discovery_url IS NULL) OR (char_length(discovery_url) <= 2048))),
-    CONSTRAINT custom_oauth_providers_identifier_format CHECK ((identifier ~ '^[a-z0-9][a-z0-9:-]{0,48}[a-z0-9]$'::text)),
-    CONSTRAINT custom_oauth_providers_issuer_length CHECK (((issuer IS NULL) OR ((char_length(issuer) >= 1) AND (char_length(issuer) <= 2048)))),
-    CONSTRAINT custom_oauth_providers_jwks_uri_https CHECK (((jwks_uri IS NULL) OR (jwks_uri ~~ 'https://%'::text))),
-    CONSTRAINT custom_oauth_providers_jwks_uri_length CHECK (((jwks_uri IS NULL) OR (char_length(jwks_uri) <= 2048))),
-    CONSTRAINT custom_oauth_providers_name_length CHECK (((char_length(name) >= 1) AND (char_length(name) <= 100))),
-    CONSTRAINT custom_oauth_providers_oauth2_requires_endpoints CHECK (((provider_type <> 'oauth2'::text) OR ((authorization_url IS NOT NULL) AND (token_url IS NOT NULL) AND (userinfo_url IS NOT NULL)))),
-    CONSTRAINT custom_oauth_providers_oidc_discovery_url_https CHECK (((provider_type <> 'oidc'::text) OR (discovery_url IS NULL) OR (discovery_url ~~ 'https://%'::text))),
-    CONSTRAINT custom_oauth_providers_oidc_issuer_https CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NULL) OR (issuer ~~ 'https://%'::text))),
-    CONSTRAINT custom_oauth_providers_oidc_requires_issuer CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NOT NULL))),
-    CONSTRAINT custom_oauth_providers_provider_type_check CHECK ((provider_type = ANY (ARRAY['oauth2'::text, 'oidc'::text]))),
-    CONSTRAINT custom_oauth_providers_token_url_https CHECK (((token_url IS NULL) OR (token_url ~~ 'https://%'::text))),
-    CONSTRAINT custom_oauth_providers_token_url_length CHECK (((token_url IS NULL) OR (char_length(token_url) <= 2048))),
-    CONSTRAINT custom_oauth_providers_userinfo_url_https CHECK (((userinfo_url IS NULL) OR (userinfo_url ~~ 'https://%'::text))),
-    CONSTRAINT custom_oauth_providers_userinfo_url_length CHECK (((userinfo_url IS NULL) OR (char_length(userinfo_url) <= 2048)))
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    provider_type text NOT NULL,
+    identifier text NOT NULL,
+    name text NOT NULL,
+    client_id text NOT NULL,
+    client_secret text NOT NULL,
+    acceptable_client_ids text[] DEFAULT '{}'::text[] NOT NULL,
+    scopes text[] DEFAULT '{}'::text[] NOT NULL,
+    pkce_enabled boolean DEFAULT true NOT NULL,
+    attribute_mapping jsonb DEFAULT '{}'::jsonb NOT NULL,
+    authorization_params jsonb DEFAULT '{}'::jsonb NOT NULL,
+    enabled boolean DEFAULT true NOT NULL,
+    email_optional boolean DEFAULT false NOT NULL,
+    issuer text,
+    discovery_url text,
+    skip_nonce_check boolean DEFAULT false NOT NULL,
+    cached_discovery jsonb,
+    discovery_cached_at timestamp with time zone,
+    authorization_url text,
+    token_url text,
+    userinfo_url text,
+    jwks_uri text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT custom_oauth_providers_authorization_url_https CHECK (((authorization_url IS NULL) OR (authorization_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_authorization_url_length CHECK (((authorization_url IS NULL) OR (char_length(authorization_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_client_id_length CHECK (((char_length(client_id) >= 1) AND (char_length(client_id) <= 512))),
+    CONSTRAINT custom_oauth_providers_discovery_url_length CHECK (((discovery_url IS NULL) OR (char_length(discovery_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_identifier_format CHECK ((identifier ~ '^[a-z0-9][a-z0-9:-]{0,48}[a-z0-9]$'::text)),
+    CONSTRAINT custom_oauth_providers_issuer_length CHECK (((issuer IS NULL) OR ((char_length(issuer) >= 1) AND (char_length(issuer) <= 2048)))),
+    CONSTRAINT custom_oauth_providers_jwks_uri_https CHECK (((jwks_uri IS NULL) OR (jwks_uri ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_jwks_uri_length CHECK (((jwks_uri IS NULL) OR (char_length(jwks_uri) <= 2048))),
+    CONSTRAINT custom_oauth_providers_name_length CHECK (((char_length(name) >= 1) AND (char_length(name) <= 100))),
+    CONSTRAINT custom_oauth_providers_oauth2_requires_endpoints CHECK (((provider_type <> 'oauth2'::text) OR ((authorization_url IS NOT NULL) AND (token_url IS NOT NULL) AND (userinfo_url IS NOT NULL)))),
+    CONSTRAINT custom_oauth_providers_oidc_discovery_url_https CHECK (((provider_type <> 'oidc'::text) OR (discovery_url IS NULL) OR (discovery_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_oidc_issuer_https CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NULL) OR (issuer ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_oidc_requires_issuer CHECK (((provider_type <> 'oidc'::text) OR (issuer IS NOT NULL))),
+    CONSTRAINT custom_oauth_providers_provider_type_check CHECK ((provider_type = ANY (ARRAY['oauth2'::text, 'oidc'::text]))),
+    CONSTRAINT custom_oauth_providers_token_url_https CHECK (((token_url IS NULL) OR (token_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_token_url_length CHECK (((token_url IS NULL) OR (char_length(token_url) <= 2048))),
+    CONSTRAINT custom_oauth_providers_userinfo_url_https CHECK (((userinfo_url IS NULL) OR (userinfo_url ~~ 'https://%'::text))),
+    CONSTRAINT custom_oauth_providers_userinfo_url_length CHECK (((userinfo_url IS NULL) OR (char_length(userinfo_url) <= 2048)))
 );
 
 
@@ -2853,23 +2876,23 @@ ALTER TABLE auth.custom_oauth_providers OWNER TO supabase_auth_admin;
 --
 
 CREATE TABLE auth.flow_state (
-    id uuid NOT NULL,
-    user_id uuid,
-    auth_code text,
-    code_challenge_method auth.code_challenge_method,
-    code_challenge text,
-    provider_type text NOT NULL,
-    provider_access_token text,
-    provider_refresh_token text,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    authentication_method text NOT NULL,
-    auth_code_issued_at timestamp with time zone,
-    invite_token text,
-    referrer text,
-    oauth_client_state_id uuid,
-    linking_target_id uuid,
-    email_optional boolean DEFAULT false NOT NULL
+    id uuid NOT NULL,
+    user_id uuid,
+    auth_code text,
+    code_challenge_method auth.code_challenge_method,
+    code_challenge text,
+    provider_type text NOT NULL,
+    provider_access_token text,
+    provider_refresh_token text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    authentication_method text NOT NULL,
+    auth_code_issued_at timestamp with time zone,
+    invite_token text,
+    referrer text,
+    oauth_client_state_id uuid,
+    linking_target_id uuid,
+    email_optional boolean DEFAULT false NOT NULL
 );
 
 
@@ -2887,15 +2910,15 @@ COMMENT ON TABLE auth.flow_state IS 'Stores metadata for all OAuth/SSO login flo
 --
 
 CREATE TABLE auth.identities (
-    provider_id text NOT NULL,
-    user_id uuid NOT NULL,
-    identity_data jsonb NOT NULL,
-    provider text NOT NULL,
-    last_sign_in_at timestamp with time zone,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    email text GENERATED ALWAYS AS (lower((identity_data ->> 'email'::text))) STORED,
-    id uuid DEFAULT gen_random_uuid() NOT NULL
+    provider_id text NOT NULL,
+    user_id uuid NOT NULL,
+    identity_data jsonb NOT NULL,
+    provider text NOT NULL,
+    last_sign_in_at timestamp with time zone,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    email text GENERATED ALWAYS AS (lower((identity_data ->> 'email'::text))) STORED,
+    id uuid DEFAULT gen_random_uuid() NOT NULL
 );
 
 
@@ -2920,11 +2943,11 @@ COMMENT ON COLUMN auth.identities.email IS 'Auth: Email is a generated column th
 --
 
 CREATE TABLE auth.instances (
-    id uuid NOT NULL,
-    uuid uuid,
-    raw_base_config text,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone
+    id uuid NOT NULL,
+    uuid uuid,
+    raw_base_config text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone
 );
 
 
@@ -2942,11 +2965,11 @@ COMMENT ON TABLE auth.instances IS 'Auth: Manages users across multiple sites.';
 --
 
 CREATE TABLE auth.mfa_amr_claims (
-    session_id uuid NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    updated_at timestamp with time zone NOT NULL,
-    authentication_method text NOT NULL,
-    id uuid NOT NULL
+    session_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    authentication_method text NOT NULL,
+    id uuid NOT NULL
 );
 
 
@@ -2964,13 +2987,13 @@ COMMENT ON TABLE auth.mfa_amr_claims IS 'auth: stores authenticator method refer
 --
 
 CREATE TABLE auth.mfa_challenges (
-    id uuid NOT NULL,
-    factor_id uuid NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    verified_at timestamp with time zone,
-    ip_address inet NOT NULL,
-    otp_code text,
-    web_authn_session_data jsonb
+    id uuid NOT NULL,
+    factor_id uuid NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    verified_at timestamp with time zone,
+    ip_address inet NOT NULL,
+    otp_code text,
+    web_authn_session_data jsonb
 );
 
 
@@ -2988,19 +3011,19 @@ COMMENT ON TABLE auth.mfa_challenges IS 'auth: stores metadata about challenge r
 --
 
 CREATE TABLE auth.mfa_factors (
-    id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    friendly_name text,
-    factor_type auth.factor_type NOT NULL,
-    status auth.factor_status NOT NULL,
-    created_at timestamp with time zone NOT NULL,
-    updated_at timestamp with time zone NOT NULL,
-    secret text,
-    phone text,
-    last_challenged_at timestamp with time zone,
-    web_authn_credential jsonb,
-    web_authn_aaguid uuid,
-    last_webauthn_challenge_data jsonb
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    friendly_name text,
+    factor_type auth.factor_type NOT NULL,
+    status auth.factor_status NOT NULL,
+    created_at timestamp with time zone NOT NULL,
+    updated_at timestamp with time zone NOT NULL,
+    secret text,
+    phone text,
+    last_challenged_at timestamp with time zone,
+    web_authn_credential jsonb,
+    web_authn_aaguid uuid,
+    last_webauthn_challenge_data jsonb
 );
 
 
@@ -3025,31 +3048,31 @@ COMMENT ON COLUMN auth.mfa_factors.last_webauthn_challenge_data IS 'Stores the l
 --
 
 CREATE TABLE auth.oauth_authorizations (
-    id uuid NOT NULL,
-    authorization_id text NOT NULL,
-    client_id uuid NOT NULL,
-    user_id uuid,
-    redirect_uri text NOT NULL,
-    scope text NOT NULL,
-    state text,
-    resource text,
-    code_challenge text,
-    code_challenge_method auth.code_challenge_method,
-    response_type auth.oauth_response_type DEFAULT 'code'::auth.oauth_response_type NOT NULL,
-    status auth.oauth_authorization_status DEFAULT 'pending'::auth.oauth_authorization_status NOT NULL,
-    authorization_code text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    expires_at timestamp with time zone DEFAULT (now() + '00:03:00'::interval) NOT NULL,
-    approved_at timestamp with time zone,
-    nonce text,
-    CONSTRAINT oauth_authorizations_authorization_code_length CHECK ((char_length(authorization_code) <= 255)),
-    CONSTRAINT oauth_authorizations_code_challenge_length CHECK ((char_length(code_challenge) <= 128)),
-    CONSTRAINT oauth_authorizations_expires_at_future CHECK ((expires_at > created_at)),
-    CONSTRAINT oauth_authorizations_nonce_length CHECK ((char_length(nonce) <= 255)),
-    CONSTRAINT oauth_authorizations_redirect_uri_length CHECK ((char_length(redirect_uri) <= 2048)),
-    CONSTRAINT oauth_authorizations_resource_length CHECK ((char_length(resource) <= 2048)),
-    CONSTRAINT oauth_authorizations_scope_length CHECK ((char_length(scope) <= 4096)),
-    CONSTRAINT oauth_authorizations_state_length CHECK ((char_length(state) <= 4096))
+    id uuid NOT NULL,
+    authorization_id text NOT NULL,
+    client_id uuid NOT NULL,
+    user_id uuid,
+    redirect_uri text NOT NULL,
+    scope text NOT NULL,
+    state text,
+    resource text,
+    code_challenge text,
+    code_challenge_method auth.code_challenge_method,
+    response_type auth.oauth_response_type DEFAULT 'code'::auth.oauth_response_type NOT NULL,
+    status auth.oauth_authorization_status DEFAULT 'pending'::auth.oauth_authorization_status NOT NULL,
+    authorization_code text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone DEFAULT (now() + '00:03:00'::interval) NOT NULL,
+    approved_at timestamp with time zone,
+    nonce text,
+    CONSTRAINT oauth_authorizations_authorization_code_length CHECK ((char_length(authorization_code) <= 255)),
+    CONSTRAINT oauth_authorizations_code_challenge_length CHECK ((char_length(code_challenge) <= 128)),
+    CONSTRAINT oauth_authorizations_expires_at_future CHECK ((expires_at > created_at)),
+    CONSTRAINT oauth_authorizations_nonce_length CHECK ((char_length(nonce) <= 255)),
+    CONSTRAINT oauth_authorizations_redirect_uri_length CHECK ((char_length(redirect_uri) <= 2048)),
+    CONSTRAINT oauth_authorizations_resource_length CHECK ((char_length(resource) <= 2048)),
+    CONSTRAINT oauth_authorizations_scope_length CHECK ((char_length(scope) <= 4096)),
+    CONSTRAINT oauth_authorizations_state_length CHECK ((char_length(state) <= 4096))
 );
 
 
@@ -3060,10 +3083,10 @@ ALTER TABLE auth.oauth_authorizations OWNER TO supabase_auth_admin;
 --
 
 CREATE TABLE auth.oauth_client_states (
-    id uuid NOT NULL,
-    provider_type text NOT NULL,
-    code_verifier text,
-    created_at timestamp with time zone NOT NULL
+    id uuid NOT NULL,
+    provider_type text NOT NULL,
+    code_verifier text,
+    created_at timestamp with time zone NOT NULL
 );
 
 
@@ -3081,23 +3104,23 @@ COMMENT ON TABLE auth.oauth_client_states IS 'Stores OAuth states for third-part
 --
 
 CREATE TABLE auth.oauth_clients (
-    id uuid NOT NULL,
-    client_secret_hash text,
-    registration_type auth.oauth_registration_type NOT NULL,
-    redirect_uris text NOT NULL,
-    grant_types text NOT NULL,
-    client_name text,
-    client_uri text,
-    logo_uri text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    deleted_at timestamp with time zone,
-    client_type auth.oauth_client_type DEFAULT 'confidential'::auth.oauth_client_type NOT NULL,
-    token_endpoint_auth_method text NOT NULL,
-    CONSTRAINT oauth_clients_client_name_length CHECK ((char_length(client_name) <= 1024)),
-    CONSTRAINT oauth_clients_client_uri_length CHECK ((char_length(client_uri) <= 2048)),
-    CONSTRAINT oauth_clients_logo_uri_length CHECK ((char_length(logo_uri) <= 2048)),
-    CONSTRAINT oauth_clients_token_endpoint_auth_method_check CHECK ((token_endpoint_auth_method = ANY (ARRAY['client_secret_basic'::text, 'client_secret_post'::text, 'none'::text])))
+    id uuid NOT NULL,
+    client_secret_hash text,
+    registration_type auth.oauth_registration_type NOT NULL,
+    redirect_uris text NOT NULL,
+    grant_types text NOT NULL,
+    client_name text,
+    client_uri text,
+    logo_uri text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    deleted_at timestamp with time zone,
+    client_type auth.oauth_client_type DEFAULT 'confidential'::auth.oauth_client_type NOT NULL,
+    token_endpoint_auth_method text NOT NULL,
+    CONSTRAINT oauth_clients_client_name_length CHECK ((char_length(client_name) <= 1024)),
+    CONSTRAINT oauth_clients_client_uri_length CHECK ((char_length(client_uri) <= 2048)),
+    CONSTRAINT oauth_clients_logo_uri_length CHECK ((char_length(logo_uri) <= 2048)),
+    CONSTRAINT oauth_clients_token_endpoint_auth_method_check CHECK ((token_endpoint_auth_method = ANY (ARRAY['client_secret_basic'::text, 'client_secret_post'::text, 'none'::text])))
 );
 
 
@@ -3108,15 +3131,15 @@ ALTER TABLE auth.oauth_clients OWNER TO supabase_auth_admin;
 --
 
 CREATE TABLE auth.oauth_consents (
-    id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    client_id uuid NOT NULL,
-    scopes text NOT NULL,
-    granted_at timestamp with time zone DEFAULT now() NOT NULL,
-    revoked_at timestamp with time zone,
-    CONSTRAINT oauth_consents_revoked_after_granted CHECK (((revoked_at IS NULL) OR (revoked_at >= granted_at))),
-    CONSTRAINT oauth_consents_scopes_length CHECK ((char_length(scopes) <= 2048)),
-    CONSTRAINT oauth_consents_scopes_not_empty CHECK ((char_length(TRIM(BOTH FROM scopes)) > 0))
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    client_id uuid NOT NULL,
+    scopes text NOT NULL,
+    granted_at timestamp with time zone DEFAULT now() NOT NULL,
+    revoked_at timestamp with time zone,
+    CONSTRAINT oauth_consents_revoked_after_granted CHECK (((revoked_at IS NULL) OR (revoked_at >= granted_at))),
+    CONSTRAINT oauth_consents_scopes_length CHECK ((char_length(scopes) <= 2048)),
+    CONSTRAINT oauth_consents_scopes_not_empty CHECK ((char_length(TRIM(BOTH FROM scopes)) > 0))
 );
 
 
@@ -3127,14 +3150,14 @@ ALTER TABLE auth.oauth_consents OWNER TO supabase_auth_admin;
 --
 
 CREATE TABLE auth.one_time_tokens (
-    id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    token_type auth.one_time_token_type NOT NULL,
-    token_hash text NOT NULL,
-    relates_to text NOT NULL,
-    created_at timestamp without time zone DEFAULT now() NOT NULL,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    CONSTRAINT one_time_tokens_token_hash_check CHECK ((char_length(token_hash) > 0))
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    token_type auth.one_time_token_type NOT NULL,
+    token_hash text NOT NULL,
+    relates_to text NOT NULL,
+    created_at timestamp without time zone DEFAULT now() NOT NULL,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    CONSTRAINT one_time_tokens_token_hash_check CHECK ((char_length(token_hash) > 0))
 );
 
 
@@ -3145,15 +3168,15 @@ ALTER TABLE auth.one_time_tokens OWNER TO supabase_auth_admin;
 --
 
 CREATE TABLE auth.refresh_tokens (
-    instance_id uuid,
-    id bigint NOT NULL,
-    token character varying(255),
-    user_id character varying(255),
-    revoked boolean,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    parent character varying(255),
-    session_id uuid
+    instance_id uuid,
+    id bigint NOT NULL,
+    token character varying(255),
+    user_id character varying(255),
+    revoked boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    parent character varying(255),
+    session_id uuid
 );
 
 
@@ -3171,11 +3194,11 @@ COMMENT ON TABLE auth.refresh_tokens IS 'Auth: Store of tokens used to refresh J
 --
 
 CREATE SEQUENCE auth.refresh_tokens_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
 
 ALTER SEQUENCE auth.refresh_tokens_id_seq OWNER TO supabase_auth_admin;
@@ -3192,18 +3215,18 @@ ALTER SEQUENCE auth.refresh_tokens_id_seq OWNED BY auth.refresh_tokens.id;
 --
 
 CREATE TABLE auth.saml_providers (
-    id uuid NOT NULL,
-    sso_provider_id uuid NOT NULL,
-    entity_id text NOT NULL,
-    metadata_xml text NOT NULL,
-    metadata_url text,
-    attribute_mapping jsonb,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    name_id_format text,
-    CONSTRAINT "entity_id not empty" CHECK ((char_length(entity_id) > 0)),
-    CONSTRAINT "metadata_url not empty" CHECK (((metadata_url = NULL::text) OR (char_length(metadata_url) > 0))),
-    CONSTRAINT "metadata_xml not empty" CHECK ((char_length(metadata_xml) > 0))
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    entity_id text NOT NULL,
+    metadata_xml text NOT NULL,
+    metadata_url text,
+    attribute_mapping jsonb,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    name_id_format text,
+    CONSTRAINT "entity_id not empty" CHECK ((char_length(entity_id) > 0)),
+    CONSTRAINT "metadata_url not empty" CHECK (((metadata_url = NULL::text) OR (char_length(metadata_url) > 0))),
+    CONSTRAINT "metadata_xml not empty" CHECK ((char_length(metadata_xml) > 0))
 );
 
 
@@ -3221,15 +3244,15 @@ COMMENT ON TABLE auth.saml_providers IS 'Auth: Manages SAML Identity Provider co
 --
 
 CREATE TABLE auth.saml_relay_states (
-    id uuid NOT NULL,
-    sso_provider_id uuid NOT NULL,
-    request_id text NOT NULL,
-    for_email text,
-    redirect_to text,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    flow_state_id uuid,
-    CONSTRAINT "request_id not empty" CHECK ((char_length(request_id) > 0))
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    request_id text NOT NULL,
+    for_email text,
+    redirect_to text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    flow_state_id uuid,
+    CONSTRAINT "request_id not empty" CHECK ((char_length(request_id) > 0))
 );
 
 
@@ -3247,7 +3270,7 @@ COMMENT ON TABLE auth.saml_relay_states IS 'Auth: Contains SAML Relay State info
 --
 
 CREATE TABLE auth.schema_migrations (
-    version character varying(255) NOT NULL
+    version character varying(255) NOT NULL
 );
 
 
@@ -3265,22 +3288,22 @@ COMMENT ON TABLE auth.schema_migrations IS 'Auth: Manages updates to the auth sy
 --
 
 CREATE TABLE auth.sessions (
-    id uuid NOT NULL,
-    user_id uuid NOT NULL,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    factor_id uuid,
-    aal auth.aal_level,
-    not_after timestamp with time zone,
-    refreshed_at timestamp without time zone,
-    user_agent text,
-    ip inet,
-    tag text,
-    oauth_client_id uuid,
-    refresh_token_hmac_key text,
-    refresh_token_counter bigint,
-    scopes text,
-    CONSTRAINT sessions_scopes_length CHECK ((char_length(scopes) <= 4096))
+    id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    factor_id uuid,
+    aal auth.aal_level,
+    not_after timestamp with time zone,
+    refreshed_at timestamp without time zone,
+    user_agent text,
+    ip inet,
+    tag text,
+    oauth_client_id uuid,
+    refresh_token_hmac_key text,
+    refresh_token_counter bigint,
+    scopes text,
+    CONSTRAINT sessions_scopes_length CHECK ((char_length(scopes) <= 4096))
 );
 
 
@@ -3319,12 +3342,12 @@ COMMENT ON COLUMN auth.sessions.refresh_token_counter IS 'Holds the ID (counter)
 --
 
 CREATE TABLE auth.sso_domains (
-    id uuid NOT NULL,
-    sso_provider_id uuid NOT NULL,
-    domain text NOT NULL,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    CONSTRAINT "domain not empty" CHECK ((char_length(domain) > 0))
+    id uuid NOT NULL,
+    sso_provider_id uuid NOT NULL,
+    domain text NOT NULL,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    CONSTRAINT "domain not empty" CHECK ((char_length(domain) > 0))
 );
 
 
@@ -3342,12 +3365,12 @@ COMMENT ON TABLE auth.sso_domains IS 'Auth: Manages SSO email address domain map
 --
 
 CREATE TABLE auth.sso_providers (
-    id uuid NOT NULL,
-    resource_id text,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    disabled boolean,
-    CONSTRAINT "resource_id not empty" CHECK (((resource_id = NULL::text) OR (char_length(resource_id) > 0)))
+    id uuid NOT NULL,
+    resource_id text,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    disabled boolean,
+    CONSTRAINT "resource_id not empty" CHECK (((resource_id = NULL::text) OR (char_length(resource_id) > 0)))
 );
 
 
@@ -3372,42 +3395,42 @@ COMMENT ON COLUMN auth.sso_providers.resource_id IS 'Auth: Uniquely identifies a
 --
 
 CREATE TABLE auth.users (
-    instance_id uuid,
-    id uuid NOT NULL,
-    aud character varying(255),
-    role character varying(255),
-    email character varying(255),
-    encrypted_password character varying(255),
-    email_confirmed_at timestamp with time zone,
-    invited_at timestamp with time zone,
-    confirmation_token character varying(255),
-    confirmation_sent_at timestamp with time zone,
-    recovery_token character varying(255),
-    recovery_sent_at timestamp with time zone,
-    email_change_token_new character varying(255),
-    email_change character varying(255),
-    email_change_sent_at timestamp with time zone,
-    last_sign_in_at timestamp with time zone,
-    raw_app_meta_data jsonb,
-    raw_user_meta_data jsonb,
-    is_super_admin boolean,
-    created_at timestamp with time zone,
-    updated_at timestamp with time zone,
-    phone text DEFAULT NULL::character varying,
-    phone_confirmed_at timestamp with time zone,
-    phone_change text DEFAULT ''::character varying,
-    phone_change_token character varying(255) DEFAULT ''::character varying,
-    phone_change_sent_at timestamp with time zone,
-    confirmed_at timestamp with time zone GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED,
-    email_change_token_current character varying(255) DEFAULT ''::character varying,
-    email_change_confirm_status smallint DEFAULT 0,
-    banned_until timestamp with time zone,
-    reauthentication_token character varying(255) DEFAULT ''::character varying,
-    reauthentication_sent_at timestamp with time zone,
-    is_sso_user boolean DEFAULT false NOT NULL,
-    deleted_at timestamp with time zone,
-    is_anonymous boolean DEFAULT false NOT NULL,
-    CONSTRAINT users_email_change_confirm_status_check CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))
+    instance_id uuid,
+    id uuid NOT NULL,
+    aud character varying(255),
+    role character varying(255),
+    email character varying(255),
+    encrypted_password character varying(255),
+    email_confirmed_at timestamp with time zone,
+    invited_at timestamp with time zone,
+    confirmation_token character varying(255),
+    confirmation_sent_at timestamp with time zone,
+    recovery_token character varying(255),
+    recovery_sent_at timestamp with time zone,
+    email_change_token_new character varying(255),
+    email_change character varying(255),
+    email_change_sent_at timestamp with time zone,
+    last_sign_in_at timestamp with time zone,
+    raw_app_meta_data jsonb,
+    raw_user_meta_data jsonb,
+    is_super_admin boolean,
+    created_at timestamp with time zone,
+    updated_at timestamp with time zone,
+    phone text DEFAULT NULL::character varying,
+    phone_confirmed_at timestamp with time zone,
+    phone_change text DEFAULT ''::character varying,
+    phone_change_token character varying(255) DEFAULT ''::character varying,
+    phone_change_sent_at timestamp with time zone,
+    confirmed_at timestamp with time zone GENERATED ALWAYS AS (LEAST(email_confirmed_at, phone_confirmed_at)) STORED,
+    email_change_token_current character varying(255) DEFAULT ''::character varying,
+    email_change_confirm_status smallint DEFAULT 0,
+    banned_until timestamp with time zone,
+    reauthentication_token character varying(255) DEFAULT ''::character varying,
+    reauthentication_sent_at timestamp with time zone,
+    is_sso_user boolean DEFAULT false NOT NULL,
+    deleted_at timestamp with time zone,
+    is_anonymous boolean DEFAULT false NOT NULL,
+    CONSTRAINT users_email_change_confirm_status_check CHECK (((email_change_confirm_status >= 0) AND (email_change_confirm_status <= 2)))
 );
 
 
@@ -3432,13 +3455,13 @@ COMMENT ON COLUMN auth.users.is_sso_user IS 'Auth: Set this column to true when 
 --
 
 CREATE TABLE auth.webauthn_challenges (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid,
-    challenge_type text NOT NULL,
-    session_data jsonb NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    expires_at timestamp with time zone NOT NULL,
-    CONSTRAINT webauthn_challenges_challenge_type_check CHECK ((challenge_type = ANY (ARRAY['signup'::text, 'registration'::text, 'authentication'::text])))
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid,
+    challenge_type text NOT NULL,
+    session_data jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    CONSTRAINT webauthn_challenges_challenge_type_check CHECK ((challenge_type = ANY (ARRAY['signup'::text, 'registration'::text, 'authentication'::text])))
 );
 
 
@@ -3449,24 +3472,41 @@ ALTER TABLE auth.webauthn_challenges OWNER TO supabase_auth_admin;
 --
 
 CREATE TABLE auth.webauthn_credentials (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    user_id uuid NOT NULL,
-    credential_id bytea NOT NULL,
-    public_key bytea NOT NULL,
-    attestation_type text DEFAULT ''::text NOT NULL,
-    aaguid uuid,
-    sign_count bigint DEFAULT 0 NOT NULL,
-    transports jsonb DEFAULT '[]'::jsonb NOT NULL,
-    backup_eligible boolean DEFAULT false NOT NULL,
-    backed_up boolean DEFAULT false NOT NULL,
-    friendly_name text DEFAULT ''::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    last_used_at timestamp with time zone
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    credential_id bytea NOT NULL,
+    public_key bytea NOT NULL,
+    attestation_type text DEFAULT ''::text NOT NULL,
+    aaguid uuid,
+    sign_count bigint DEFAULT 0 NOT NULL,
+    transports jsonb DEFAULT '[]'::jsonb NOT NULL,
+    backup_eligible boolean DEFAULT false NOT NULL,
+    backed_up boolean DEFAULT false NOT NULL,
+    friendly_name text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    last_used_at timestamp with time zone
 );
 
 
 ALTER TABLE auth.webauthn_credentials OWNER TO supabase_auth_admin;
+
+--
+-- Name: admin_messages; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.admin_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cafe_id uuid,
+    sender text,
+    message_text text NOT NULL,
+    is_read boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT admin_messages_sender_check CHECK ((sender = ANY (ARRAY['cafe_admin'::text, 'super_admin'::text])))
+);
+
+
+ALTER TABLE public.admin_messages OWNER TO postgres;
 
 --
 -- Name: cafes; Type: TABLE; Schema: public; Owner: postgres
@@ -3484,13 +3524,13 @@ CREATE TABLE public.cafes (
     admin_pin text,
     cashier_pin text,
     status text DEFAULT 'trial'::text,
-    trial_ends_at timestamp with time zone DEFAULT (now() + '3 mons'::interval),
+    trial_ends_at timestamp with time zone DEFAULT (CURRENT_TIMESTAMP + '14 days'::interval),
     stripe_customer_id text,
     is_active boolean DEFAULT true,
     allowed_radius integer DEFAULT 250,
-    max_cashiers integer DEFAULT 2,
+    max_cashiers integer DEFAULT 1,
     subscription_status text DEFAULT 'trial'::text,
-    plan_type text DEFAULT 'starter'::text,
+    plan_type text DEFAULT 'silver'::text,
     owner_phone text,
     subscription_ends_at timestamp with time zone DEFAULT (now() + '14 days'::interval),
     can_use_grace boolean DEFAULT true,
@@ -3498,8 +3538,8 @@ CREATE TABLE public.cafes (
     owner_auth_id uuid,
     max_kitchens integer DEFAULT 1,
     billing_cycle text DEFAULT 'monthly'::text,
-    max_tables integer DEFAULT 30,
-    max_menu_items integer DEFAULT 150,
+    max_tables integer DEFAULT 100,
+    max_menu_items integer DEFAULT 9999,
     is_white_label boolean DEFAULT false
 );
 
@@ -3507,22 +3547,78 @@ CREATE TABLE public.cafes (
 ALTER TABLE public.cafes OWNER TO postgres;
 
 --
+-- Name: menu_categories; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.menu_categories (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cafe_id uuid,
+    name_ar text NOT NULL,
+    name_en text NOT NULL,
+    name_fr text NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    icon text DEFAULT 'Coffee'::text,
+    subcategories jsonb DEFAULT '[]'::jsonb
+);
+
+
+ALTER TABLE public.menu_categories OWNER TO postgres;
+
+--
+-- Name: modifier_groups; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.modifier_groups (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cafe_id uuid,
+    name_ar character varying(255),
+    name_en character varying(255),
+    name_fr character varying(255),
+    type public.modifier_type NOT NULL,
+    min_selections integer DEFAULT 0,
+    max_selections integer DEFAULT 1,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.modifier_groups OWNER TO postgres;
+
+--
+-- Name: modifier_options; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.modifier_options (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    modifier_group_id uuid,
+    name_ar character varying(255),
+    name_en character varying(255),
+    name_fr character varying(255),
+    price_adjustment numeric(10,2) DEFAULT 0.00,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.modifier_options OWNER TO postgres;
+
+--
 -- Name: orders; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.orders (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    cafe_id uuid NOT NULL,
-    table_id uuid,
-    session_id text,
-    items jsonb NOT NULL,
-    total_amount numeric(10,2) NOT NULL,
-    status text DEFAULT 'pending'::text,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    client_auth_id uuid DEFAULT auth.uid(),
-    CONSTRAINT check_positive_price CHECK ((total_amount >= (0)::numeric))
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cafe_id uuid NOT NULL,
+    table_id uuid,
+    session_id text,
+    items jsonb NOT NULL,
+    total_amount numeric(10,2) NOT NULL,
+    status text DEFAULT 'pending'::text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    client_auth_id uuid DEFAULT auth.uid(),
+    CONSTRAINT check_positive_price CHECK ((total_amount >= (0)::numeric))
 );
+
+ALTER TABLE ONLY public.orders REPLICA IDENTITY FULL;
 
 
 ALTER TABLE public.orders OWNER TO postgres;
@@ -3532,13 +3628,16 @@ ALTER TABLE public.orders OWNER TO postgres;
 --
 
 CREATE TABLE public.payment_receipts (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    cafe_id uuid,
-    amount numeric NOT NULL,
-    receipt_url text NOT NULL,
-    bank_name text DEFAULT 'CIH BANK'::text,
-    status text DEFAULT 'pending'::text,
-    uploaded_at timestamp with time zone DEFAULT now()
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cafe_id uuid,
+    amount numeric NOT NULL,
+    receipt_url text NOT NULL,
+    bank_name text DEFAULT 'CIH BANK'::text,
+    status text DEFAULT 'pending'::text,
+    uploaded_at timestamp with time zone DEFAULT now(),
+    rejection_reason text,
+    requested_plan text,
+    requested_cycle text
 );
 
 
@@ -3549,35 +3648,67 @@ ALTER TABLE public.payment_receipts OWNER TO postgres;
 --
 
 CREATE TABLE public.platform_settings (
-    id integer DEFAULT 1 NOT NULL,
-    bank_name text DEFAULT 'CIH BANK'::text,
-    rib text DEFAULT '230041540854821102280094'::text,
-    holder_name text DEFAULT 'KAMAL EL OTMANI'::text,
-    support_whatsapp text DEFAULT '212781991384'::text,
-    updated_at timestamp with time zone DEFAULT now(),
-    CONSTRAINT single_row_only CHECK ((id = 1))
+    id integer DEFAULT 1 NOT NULL,
+    bank_name text DEFAULT 'CIH BANK'::text,
+    rib text DEFAULT '230 330 0000000000000000 00'::text,
+    holder_name text DEFAULT 'KAMAL EGO-DEV'::text,
+    support_whatsapp text DEFAULT '212600000000'::text,
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT single_row_only CHECK ((id = 1))
 );
 
 
 ALTER TABLE public.platform_settings OWNER TO postgres;
 
 --
+-- Name: pos_devices; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.pos_devices (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cafe_id uuid NOT NULL,
+    device_id text NOT NULL,
+    device_name text NOT NULL,
+    status text DEFAULT 'pending'::text,
+    last_active timestamp with time zone DEFAULT now(),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.pos_devices OWNER TO postgres;
+
+--
+-- Name: product_modifiers; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.product_modifiers (
+    product_id uuid NOT NULL,
+    modifier_group_id uuid NOT NULL,
+    position_order integer DEFAULT 0
+);
+
+
+ALTER TABLE public.product_modifiers OWNER TO postgres;
+
+--
 -- Name: products; Type: TABLE; Schema: public; Owner: postgres
 --
 
 CREATE TABLE public.products (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    cafe_id uuid NOT NULL,
-    name_ar text NOT NULL,
-    name_en text,
-    name_fr text,
-    description_ar text,
-    price numeric(10,2) NOT NULL,
-    category text NOT NULL,
-    image_url text,
-    stock_status text DEFAULT 'available'::text,
-    is_active boolean DEFAULT true,
-    created_at timestamp with time zone DEFAULT now()
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cafe_id uuid NOT NULL,
+    name_ar text NOT NULL,
+    name_en text,
+    name_fr text,
+    description_ar text,
+    price numeric(10,2) NOT NULL,
+    category text,
+    image_url text,
+    stock_status text DEFAULT 'available'::text,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    category_id uuid,
+    sub_category text
 );
 
 
@@ -3588,30 +3719,43 @@ ALTER TABLE public.products OWNER TO postgres;
 --
 
 CREATE TABLE public.tables (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    cafe_id uuid NOT NULL,
-    table_number text NOT NULL,
-    qr_token text DEFAULT (gen_random_uuid())::text,
-    created_at timestamp with time zone DEFAULT now()
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    cafe_id uuid NOT NULL,
+    table_number text NOT NULL,
+    qr_token text DEFAULT (gen_random_uuid())::text,
+    created_at timestamp with time zone DEFAULT now()
 );
 
 
 ALTER TABLE public.tables OWNER TO postgres;
 
 --
+-- Name: telegram_bot_state; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.telegram_bot_state (
+    chat_id bigint NOT NULL,
+    active_cafe_id uuid,
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.telegram_bot_state OWNER TO postgres;
+
+--
 -- Name: messages; Type: TABLE; Schema: realtime; Owner: supabase_realtime_admin
 --
 
 CREATE TABLE realtime.messages (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    binary_payload bytea
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea
 )
 PARTITION BY RANGE (inserted_at);
 
@@ -3619,60 +3763,20 @@ PARTITION BY RANGE (inserted_at);
 ALTER TABLE realtime.messages OWNER TO supabase_realtime_admin;
 
 --
--- Name: messages_2026_07_22; Type: TABLE; Schema: realtime; Owner: supabase_admin
---
-
-CREATE TABLE realtime.messages_2026_07_22 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    binary_payload bytea,
-    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
-);
-
-
-ALTER TABLE realtime.messages_2026_07_22 OWNER TO supabase_admin;
-
---
--- Name: messages_2026_07_23; Type: TABLE; Schema: realtime; Owner: supabase_admin
---
-
-CREATE TABLE realtime.messages_2026_07_23 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    binary_payload bytea,
-    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
-);
-
-
-ALTER TABLE realtime.messages_2026_07_23 OWNER TO supabase_admin;
-
---
 -- Name: messages_2026_07_24; Type: TABLE; Schema: realtime; Owner: supabase_admin
 --
 
 CREATE TABLE realtime.messages_2026_07_24 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    binary_payload bytea,
-    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea,
+    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
 );
 
 
@@ -3683,16 +3787,16 @@ ALTER TABLE realtime.messages_2026_07_24 OWNER TO supabase_admin;
 --
 
 CREATE TABLE realtime.messages_2026_07_25 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    binary_payload bytea,
-    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea,
+    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
 );
 
 
@@ -3703,16 +3807,16 @@ ALTER TABLE realtime.messages_2026_07_25 OWNER TO supabase_admin;
 --
 
 CREATE TABLE realtime.messages_2026_07_26 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    binary_payload bytea,
-    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea,
+    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
 );
 
 
@@ -3723,16 +3827,16 @@ ALTER TABLE realtime.messages_2026_07_26 OWNER TO supabase_admin;
 --
 
 CREATE TABLE realtime.messages_2026_07_27 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    binary_payload bytea,
-    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea,
+    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
 );
 
 
@@ -3743,28 +3847,68 @@ ALTER TABLE realtime.messages_2026_07_27 OWNER TO supabase_admin;
 --
 
 CREATE TABLE realtime.messages_2026_07_28 (
-    topic text NOT NULL,
-    extension text NOT NULL,
-    payload jsonb,
-    event text,
-    private boolean DEFAULT false,
-    updated_at timestamp without time zone DEFAULT now() NOT NULL,
-    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    binary_payload bytea,
-    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea,
+    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
 );
 
 
 ALTER TABLE realtime.messages_2026_07_28 OWNER TO supabase_admin;
 
 --
+-- Name: messages_2026_07_29; Type: TABLE; Schema: realtime; Owner: supabase_admin
+--
+
+CREATE TABLE realtime.messages_2026_07_29 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea,
+    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
+);
+
+
+ALTER TABLE realtime.messages_2026_07_29 OWNER TO supabase_admin;
+
+--
+-- Name: messages_2026_07_30; Type: TABLE; Schema: realtime; Owner: supabase_admin
+--
+
+CREATE TABLE realtime.messages_2026_07_30 (
+    topic text NOT NULL,
+    extension text NOT NULL,
+    payload jsonb,
+    event text,
+    private boolean DEFAULT false,
+    updated_at timestamp without time zone DEFAULT now() NOT NULL,
+    inserted_at timestamp without time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    binary_payload bytea,
+    CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL)))
+);
+
+
+ALTER TABLE realtime.messages_2026_07_30 OWNER TO supabase_admin;
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: realtime; Owner: supabase_admin
 --
 
 CREATE TABLE realtime.schema_migrations (
-    version bigint NOT NULL,
-    inserted_at timestamp(0) without time zone
+    version bigint NOT NULL,
+    inserted_at timestamp(0) without time zone
 );
 
 
@@ -3775,16 +3919,16 @@ ALTER TABLE realtime.schema_migrations OWNER TO supabase_admin;
 --
 
 CREATE TABLE realtime.subscription (
-    id bigint NOT NULL,
-    subscription_id uuid NOT NULL,
-    entity regclass NOT NULL,
-    filters realtime.user_defined_filter[] DEFAULT '{}'::realtime.user_defined_filter[] NOT NULL,
-    claims jsonb NOT NULL,
-    claims_role regrole GENERATED ALWAYS AS (realtime.to_regrole((claims ->> 'role'::text))) STORED NOT NULL,
-    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
-    action_filter text DEFAULT '*'::text,
-    selected_columns text[],
-    CONSTRAINT subscription_action_filter_check CHECK ((action_filter = ANY (ARRAY['*'::text, 'INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))
+    id bigint NOT NULL,
+    subscription_id uuid NOT NULL,
+    entity regclass NOT NULL,
+    filters realtime.user_defined_filter[] DEFAULT '{}'::realtime.user_defined_filter[] NOT NULL,
+    claims jsonb NOT NULL,
+    claims_role regrole GENERATED ALWAYS AS (realtime.to_regrole((claims ->> 'role'::text))) STORED NOT NULL,
+    created_at timestamp without time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    action_filter text DEFAULT '*'::text,
+    selected_columns text[],
+    CONSTRAINT subscription_action_filter_check CHECK ((action_filter = ANY (ARRAY['*'::text, 'INSERT'::text, 'UPDATE'::text, 'DELETE'::text])))
 );
 
 
@@ -3795,12 +3939,12 @@ ALTER TABLE realtime.subscription OWNER TO supabase_admin;
 --
 
 ALTER TABLE realtime.subscription ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME realtime.subscription_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
+    SEQUENCE NAME realtime.subscription_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
 );
 
 
@@ -3809,17 +3953,17 @@ ALTER TABLE realtime.subscription ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
 --
 
 CREATE TABLE storage.buckets (
-    id text NOT NULL,
-    name text NOT NULL,
-    owner uuid,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    public boolean DEFAULT false,
-    avif_autodetection boolean DEFAULT false,
-    file_size_limit bigint,
-    allowed_mime_types text[],
-    owner_id text,
-    type storage.buckettype DEFAULT 'STANDARD'::storage.buckettype NOT NULL
+    id text NOT NULL,
+    name text NOT NULL,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    public boolean DEFAULT false,
+    avif_autodetection boolean DEFAULT false,
+    file_size_limit bigint,
+    allowed_mime_types text[],
+    owner_id text,
+    type storage.buckettype DEFAULT 'STANDARD'::storage.buckettype NOT NULL
 );
 
 
@@ -3837,13 +3981,13 @@ COMMENT ON COLUMN storage.buckets.owner IS 'Field is deprecated, use owner_id in
 --
 
 CREATE TABLE storage.buckets_analytics (
-    name text NOT NULL,
-    type storage.buckettype DEFAULT 'ANALYTICS'::storage.buckettype NOT NULL,
-    format text DEFAULT 'ICEBERG'::text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    deleted_at timestamp with time zone
+    name text NOT NULL,
+    type storage.buckettype DEFAULT 'ANALYTICS'::storage.buckettype NOT NULL,
+    format text DEFAULT 'ICEBERG'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    deleted_at timestamp with time zone
 );
 
 
@@ -3854,10 +3998,10 @@ ALTER TABLE storage.buckets_analytics OWNER TO supabase_storage_admin;
 --
 
 CREATE TABLE storage.buckets_vectors (
-    id text NOT NULL,
-    type storage.buckettype DEFAULT 'VECTOR'::storage.buckettype NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    id text NOT NULL,
+    type storage.buckettype DEFAULT 'VECTOR'::storage.buckettype NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -3868,13 +4012,13 @@ ALTER TABLE storage.buckets_vectors OWNER TO supabase_storage_admin;
 --
 
 CREATE TABLE storage.iceberg_namespaces (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    bucket_name text NOT NULL,
-    name text NOT NULL COLLATE pg_catalog."C",
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
-    catalog_id uuid NOT NULL
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bucket_name text NOT NULL,
+    name text NOT NULL COLLATE pg_catalog."C",
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    metadata jsonb DEFAULT '{}'::jsonb NOT NULL,
+    catalog_id uuid NOT NULL
 );
 
 
@@ -3885,17 +4029,17 @@ ALTER TABLE storage.iceberg_namespaces OWNER TO supabase_storage_admin;
 --
 
 CREATE TABLE storage.iceberg_tables (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    namespace_id uuid NOT NULL,
-    bucket_name text NOT NULL,
-    name text NOT NULL COLLATE pg_catalog."C",
-    location text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    remote_table_id text,
-    shard_key text,
-    shard_id text,
-    catalog_id uuid NOT NULL
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    namespace_id uuid NOT NULL,
+    bucket_name text NOT NULL,
+    name text NOT NULL COLLATE pg_catalog."C",
+    location text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    remote_table_id text,
+    shard_key text,
+    shard_id text,
+    catalog_id uuid NOT NULL
 );
 
 
@@ -3906,10 +4050,10 @@ ALTER TABLE storage.iceberg_tables OWNER TO supabase_storage_admin;
 --
 
 CREATE TABLE storage.migrations (
-    id integer NOT NULL,
-    name character varying(100) NOT NULL,
-    hash character varying(40) NOT NULL,
-    executed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    id integer NOT NULL,
+    name character varying(100) NOT NULL,
+    hash character varying(40) NOT NULL,
+    executed_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 
@@ -3920,18 +4064,18 @@ ALTER TABLE storage.migrations OWNER TO supabase_storage_admin;
 --
 
 CREATE TABLE storage.objects (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    bucket_id text,
-    name text,
-    owner uuid,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    last_accessed_at timestamp with time zone DEFAULT now(),
-    metadata jsonb,
-    path_tokens text[] GENERATED ALWAYS AS (string_to_array(name, '/'::text)) STORED,
-    version text,
-    owner_id text,
-    user_metadata jsonb
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    bucket_id text,
+    name text,
+    owner uuid,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    last_accessed_at timestamp with time zone DEFAULT now(),
+    metadata jsonb,
+    path_tokens text[] GENERATED ALWAYS AS (string_to_array(name, '/'::text)) STORED,
+    version text,
+    owner_id text,
+    user_metadata jsonb
 );
 
 
@@ -3949,16 +4093,16 @@ COMMENT ON COLUMN storage.objects.owner IS 'Field is deprecated, use owner_id in
 --
 
 CREATE TABLE storage.s3_multipart_uploads (
-    id text NOT NULL,
-    in_progress_size bigint DEFAULT 0 NOT NULL,
-    upload_signature text NOT NULL,
-    bucket_id text NOT NULL,
-    key text NOT NULL COLLATE pg_catalog."C",
-    version text NOT NULL,
-    owner_id text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    user_metadata jsonb,
-    metadata jsonb
+    id text NOT NULL,
+    in_progress_size bigint DEFAULT 0 NOT NULL,
+    upload_signature text NOT NULL,
+    bucket_id text NOT NULL,
+    key text NOT NULL COLLATE pg_catalog."C",
+    version text NOT NULL,
+    owner_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_metadata jsonb,
+    metadata jsonb
 );
 
 
@@ -3969,16 +4113,16 @@ ALTER TABLE storage.s3_multipart_uploads OWNER TO supabase_storage_admin;
 --
 
 CREATE TABLE storage.s3_multipart_uploads_parts (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    upload_id text NOT NULL,
-    size bigint DEFAULT 0 NOT NULL,
-    part_number integer NOT NULL,
-    bucket_id text NOT NULL,
-    key text NOT NULL COLLATE pg_catalog."C",
-    etag text NOT NULL,
-    owner_id text,
-    version text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    upload_id text NOT NULL,
+    size bigint DEFAULT 0 NOT NULL,
+    part_number integer NOT NULL,
+    bucket_id text NOT NULL,
+    key text NOT NULL COLLATE pg_catalog."C",
+    etag text NOT NULL,
+    owner_id text,
+    version text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -3989,15 +4133,15 @@ ALTER TABLE storage.s3_multipart_uploads_parts OWNER TO supabase_storage_admin;
 --
 
 CREATE TABLE storage.vector_indexes (
-    id text DEFAULT gen_random_uuid() NOT NULL,
-    name text NOT NULL COLLATE pg_catalog."C",
-    bucket_id text NOT NULL,
-    data_type text NOT NULL,
-    dimension integer NOT NULL,
-    distance_metric text NOT NULL,
-    metadata_configuration jsonb,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    id text DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL COLLATE pg_catalog."C",
+    bucket_id text NOT NULL,
+    data_type text NOT NULL,
+    dimension integer NOT NULL,
+    distance_metric text NOT NULL,
+    metadata_configuration jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -4008,11 +4152,11 @@ ALTER TABLE storage.vector_indexes OWNER TO supabase_storage_admin;
 --
 
 CREATE TABLE supabase_functions.hooks (
-    id bigint NOT NULL,
-    hook_table_id integer NOT NULL,
-    hook_name text NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    request_id bigint
+    id bigint NOT NULL,
+    hook_table_id integer NOT NULL,
+    hook_name text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    request_id bigint
 );
 
 
@@ -4030,11 +4174,11 @@ COMMENT ON TABLE supabase_functions.hooks IS 'Supabase Functions Hooks: Audit tr
 --
 
 CREATE SEQUENCE supabase_functions.hooks_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
 
 
 ALTER SEQUENCE supabase_functions.hooks_id_seq OWNER TO supabase_functions_admin;
@@ -4051,26 +4195,12 @@ ALTER SEQUENCE supabase_functions.hooks_id_seq OWNED BY supabase_functions.hooks
 --
 
 CREATE TABLE supabase_functions.migrations (
-    version text NOT NULL,
-    inserted_at timestamp with time zone DEFAULT now() NOT NULL
+    version text NOT NULL,
+    inserted_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
 ALTER TABLE supabase_functions.migrations OWNER TO supabase_functions_admin;
-
---
--- Name: messages_2026_07_22; Type: TABLE ATTACH; Schema: realtime; Owner: supabase_admin
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_07_22 FOR VALUES FROM ('2026-07-22 00:00:00') TO ('2026-07-23 00:00:00');
-
-
---
--- Name: messages_2026_07_23; Type: TABLE ATTACH; Schema: realtime; Owner: supabase_admin
---
-
-ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_07_23 FOR VALUES FROM ('2026-07-23 00:00:00') TO ('2026-07-24 00:00:00');
-
 
 --
 -- Name: messages_2026_07_24; Type: TABLE ATTACH; Schema: realtime; Owner: supabase_admin
@@ -4108,6 +4238,20 @@ ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_07_28
 
 
 --
+-- Name: messages_2026_07_29; Type: TABLE ATTACH; Schema: realtime; Owner: supabase_admin
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_07_29 FOR VALUES FROM ('2026-07-29 00:00:00') TO ('2026-07-30 00:00:00');
+
+
+--
+-- Name: messages_2026_07_30; Type: TABLE ATTACH; Schema: realtime; Owner: supabase_admin
+--
+
+ALTER TABLE ONLY realtime.messages ATTACH PARTITION realtime.messages_2026_07_30 FOR VALUES FROM ('2026-07-30 00:00:00') TO ('2026-07-31 00:00:00');
+
+
+--
 -- Name: refresh_tokens id; Type: DEFAULT; Schema: auth; Owner: supabase_auth_admin
 --
 
@@ -4126,7 +4270,7 @@ ALTER TABLE ONLY supabase_functions.hooks ALTER COLUMN id SET DEFAULT nextval('s
 --
 
 ALTER TABLE ONLY _realtime.extensions
-    ADD CONSTRAINT extensions_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT extensions_pkey PRIMARY KEY (id);
 
 
 --
@@ -4134,7 +4278,7 @@ ALTER TABLE ONLY _realtime.extensions
 --
 
 ALTER TABLE ONLY _realtime.feature_flags
-    ADD CONSTRAINT feature_flags_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT feature_flags_pkey PRIMARY KEY (id);
 
 
 --
@@ -4142,7 +4286,7 @@ ALTER TABLE ONLY _realtime.feature_flags
 --
 
 ALTER TABLE ONLY _realtime.schema_migrations
-    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
 
 
 --
@@ -4150,7 +4294,7 @@ ALTER TABLE ONLY _realtime.schema_migrations
 --
 
 ALTER TABLE ONLY _realtime.tenants
-    ADD CONSTRAINT tenants_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT tenants_pkey PRIMARY KEY (id);
 
 
 --
@@ -4158,7 +4302,7 @@ ALTER TABLE ONLY _realtime.tenants
 --
 
 ALTER TABLE ONLY auth.mfa_amr_claims
-    ADD CONSTRAINT amr_id_pk PRIMARY KEY (id);
+    ADD CONSTRAINT amr_id_pk PRIMARY KEY (id);
 
 
 --
@@ -4166,7 +4310,7 @@ ALTER TABLE ONLY auth.mfa_amr_claims
 --
 
 ALTER TABLE ONLY auth.audit_log_entries
-    ADD CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT audit_log_entries_pkey PRIMARY KEY (id);
 
 
 --
@@ -4174,7 +4318,7 @@ ALTER TABLE ONLY auth.audit_log_entries
 --
 
 ALTER TABLE ONLY auth.custom_oauth_providers
-    ADD CONSTRAINT custom_oauth_providers_identifier_key UNIQUE (identifier);
+    ADD CONSTRAINT custom_oauth_providers_identifier_key UNIQUE (identifier);
 
 
 --
@@ -4182,7 +4326,7 @@ ALTER TABLE ONLY auth.custom_oauth_providers
 --
 
 ALTER TABLE ONLY auth.custom_oauth_providers
-    ADD CONSTRAINT custom_oauth_providers_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT custom_oauth_providers_pkey PRIMARY KEY (id);
 
 
 --
@@ -4190,7 +4334,7 @@ ALTER TABLE ONLY auth.custom_oauth_providers
 --
 
 ALTER TABLE ONLY auth.flow_state
-    ADD CONSTRAINT flow_state_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT flow_state_pkey PRIMARY KEY (id);
 
 
 --
@@ -4198,7 +4342,7 @@ ALTER TABLE ONLY auth.flow_state
 --
 
 ALTER TABLE ONLY auth.identities
-    ADD CONSTRAINT identities_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT identities_pkey PRIMARY KEY (id);
 
 
 --
@@ -4206,7 +4350,7 @@ ALTER TABLE ONLY auth.identities
 --
 
 ALTER TABLE ONLY auth.identities
-    ADD CONSTRAINT identities_provider_id_provider_unique UNIQUE (provider_id, provider);
+    ADD CONSTRAINT identities_provider_id_provider_unique UNIQUE (provider_id, provider);
 
 
 --
@@ -4214,7 +4358,7 @@ ALTER TABLE ONLY auth.identities
 --
 
 ALTER TABLE ONLY auth.instances
-    ADD CONSTRAINT instances_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT instances_pkey PRIMARY KEY (id);
 
 
 --
@@ -4222,7 +4366,7 @@ ALTER TABLE ONLY auth.instances
 --
 
 ALTER TABLE ONLY auth.mfa_amr_claims
-    ADD CONSTRAINT mfa_amr_claims_session_id_authentication_method_pkey UNIQUE (session_id, authentication_method);
+    ADD CONSTRAINT mfa_amr_claims_session_id_authentication_method_pkey UNIQUE (session_id, authentication_method);
 
 
 --
@@ -4230,7 +4374,7 @@ ALTER TABLE ONLY auth.mfa_amr_claims
 --
 
 ALTER TABLE ONLY auth.mfa_challenges
-    ADD CONSTRAINT mfa_challenges_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT mfa_challenges_pkey PRIMARY KEY (id);
 
 
 --
@@ -4238,7 +4382,7 @@ ALTER TABLE ONLY auth.mfa_challenges
 --
 
 ALTER TABLE ONLY auth.mfa_factors
-    ADD CONSTRAINT mfa_factors_last_challenged_at_key UNIQUE (last_challenged_at);
+    ADD CONSTRAINT mfa_factors_last_challenged_at_key UNIQUE (last_challenged_at);
 
 
 --
@@ -4246,7 +4390,7 @@ ALTER TABLE ONLY auth.mfa_factors
 --
 
 ALTER TABLE ONLY auth.mfa_factors
-    ADD CONSTRAINT mfa_factors_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT mfa_factors_pkey PRIMARY KEY (id);
 
 
 --
@@ -4254,7 +4398,7 @@ ALTER TABLE ONLY auth.mfa_factors
 --
 
 ALTER TABLE ONLY auth.oauth_authorizations
-    ADD CONSTRAINT oauth_authorizations_authorization_code_key UNIQUE (authorization_code);
+    ADD CONSTRAINT oauth_authorizations_authorization_code_key UNIQUE (authorization_code);
 
 
 --
@@ -4262,7 +4406,7 @@ ALTER TABLE ONLY auth.oauth_authorizations
 --
 
 ALTER TABLE ONLY auth.oauth_authorizations
-    ADD CONSTRAINT oauth_authorizations_authorization_id_key UNIQUE (authorization_id);
+    ADD CONSTRAINT oauth_authorizations_authorization_id_key UNIQUE (authorization_id);
 
 
 --
@@ -4270,7 +4414,7 @@ ALTER TABLE ONLY auth.oauth_authorizations
 --
 
 ALTER TABLE ONLY auth.oauth_authorizations
-    ADD CONSTRAINT oauth_authorizations_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT oauth_authorizations_pkey PRIMARY KEY (id);
 
 
 --
@@ -4278,7 +4422,7 @@ ALTER TABLE ONLY auth.oauth_authorizations
 --
 
 ALTER TABLE ONLY auth.oauth_client_states
-    ADD CONSTRAINT oauth_client_states_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT oauth_client_states_pkey PRIMARY KEY (id);
 
 
 --
@@ -4286,7 +4430,7 @@ ALTER TABLE ONLY auth.oauth_client_states
 --
 
 ALTER TABLE ONLY auth.oauth_clients
-    ADD CONSTRAINT oauth_clients_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT oauth_clients_pkey PRIMARY KEY (id);
 
 
 --
@@ -4294,7 +4438,7 @@ ALTER TABLE ONLY auth.oauth_clients
 --
 
 ALTER TABLE ONLY auth.oauth_consents
-    ADD CONSTRAINT oauth_consents_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT oauth_consents_pkey PRIMARY KEY (id);
 
 
 --
@@ -4302,7 +4446,7 @@ ALTER TABLE ONLY auth.oauth_consents
 --
 
 ALTER TABLE ONLY auth.oauth_consents
-    ADD CONSTRAINT oauth_consents_user_client_unique UNIQUE (user_id, client_id);
+    ADD CONSTRAINT oauth_consents_user_client_unique UNIQUE (user_id, client_id);
 
 
 --
@@ -4310,7 +4454,7 @@ ALTER TABLE ONLY auth.oauth_consents
 --
 
 ALTER TABLE ONLY auth.one_time_tokens
-    ADD CONSTRAINT one_time_tokens_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT one_time_tokens_pkey PRIMARY KEY (id);
 
 
 --
@@ -4318,7 +4462,7 @@ ALTER TABLE ONLY auth.one_time_tokens
 --
 
 ALTER TABLE ONLY auth.refresh_tokens
-    ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT refresh_tokens_pkey PRIMARY KEY (id);
 
 
 --
@@ -4326,7 +4470,7 @@ ALTER TABLE ONLY auth.refresh_tokens
 --
 
 ALTER TABLE ONLY auth.refresh_tokens
-    ADD CONSTRAINT refresh_tokens_token_unique UNIQUE (token);
+    ADD CONSTRAINT refresh_tokens_token_unique UNIQUE (token);
 
 
 --
@@ -4334,7 +4478,7 @@ ALTER TABLE ONLY auth.refresh_tokens
 --
 
 ALTER TABLE ONLY auth.saml_providers
-    ADD CONSTRAINT saml_providers_entity_id_key UNIQUE (entity_id);
+    ADD CONSTRAINT saml_providers_entity_id_key UNIQUE (entity_id);
 
 
 --
@@ -4342,7 +4486,7 @@ ALTER TABLE ONLY auth.saml_providers
 --
 
 ALTER TABLE ONLY auth.saml_providers
-    ADD CONSTRAINT saml_providers_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT saml_providers_pkey PRIMARY KEY (id);
 
 
 --
@@ -4350,7 +4494,7 @@ ALTER TABLE ONLY auth.saml_providers
 --
 
 ALTER TABLE ONLY auth.saml_relay_states
-    ADD CONSTRAINT saml_relay_states_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT saml_relay_states_pkey PRIMARY KEY (id);
 
 
 --
@@ -4358,7 +4502,7 @@ ALTER TABLE ONLY auth.saml_relay_states
 --
 
 ALTER TABLE ONLY auth.schema_migrations
-    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
 
 
 --
@@ -4366,7 +4510,7 @@ ALTER TABLE ONLY auth.schema_migrations
 --
 
 ALTER TABLE ONLY auth.sessions
-    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT sessions_pkey PRIMARY KEY (id);
 
 
 --
@@ -4374,7 +4518,7 @@ ALTER TABLE ONLY auth.sessions
 --
 
 ALTER TABLE ONLY auth.sso_domains
-    ADD CONSTRAINT sso_domains_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT sso_domains_pkey PRIMARY KEY (id);
 
 
 --
@@ -4382,7 +4526,7 @@ ALTER TABLE ONLY auth.sso_domains
 --
 
 ALTER TABLE ONLY auth.sso_providers
-    ADD CONSTRAINT sso_providers_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT sso_providers_pkey PRIMARY KEY (id);
 
 
 --
@@ -4390,7 +4534,7 @@ ALTER TABLE ONLY auth.sso_providers
 --
 
 ALTER TABLE ONLY auth.users
-    ADD CONSTRAINT users_phone_key UNIQUE (phone);
+    ADD CONSTRAINT users_phone_key UNIQUE (phone);
 
 
 --
@@ -4398,7 +4542,7 @@ ALTER TABLE ONLY auth.users
 --
 
 ALTER TABLE ONLY auth.users
-    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
 
 
 --
@@ -4406,7 +4550,7 @@ ALTER TABLE ONLY auth.users
 --
 
 ALTER TABLE ONLY auth.webauthn_challenges
-    ADD CONSTRAINT webauthn_challenges_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT webauthn_challenges_pkey PRIMARY KEY (id);
 
 
 --
@@ -4414,7 +4558,15 @@ ALTER TABLE ONLY auth.webauthn_challenges
 --
 
 ALTER TABLE ONLY auth.webauthn_credentials
-    ADD CONSTRAINT webauthn_credentials_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT webauthn_credentials_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: admin_messages admin_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.admin_messages
+    ADD CONSTRAINT admin_messages_pkey PRIMARY KEY (id);
 
 
 --
@@ -4422,7 +4574,7 @@ ALTER TABLE ONLY auth.webauthn_credentials
 --
 
 ALTER TABLE ONLY public.cafes
-    ADD CONSTRAINT cafes_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT cafes_pkey PRIMARY KEY (id);
 
 
 --
@@ -4430,7 +4582,31 @@ ALTER TABLE ONLY public.cafes
 --
 
 ALTER TABLE ONLY public.cafes
-    ADD CONSTRAINT cafes_slug_key UNIQUE (slug);
+    ADD CONSTRAINT cafes_slug_key UNIQUE (slug);
+
+
+--
+-- Name: menu_categories menu_categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.menu_categories
+    ADD CONSTRAINT menu_categories_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: modifier_groups modifier_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.modifier_groups
+    ADD CONSTRAINT modifier_groups_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: modifier_options modifier_options_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.modifier_options
+    ADD CONSTRAINT modifier_options_pkey PRIMARY KEY (id);
 
 
 --
@@ -4438,7 +4614,7 @@ ALTER TABLE ONLY public.cafes
 --
 
 ALTER TABLE ONLY public.orders
-    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT orders_pkey PRIMARY KEY (id);
 
 
 --
@@ -4446,7 +4622,7 @@ ALTER TABLE ONLY public.orders
 --
 
 ALTER TABLE ONLY public.payment_receipts
-    ADD CONSTRAINT payment_receipts_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT payment_receipts_pkey PRIMARY KEY (id);
 
 
 --
@@ -4454,7 +4630,31 @@ ALTER TABLE ONLY public.payment_receipts
 --
 
 ALTER TABLE ONLY public.platform_settings
-    ADD CONSTRAINT platform_settings_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT platform_settings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: pos_devices pos_devices_cafe_id_device_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pos_devices
+    ADD CONSTRAINT pos_devices_cafe_id_device_id_key UNIQUE (cafe_id, device_id);
+
+
+--
+-- Name: pos_devices pos_devices_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pos_devices
+    ADD CONSTRAINT pos_devices_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: product_modifiers product_modifiers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_modifiers
+    ADD CONSTRAINT product_modifiers_pkey PRIMARY KEY (product_id, modifier_group_id);
 
 
 --
@@ -4462,7 +4662,7 @@ ALTER TABLE ONLY public.platform_settings
 --
 
 ALTER TABLE ONLY public.products
-    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT products_pkey PRIMARY KEY (id);
 
 
 --
@@ -4470,7 +4670,7 @@ ALTER TABLE ONLY public.products
 --
 
 ALTER TABLE ONLY public.tables
-    ADD CONSTRAINT tables_cafe_id_table_number_key UNIQUE (cafe_id, table_number);
+    ADD CONSTRAINT tables_cafe_id_table_number_key UNIQUE (cafe_id, table_number);
 
 
 --
@@ -4478,7 +4678,15 @@ ALTER TABLE ONLY public.tables
 --
 
 ALTER TABLE ONLY public.tables
-    ADD CONSTRAINT tables_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT tables_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: telegram_bot_state telegram_bot_state_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.telegram_bot_state
+    ADD CONSTRAINT telegram_bot_state_pkey PRIMARY KEY (chat_id);
 
 
 --
@@ -4486,23 +4694,7 @@ ALTER TABLE ONLY public.tables
 --
 
 ALTER TABLE ONLY realtime.messages
-    ADD CONSTRAINT messages_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- Name: messages_2026_07_22 messages_2026_07_22_pkey; Type: CONSTRAINT; Schema: realtime; Owner: supabase_admin
---
-
-ALTER TABLE ONLY realtime.messages_2026_07_22
-    ADD CONSTRAINT messages_2026_07_22_pkey PRIMARY KEY (id, inserted_at);
-
-
---
--- Name: messages_2026_07_23 messages_2026_07_23_pkey; Type: CONSTRAINT; Schema: realtime; Owner: supabase_admin
---
-
-ALTER TABLE ONLY realtime.messages_2026_07_23
-    ADD CONSTRAINT messages_2026_07_23_pkey PRIMARY KEY (id, inserted_at);
+    ADD CONSTRAINT messages_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -4510,7 +4702,7 @@ ALTER TABLE ONLY realtime.messages_2026_07_23
 --
 
 ALTER TABLE ONLY realtime.messages_2026_07_24
-    ADD CONSTRAINT messages_2026_07_24_pkey PRIMARY KEY (id, inserted_at);
+    ADD CONSTRAINT messages_2026_07_24_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -4518,7 +4710,7 @@ ALTER TABLE ONLY realtime.messages_2026_07_24
 --
 
 ALTER TABLE ONLY realtime.messages_2026_07_25
-    ADD CONSTRAINT messages_2026_07_25_pkey PRIMARY KEY (id, inserted_at);
+    ADD CONSTRAINT messages_2026_07_25_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -4526,7 +4718,7 @@ ALTER TABLE ONLY realtime.messages_2026_07_25
 --
 
 ALTER TABLE ONLY realtime.messages_2026_07_26
-    ADD CONSTRAINT messages_2026_07_26_pkey PRIMARY KEY (id, inserted_at);
+    ADD CONSTRAINT messages_2026_07_26_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -4534,7 +4726,7 @@ ALTER TABLE ONLY realtime.messages_2026_07_26
 --
 
 ALTER TABLE ONLY realtime.messages_2026_07_27
-    ADD CONSTRAINT messages_2026_07_27_pkey PRIMARY KEY (id, inserted_at);
+    ADD CONSTRAINT messages_2026_07_27_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -4542,7 +4734,23 @@ ALTER TABLE ONLY realtime.messages_2026_07_27
 --
 
 ALTER TABLE ONLY realtime.messages_2026_07_28
-    ADD CONSTRAINT messages_2026_07_28_pkey PRIMARY KEY (id, inserted_at);
+    ADD CONSTRAINT messages_2026_07_28_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_07_29 messages_2026_07_29_pkey; Type: CONSTRAINT; Schema: realtime; Owner: supabase_admin
+--
+
+ALTER TABLE ONLY realtime.messages_2026_07_29
+    ADD CONSTRAINT messages_2026_07_29_pkey PRIMARY KEY (id, inserted_at);
+
+
+--
+-- Name: messages_2026_07_30 messages_2026_07_30_pkey; Type: CONSTRAINT; Schema: realtime; Owner: supabase_admin
+--
+
+ALTER TABLE ONLY realtime.messages_2026_07_30
+    ADD CONSTRAINT messages_2026_07_30_pkey PRIMARY KEY (id, inserted_at);
 
 
 --
@@ -4550,7 +4758,7 @@ ALTER TABLE ONLY realtime.messages_2026_07_28
 --
 
 ALTER TABLE realtime.messages
-    ADD CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL))) NOT VALID;
+    ADD CONSTRAINT messages_payload_exclusive CHECK (((payload IS NULL) OR (binary_payload IS NULL))) NOT VALID;
 
 
 --
@@ -4558,7 +4766,7 @@ ALTER TABLE realtime.messages
 --
 
 ALTER TABLE ONLY realtime.subscription
-    ADD CONSTRAINT pk_subscription PRIMARY KEY (id);
+    ADD CONSTRAINT pk_subscription PRIMARY KEY (id);
 
 
 --
@@ -4566,7 +4774,7 @@ ALTER TABLE ONLY realtime.subscription
 --
 
 ALTER TABLE ONLY realtime.schema_migrations
-    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+    ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
 
 
 --
@@ -4574,7 +4782,7 @@ ALTER TABLE ONLY realtime.schema_migrations
 --
 
 ALTER TABLE ONLY storage.buckets_analytics
-    ADD CONSTRAINT buckets_analytics_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT buckets_analytics_pkey PRIMARY KEY (id);
 
 
 --
@@ -4582,7 +4790,7 @@ ALTER TABLE ONLY storage.buckets_analytics
 --
 
 ALTER TABLE ONLY storage.buckets
-    ADD CONSTRAINT buckets_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT buckets_pkey PRIMARY KEY (id);
 
 
 --
@@ -4590,7 +4798,7 @@ ALTER TABLE ONLY storage.buckets
 --
 
 ALTER TABLE ONLY storage.buckets_vectors
-    ADD CONSTRAINT buckets_vectors_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT buckets_vectors_pkey PRIMARY KEY (id);
 
 
 --
@@ -4598,7 +4806,7 @@ ALTER TABLE ONLY storage.buckets_vectors
 --
 
 ALTER TABLE ONLY storage.iceberg_namespaces
-    ADD CONSTRAINT iceberg_namespaces_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT iceberg_namespaces_pkey PRIMARY KEY (id);
 
 
 --
@@ -4606,7 +4814,7 @@ ALTER TABLE ONLY storage.iceberg_namespaces
 --
 
 ALTER TABLE ONLY storage.iceberg_tables
-    ADD CONSTRAINT iceberg_tables_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT iceberg_tables_pkey PRIMARY KEY (id);
 
 
 --
@@ -4614,7 +4822,7 @@ ALTER TABLE ONLY storage.iceberg_tables
 --
 
 ALTER TABLE ONLY storage.migrations
-    ADD CONSTRAINT migrations_name_key UNIQUE (name);
+    ADD CONSTRAINT migrations_name_key UNIQUE (name);
 
 
 --
@@ -4622,7 +4830,7 @@ ALTER TABLE ONLY storage.migrations
 --
 
 ALTER TABLE ONLY storage.migrations
-    ADD CONSTRAINT migrations_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT migrations_pkey PRIMARY KEY (id);
 
 
 --
@@ -4630,7 +4838,7 @@ ALTER TABLE ONLY storage.migrations
 --
 
 ALTER TABLE ONLY storage.objects
-    ADD CONSTRAINT objects_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT objects_pkey PRIMARY KEY (id);
 
 
 --
@@ -4638,7 +4846,7 @@ ALTER TABLE ONLY storage.objects
 --
 
 ALTER TABLE ONLY storage.s3_multipart_uploads_parts
-    ADD CONSTRAINT s3_multipart_uploads_parts_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT s3_multipart_uploads_parts_pkey PRIMARY KEY (id);
 
 
 --
@@ -4646,7 +4854,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads_parts
 --
 
 ALTER TABLE ONLY storage.s3_multipart_uploads
-    ADD CONSTRAINT s3_multipart_uploads_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT s3_multipart_uploads_pkey PRIMARY KEY (id);
 
 
 --
@@ -4654,7 +4862,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads
 --
 
 ALTER TABLE ONLY storage.vector_indexes
-    ADD CONSTRAINT vector_indexes_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT vector_indexes_pkey PRIMARY KEY (id);
 
 
 --
@@ -4662,7 +4870,7 @@ ALTER TABLE ONLY storage.vector_indexes
 --
 
 ALTER TABLE ONLY supabase_functions.hooks
-    ADD CONSTRAINT hooks_pkey PRIMARY KEY (id);
+    ADD CONSTRAINT hooks_pkey PRIMARY KEY (id);
 
 
 --
@@ -4670,7 +4878,7 @@ ALTER TABLE ONLY supabase_functions.hooks
 --
 
 ALTER TABLE ONLY supabase_functions.migrations
-    ADD CONSTRAINT migrations_pkey PRIMARY KEY (version);
+    ADD CONSTRAINT migrations_pkey PRIMARY KEY (version);
 
 
 --
@@ -5108,20 +5316,6 @@ CREATE INDEX messages_inserted_at_topic_index ON ONLY realtime.messages USING bt
 
 
 --
--- Name: messages_2026_07_22_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: supabase_admin
---
-
-CREATE INDEX messages_2026_07_22_inserted_at_topic_idx ON realtime.messages_2026_07_22 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
--- Name: messages_2026_07_23_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: supabase_admin
---
-
-CREATE INDEX messages_2026_07_23_inserted_at_topic_idx ON realtime.messages_2026_07_23 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
-
-
---
 -- Name: messages_2026_07_24_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: supabase_admin
 --
 
@@ -5154,6 +5348,20 @@ CREATE INDEX messages_2026_07_27_inserted_at_topic_idx ON realtime.messages_2026
 --
 
 CREATE INDEX messages_2026_07_28_inserted_at_topic_idx ON realtime.messages_2026_07_28 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_07_29_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: supabase_admin
+--
+
+CREATE INDEX messages_2026_07_29_inserted_at_topic_idx ON realtime.messages_2026_07_29 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
+
+
+--
+-- Name: messages_2026_07_30_inserted_at_topic_idx; Type: INDEX; Schema: realtime; Owner: supabase_admin
+--
+
+CREATE INDEX messages_2026_07_30_inserted_at_topic_idx ON realtime.messages_2026_07_30 USING btree (inserted_at DESC, topic) WHERE ((extension = 'broadcast'::text) AND (private IS TRUE));
 
 
 --
@@ -5255,34 +5463,6 @@ CREATE INDEX supabase_functions_hooks_request_id_idx ON supabase_functions.hooks
 
 
 --
--- Name: messages_2026_07_22_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_07_22_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_07_22_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_07_22_pkey;
-
-
---
--- Name: messages_2026_07_23_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
---
-
-ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_07_23_inserted_at_topic_idx;
-
-
---
--- Name: messages_2026_07_23_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
---
-
-ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_07_23_pkey;
-
-
---
 -- Name: messages_2026_07_24_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
 --
 
@@ -5353,6 +5533,34 @@ ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_07_28
 
 
 --
+-- Name: messages_2026_07_29_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_07_29_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_07_29_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_07_29_pkey;
+
+
+--
+-- Name: messages_2026_07_30_inserted_at_topic_idx; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
+--
+
+ALTER INDEX realtime.messages_inserted_at_topic_index ATTACH PARTITION realtime.messages_2026_07_30_inserted_at_topic_idx;
+
+
+--
+-- Name: messages_2026_07_30_pkey; Type: INDEX ATTACH; Schema: realtime; Owner: supabase_realtime_admin
+--
+
+ALTER INDEX realtime.messages_pkey ATTACH PARTITION realtime.messages_2026_07_30_pkey;
+
+
+--
 -- Name: orders order_rate_limit_trigger; Type: TRIGGER; Schema: public; Owner: postgres
 --
 
@@ -5399,7 +5607,7 @@ CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EA
 --
 
 ALTER TABLE ONLY _realtime.extensions
-    ADD CONSTRAINT extensions_tenant_external_id_fkey FOREIGN KEY (tenant_external_id) REFERENCES _realtime.tenants(external_id) ON DELETE CASCADE;
+    ADD CONSTRAINT extensions_tenant_external_id_fkey FOREIGN KEY (tenant_external_id) REFERENCES _realtime.tenants(external_id) ON DELETE CASCADE;
 
 
 --
@@ -5407,7 +5615,7 @@ ALTER TABLE ONLY _realtime.extensions
 --
 
 ALTER TABLE ONLY auth.identities
-    ADD CONSTRAINT identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT identities_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -5415,7 +5623,7 @@ ALTER TABLE ONLY auth.identities
 --
 
 ALTER TABLE ONLY auth.mfa_amr_claims
-    ADD CONSTRAINT mfa_amr_claims_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
+    ADD CONSTRAINT mfa_amr_claims_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
 
 
 --
@@ -5423,7 +5631,7 @@ ALTER TABLE ONLY auth.mfa_amr_claims
 --
 
 ALTER TABLE ONLY auth.mfa_challenges
-    ADD CONSTRAINT mfa_challenges_auth_factor_id_fkey FOREIGN KEY (factor_id) REFERENCES auth.mfa_factors(id) ON DELETE CASCADE;
+    ADD CONSTRAINT mfa_challenges_auth_factor_id_fkey FOREIGN KEY (factor_id) REFERENCES auth.mfa_factors(id) ON DELETE CASCADE;
 
 
 --
@@ -5431,7 +5639,7 @@ ALTER TABLE ONLY auth.mfa_challenges
 --
 
 ALTER TABLE ONLY auth.mfa_factors
-    ADD CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT mfa_factors_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -5439,7 +5647,7 @@ ALTER TABLE ONLY auth.mfa_factors
 --
 
 ALTER TABLE ONLY auth.oauth_authorizations
-    ADD CONSTRAINT oauth_authorizations_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
+    ADD CONSTRAINT oauth_authorizations_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
 
 
 --
@@ -5447,7 +5655,7 @@ ALTER TABLE ONLY auth.oauth_authorizations
 --
 
 ALTER TABLE ONLY auth.oauth_authorizations
-    ADD CONSTRAINT oauth_authorizations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT oauth_authorizations_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -5455,7 +5663,7 @@ ALTER TABLE ONLY auth.oauth_authorizations
 --
 
 ALTER TABLE ONLY auth.oauth_consents
-    ADD CONSTRAINT oauth_consents_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
+    ADD CONSTRAINT oauth_consents_client_id_fkey FOREIGN KEY (client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
 
 
 --
@@ -5463,7 +5671,7 @@ ALTER TABLE ONLY auth.oauth_consents
 --
 
 ALTER TABLE ONLY auth.oauth_consents
-    ADD CONSTRAINT oauth_consents_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT oauth_consents_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -5471,7 +5679,7 @@ ALTER TABLE ONLY auth.oauth_consents
 --
 
 ALTER TABLE ONLY auth.one_time_tokens
-    ADD CONSTRAINT one_time_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT one_time_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -5479,7 +5687,7 @@ ALTER TABLE ONLY auth.one_time_tokens
 --
 
 ALTER TABLE ONLY auth.refresh_tokens
-    ADD CONSTRAINT refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
+    ADD CONSTRAINT refresh_tokens_session_id_fkey FOREIGN KEY (session_id) REFERENCES auth.sessions(id) ON DELETE CASCADE;
 
 
 --
@@ -5487,7 +5695,7 @@ ALTER TABLE ONLY auth.refresh_tokens
 --
 
 ALTER TABLE ONLY auth.saml_providers
-    ADD CONSTRAINT saml_providers_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+    ADD CONSTRAINT saml_providers_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
 
 
 --
@@ -5495,7 +5703,7 @@ ALTER TABLE ONLY auth.saml_providers
 --
 
 ALTER TABLE ONLY auth.saml_relay_states
-    ADD CONSTRAINT saml_relay_states_flow_state_id_fkey FOREIGN KEY (flow_state_id) REFERENCES auth.flow_state(id) ON DELETE CASCADE;
+    ADD CONSTRAINT saml_relay_states_flow_state_id_fkey FOREIGN KEY (flow_state_id) REFERENCES auth.flow_state(id) ON DELETE CASCADE;
 
 
 --
@@ -5503,7 +5711,7 @@ ALTER TABLE ONLY auth.saml_relay_states
 --
 
 ALTER TABLE ONLY auth.saml_relay_states
-    ADD CONSTRAINT saml_relay_states_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+    ADD CONSTRAINT saml_relay_states_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
 
 
 --
@@ -5511,7 +5719,7 @@ ALTER TABLE ONLY auth.saml_relay_states
 --
 
 ALTER TABLE ONLY auth.sessions
-    ADD CONSTRAINT sessions_oauth_client_id_fkey FOREIGN KEY (oauth_client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
+    ADD CONSTRAINT sessions_oauth_client_id_fkey FOREIGN KEY (oauth_client_id) REFERENCES auth.oauth_clients(id) ON DELETE CASCADE;
 
 
 --
@@ -5519,7 +5727,7 @@ ALTER TABLE ONLY auth.sessions
 --
 
 ALTER TABLE ONLY auth.sessions
-    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT sessions_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -5527,7 +5735,7 @@ ALTER TABLE ONLY auth.sessions
 --
 
 ALTER TABLE ONLY auth.sso_domains
-    ADD CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
+    ADD CONSTRAINT sso_domains_sso_provider_id_fkey FOREIGN KEY (sso_provider_id) REFERENCES auth.sso_providers(id) ON DELETE CASCADE;
 
 
 --
@@ -5535,7 +5743,7 @@ ALTER TABLE ONLY auth.sso_domains
 --
 
 ALTER TABLE ONLY auth.webauthn_challenges
-    ADD CONSTRAINT webauthn_challenges_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT webauthn_challenges_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
 
 --
@@ -5543,7 +5751,39 @@ ALTER TABLE ONLY auth.webauthn_challenges
 --
 
 ALTER TABLE ONLY auth.webauthn_credentials
-    ADD CONSTRAINT webauthn_credentials_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    ADD CONSTRAINT webauthn_credentials_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: admin_messages admin_messages_cafe_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.admin_messages
+    ADD CONSTRAINT admin_messages_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: menu_categories menu_categories_cafe_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.menu_categories
+    ADD CONSTRAINT menu_categories_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: modifier_groups modifier_groups_cafe_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.modifier_groups
+    ADD CONSTRAINT modifier_groups_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: modifier_options modifier_options_modifier_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.modifier_options
+    ADD CONSTRAINT modifier_options_modifier_group_id_fkey FOREIGN KEY (modifier_group_id) REFERENCES public.modifier_groups(id) ON DELETE CASCADE;
 
 
 --
@@ -5551,7 +5791,7 @@ ALTER TABLE ONLY auth.webauthn_credentials
 --
 
 ALTER TABLE ONLY public.orders
-    ADD CONSTRAINT orders_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+    ADD CONSTRAINT orders_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
 
 
 --
@@ -5559,7 +5799,7 @@ ALTER TABLE ONLY public.orders
 --
 
 ALTER TABLE ONLY public.orders
-    ADD CONSTRAINT orders_table_id_fkey FOREIGN KEY (table_id) REFERENCES public.tables(id) ON DELETE SET NULL;
+    ADD CONSTRAINT orders_table_id_fkey FOREIGN KEY (table_id) REFERENCES public.tables(id) ON DELETE SET NULL;
 
 
 --
@@ -5567,7 +5807,31 @@ ALTER TABLE ONLY public.orders
 --
 
 ALTER TABLE ONLY public.payment_receipts
-    ADD CONSTRAINT payment_receipts_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+    ADD CONSTRAINT payment_receipts_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: pos_devices pos_devices_cafe_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.pos_devices
+    ADD CONSTRAINT pos_devices_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: product_modifiers product_modifiers_modifier_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_modifiers
+    ADD CONSTRAINT product_modifiers_modifier_group_id_fkey FOREIGN KEY (modifier_group_id) REFERENCES public.modifier_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: product_modifiers product_modifiers_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.product_modifiers
+    ADD CONSTRAINT product_modifiers_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON DELETE CASCADE;
 
 
 --
@@ -5575,7 +5839,15 @@ ALTER TABLE ONLY public.payment_receipts
 --
 
 ALTER TABLE ONLY public.products
-    ADD CONSTRAINT products_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+    ADD CONSTRAINT products_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: products products_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.products
+    ADD CONSTRAINT products_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.menu_categories(id) ON DELETE SET NULL;
 
 
 --
@@ -5583,7 +5855,15 @@ ALTER TABLE ONLY public.products
 --
 
 ALTER TABLE ONLY public.tables
-    ADD CONSTRAINT tables_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+    ADD CONSTRAINT tables_cafe_id_fkey FOREIGN KEY (cafe_id) REFERENCES public.cafes(id) ON DELETE CASCADE;
+
+
+--
+-- Name: telegram_bot_state telegram_bot_state_active_cafe_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.telegram_bot_state
+    ADD CONSTRAINT telegram_bot_state_active_cafe_id_fkey FOREIGN KEY (active_cafe_id) REFERENCES public.cafes(id) ON DELETE SET NULL;
 
 
 --
@@ -5591,7 +5871,7 @@ ALTER TABLE ONLY public.tables
 --
 
 ALTER TABLE ONLY storage.iceberg_namespaces
-    ADD CONSTRAINT iceberg_namespaces_catalog_id_fkey FOREIGN KEY (catalog_id) REFERENCES storage.buckets_analytics(id) ON DELETE CASCADE;
+    ADD CONSTRAINT iceberg_namespaces_catalog_id_fkey FOREIGN KEY (catalog_id) REFERENCES storage.buckets_analytics(id) ON DELETE CASCADE;
 
 
 --
@@ -5599,7 +5879,7 @@ ALTER TABLE ONLY storage.iceberg_namespaces
 --
 
 ALTER TABLE ONLY storage.iceberg_tables
-    ADD CONSTRAINT iceberg_tables_catalog_id_fkey FOREIGN KEY (catalog_id) REFERENCES storage.buckets_analytics(id) ON DELETE CASCADE;
+    ADD CONSTRAINT iceberg_tables_catalog_id_fkey FOREIGN KEY (catalog_id) REFERENCES storage.buckets_analytics(id) ON DELETE CASCADE;
 
 
 --
@@ -5607,7 +5887,7 @@ ALTER TABLE ONLY storage.iceberg_tables
 --
 
 ALTER TABLE ONLY storage.iceberg_tables
-    ADD CONSTRAINT iceberg_tables_namespace_id_fkey FOREIGN KEY (namespace_id) REFERENCES storage.iceberg_namespaces(id) ON DELETE CASCADE;
+    ADD CONSTRAINT iceberg_tables_namespace_id_fkey FOREIGN KEY (namespace_id) REFERENCES storage.iceberg_namespaces(id) ON DELETE CASCADE;
 
 
 --
@@ -5615,7 +5895,7 @@ ALTER TABLE ONLY storage.iceberg_tables
 --
 
 ALTER TABLE ONLY storage.objects
-    ADD CONSTRAINT "objects_bucketId_fkey" FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
+    ADD CONSTRAINT "objects_bucketId_fkey" FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
 
 
 --
@@ -5623,7 +5903,7 @@ ALTER TABLE ONLY storage.objects
 --
 
 ALTER TABLE ONLY storage.s3_multipart_uploads
-    ADD CONSTRAINT s3_multipart_uploads_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
+    ADD CONSTRAINT s3_multipart_uploads_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
 
 
 --
@@ -5631,7 +5911,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads
 --
 
 ALTER TABLE ONLY storage.s3_multipart_uploads_parts
-    ADD CONSTRAINT s3_multipart_uploads_parts_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
+    ADD CONSTRAINT s3_multipart_uploads_parts_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets(id);
 
 
 --
@@ -5639,7 +5919,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads_parts
 --
 
 ALTER TABLE ONLY storage.s3_multipart_uploads_parts
-    ADD CONSTRAINT s3_multipart_uploads_parts_upload_id_fkey FOREIGN KEY (upload_id) REFERENCES storage.s3_multipart_uploads(id) ON DELETE CASCADE;
+    ADD CONSTRAINT s3_multipart_uploads_parts_upload_id_fkey FOREIGN KEY (upload_id) REFERENCES storage.s3_multipart_uploads(id) ON DELETE CASCADE;
 
 
 --
@@ -5647,7 +5927,7 @@ ALTER TABLE ONLY storage.s3_multipart_uploads_parts
 --
 
 ALTER TABLE ONLY storage.vector_indexes
-    ADD CONSTRAINT vector_indexes_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets_vectors(id);
+    ADD CONSTRAINT vector_indexes_bucket_id_fkey FOREIGN KEY (bucket_id) REFERENCES storage.buckets_vectors(id);
 
 
 --
@@ -5747,6 +6027,34 @@ ALTER TABLE auth.sso_providers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: pos_devices Allow all for pos_devices; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow all for pos_devices" ON public.pos_devices USING (true) WITH CHECK (true);
+
+
+--
+-- Name: modifier_groups Allow all on modifier_groups; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow all on modifier_groups" ON public.modifier_groups USING (true) WITH CHECK (true);
+
+
+--
+-- Name: modifier_options Allow all on modifier_options; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow all on modifier_options" ON public.modifier_options USING (true) WITH CHECK (true);
+
+
+--
+-- Name: product_modifiers Allow all on product_modifiers; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow all on product_modifiers" ON public.product_modifiers USING (true) WITH CHECK (true);
+
+
+--
 -- Name: products Allow cafe admin access; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -5754,10 +6062,24 @@ CREATE POLICY "Allow cafe admin access" ON public.products USING ((auth.uid() IS
 
 
 --
+-- Name: payment_receipts Allow insert access to receipts; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow insert access to receipts" ON public.payment_receipts FOR INSERT WITH CHECK (true);
+
+
+--
 -- Name: cafes Allow owner to update their own cafe; Type: POLICY; Schema: public; Owner: postgres
 --
 
 CREATE POLICY "Allow owner to update their own cafe" ON public.cafes FOR UPDATE USING ((auth.uid() = owner_auth_id));
+
+
+--
+-- Name: admin_messages Allow public access for admin_messages; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow public access for admin_messages" ON public.admin_messages USING (true) WITH CHECK (true);
 
 
 --
@@ -5771,7 +6093,7 @@ CREATE POLICY "Allow public insert orders" ON public.orders FOR INSERT WITH CHEC
 -- Name: payment_receipts Allow public insert receipts; Type: POLICY; Schema: public; Owner: postgres
 --
 
-CREATE POLICY "Allow public insert receipts" ON public.payment_receipts FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public insert receipts" ON public.payment_receipts USING (true) WITH CHECK (true);
 
 
 --
@@ -5786,6 +6108,13 @@ CREATE POLICY "Allow public read cafes" ON public.cafes FOR SELECT USING (true);
 --
 
 CREATE POLICY "Allow public read for products" ON public.products FOR SELECT USING (true);
+
+
+--
+-- Name: payment_receipts Allow public read for receipts; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow public read for receipts" ON public.payment_receipts FOR SELECT USING (true);
 
 
 --
@@ -5810,6 +6139,76 @@ CREATE POLICY "Allow public read tables" ON public.tables FOR SELECT USING (true
 
 
 --
+-- Name: payment_receipts Allow read access to receipts; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow read access to receipts" ON public.payment_receipts FOR SELECT USING (true);
+
+
+--
+-- Name: payment_receipts Allow update access to receipts; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Allow update access to receipts" ON public.payment_receipts FOR UPDATE USING (true);
+
+
+--
+-- Name: tables Enable insert for authenticated users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users" ON public.tables FOR INSERT TO authenticated WITH CHECK (true);
+
+
+--
+-- Name: pos_devices Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for authenticated users only" ON public.pos_devices FOR INSERT WITH CHECK (true);
+
+
+--
+-- Name: pos_devices Enable insert for everyone; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable insert for everyone" ON public.pos_devices FOR INSERT WITH CHECK (true);
+
+
+--
+-- Name: pos_devices Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for all users" ON public.pos_devices FOR SELECT USING (true);
+
+
+--
+-- Name: orders Enable read access for everyone; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for everyone" ON public.orders FOR SELECT USING (true);
+
+
+--
+-- Name: orders Enable read access for realtime; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable read access for realtime" ON public.orders FOR SELECT USING (true);
+
+
+--
+-- Name: pos_devices Enable update for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Enable update for authenticated users only" ON public.pos_devices FOR UPDATE USING (true);
+
+
+--
+-- Name: menu_categories Public categories access; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public categories access" ON public.menu_categories FOR SELECT USING (true);
+
+
+--
 -- Name: orders Strict Client Orders Access; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -5821,6 +6220,24 @@ CREATE POLICY "Strict Client Orders Access" ON public.orders FOR SELECT USING ((
 --
 
 ALTER TABLE public.cafes ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: menu_categories; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.menu_categories ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: modifier_groups; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.modifier_groups ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: modifier_options; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.modifier_options ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: orders; Type: ROW SECURITY; Schema: public; Owner: postgres
@@ -5841,10 +6258,36 @@ ALTER TABLE public.payment_receipts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: pos_devices; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.pos_devices ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: product_modifiers; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.product_modifiers ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: products; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: orders public_all_orders; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY public_all_orders ON public.orders USING (true) WITH CHECK (true);
+
+
+--
+-- Name: products public_all_products; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY public_all_products ON public.products USING (true) WITH CHECK (true);
+
 
 --
 -- Name: tables; Type: ROW SECURITY; Schema: public; Owner: postgres
@@ -5857,6 +6300,27 @@ ALTER TABLE public.tables ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: objects Allow public receipt updates; Type: POLICY; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE POLICY "Allow public receipt updates" ON storage.objects FOR UPDATE USING ((bucket_id = 'receipts'::text));
+
+
+--
+-- Name: objects Allow public receipt uploads; Type: POLICY; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE POLICY "Allow public receipt uploads" ON storage.objects FOR INSERT WITH CHECK ((bucket_id = 'receipts'::text));
+
+
+--
+-- Name: objects Enable full access to storage; Type: POLICY; Schema: storage; Owner: supabase_storage_admin
+--
+
+CREATE POLICY "Enable full access to storage" ON storage.objects USING (true) WITH CHECK (true);
+
 
 --
 -- Name: buckets; Type: ROW SECURITY; Schema: storage; Owner: supabase_storage_admin
@@ -5937,6 +6401,48 @@ CREATE PUBLICATION supabase_realtime_messages_publication WITH (publish = 'inser
 ALTER PUBLICATION supabase_realtime_messages_publication OWNER TO supabase_admin;
 
 --
+-- Name: supabase_realtime admin_messages; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
+--
+
+ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.admin_messages;
+
+
+--
+-- Name: supabase_realtime_messages_publication admin_messages; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.admin_messages;
+
+
+--
+-- Name: supabase_realtime cafes; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
+--
+
+ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.cafes;
+
+
+--
+-- Name: supabase_realtime_messages_publication cafes; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.cafes;
+
+
+--
+-- Name: supabase_realtime menu_categories; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
+--
+
+ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.menu_categories;
+
+
+--
+-- Name: supabase_realtime_messages_publication menu_categories; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.menu_categories;
+
+
+--
 -- Name: supabase_realtime orders; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
 --
 
@@ -5944,10 +6450,94 @@ ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.orders;
 
 
 --
+-- Name: supabase_realtime_messages_publication orders; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.orders;
+
+
+--
+-- Name: supabase_realtime payment_receipts; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
+--
+
+ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.payment_receipts;
+
+
+--
+-- Name: supabase_realtime_messages_publication payment_receipts; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.payment_receipts;
+
+
+--
+-- Name: supabase_realtime platform_settings; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
+--
+
+ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.platform_settings;
+
+
+--
+-- Name: supabase_realtime_messages_publication platform_settings; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.platform_settings;
+
+
+--
+-- Name: supabase_realtime pos_devices; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
+--
+
+ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.pos_devices;
+
+
+--
+-- Name: supabase_realtime_messages_publication pos_devices; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.pos_devices;
+
+
+--
+-- Name: supabase_realtime products; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
+--
+
+ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.products;
+
+
+--
+-- Name: supabase_realtime_messages_publication products; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.products;
+
+
+--
 -- Name: supabase_realtime tables; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
 --
 
 ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.tables;
+
+
+--
+-- Name: supabase_realtime_messages_publication tables; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.tables;
+
+
+--
+-- Name: supabase_realtime telegram_bot_state; Type: PUBLICATION TABLE; Schema: public; Owner: postgres
+--
+
+ALTER PUBLICATION supabase_realtime ADD TABLE ONLY public.telegram_bot_state;
+
+
+--
+-- Name: supabase_realtime_messages_publication telegram_bot_state; Type: PUBLICATION TABLE; Schema: public; Owner: supabase_admin
+--
+
+ALTER PUBLICATION supabase_realtime_messages_publication ADD TABLE ONLY public.telegram_bot_state;
 
 
 --
@@ -6940,12 +7530,48 @@ GRANT ALL ON TABLE extensions.pg_stat_statements_info TO postgres WITH GRANT OPT
 
 
 --
+-- Name: TABLE admin_messages; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.admin_messages TO anon;
+GRANT ALL ON TABLE public.admin_messages TO authenticated;
+GRANT ALL ON TABLE public.admin_messages TO service_role;
+
+
+--
 -- Name: TABLE cafes; Type: ACL; Schema: public; Owner: postgres
 --
 
 GRANT ALL ON TABLE public.cafes TO anon;
 GRANT ALL ON TABLE public.cafes TO authenticated;
 GRANT ALL ON TABLE public.cafes TO service_role;
+
+
+--
+-- Name: TABLE menu_categories; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.menu_categories TO anon;
+GRANT ALL ON TABLE public.menu_categories TO authenticated;
+GRANT ALL ON TABLE public.menu_categories TO service_role;
+
+
+--
+-- Name: TABLE modifier_groups; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.modifier_groups TO anon;
+GRANT ALL ON TABLE public.modifier_groups TO authenticated;
+GRANT ALL ON TABLE public.modifier_groups TO service_role;
+
+
+--
+-- Name: TABLE modifier_options; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.modifier_options TO anon;
+GRANT ALL ON TABLE public.modifier_options TO authenticated;
+GRANT ALL ON TABLE public.modifier_options TO service_role;
 
 
 --
@@ -6976,6 +7602,24 @@ GRANT ALL ON TABLE public.platform_settings TO service_role;
 
 
 --
+-- Name: TABLE pos_devices; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.pos_devices TO anon;
+GRANT ALL ON TABLE public.pos_devices TO authenticated;
+GRANT ALL ON TABLE public.pos_devices TO service_role;
+
+
+--
+-- Name: TABLE product_modifiers; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.product_modifiers TO anon;
+GRANT ALL ON TABLE public.product_modifiers TO authenticated;
+GRANT ALL ON TABLE public.product_modifiers TO service_role;
+
+
+--
 -- Name: TABLE products; Type: ACL; Schema: public; Owner: postgres
 --
 
@@ -6994,6 +7638,15 @@ GRANT ALL ON TABLE public.tables TO service_role;
 
 
 --
+-- Name: TABLE telegram_bot_state; Type: ACL; Schema: public; Owner: postgres
+--
+
+GRANT ALL ON TABLE public.telegram_bot_state TO anon;
+GRANT ALL ON TABLE public.telegram_bot_state TO authenticated;
+GRANT ALL ON TABLE public.telegram_bot_state TO service_role;
+
+
+--
 -- Name: TABLE messages; Type: ACL; Schema: realtime; Owner: supabase_realtime_admin
 --
 
@@ -7002,22 +7655,6 @@ GRANT ALL ON TABLE realtime.messages TO dashboard_user;
 GRANT SELECT,INSERT,UPDATE ON TABLE realtime.messages TO anon;
 GRANT SELECT,INSERT,UPDATE ON TABLE realtime.messages TO authenticated;
 GRANT SELECT,INSERT,UPDATE ON TABLE realtime.messages TO service_role;
-
-
---
--- Name: TABLE messages_2026_07_22; Type: ACL; Schema: realtime; Owner: supabase_admin
---
-
-GRANT ALL ON TABLE realtime.messages_2026_07_22 TO postgres;
-GRANT ALL ON TABLE realtime.messages_2026_07_22 TO dashboard_user;
-
-
---
--- Name: TABLE messages_2026_07_23; Type: ACL; Schema: realtime; Owner: supabase_admin
---
-
-GRANT ALL ON TABLE realtime.messages_2026_07_23 TO postgres;
-GRANT ALL ON TABLE realtime.messages_2026_07_23 TO dashboard_user;
 
 
 --
@@ -7058,6 +7695,22 @@ GRANT ALL ON TABLE realtime.messages_2026_07_27 TO dashboard_user;
 
 GRANT ALL ON TABLE realtime.messages_2026_07_28 TO postgres;
 GRANT ALL ON TABLE realtime.messages_2026_07_28 TO dashboard_user;
+
+
+--
+-- Name: TABLE messages_2026_07_29; Type: ACL; Schema: realtime; Owner: supabase_admin
+--
+
+GRANT ALL ON TABLE realtime.messages_2026_07_29 TO postgres;
+GRANT ALL ON TABLE realtime.messages_2026_07_29 TO dashboard_user;
+
+
+--
+-- Name: TABLE messages_2026_07_30; Type: ACL; Schema: realtime; Owner: supabase_admin
+--
+
+GRANT ALL ON TABLE realtime.messages_2026_07_30 TO postgres;
+GRANT ALL ON TABLE realtime.messages_2026_07_30 TO dashboard_user;
 
 
 --
@@ -7476,8 +8129,8 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA supabase_functions GRANT AL
 --
 
 CREATE EVENT TRIGGER issue_graphql_placeholder ON sql_drop
-         WHEN TAG IN ('DROP EXTENSION')
-   EXECUTE FUNCTION extensions.set_graphql_placeholder();
+         WHEN TAG IN ('DROP EXTENSION')
+   EXECUTE FUNCTION extensions.set_graphql_placeholder();
 
 
 ALTER EVENT TRIGGER issue_graphql_placeholder OWNER TO supabase_admin;
@@ -7487,8 +8140,8 @@ ALTER EVENT TRIGGER issue_graphql_placeholder OWNER TO supabase_admin;
 --
 
 CREATE EVENT TRIGGER issue_pg_cron_access ON ddl_command_end
-         WHEN TAG IN ('CREATE EXTENSION')
-   EXECUTE FUNCTION extensions.grant_pg_cron_access();
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_cron_access();
 
 
 ALTER EVENT TRIGGER issue_pg_cron_access OWNER TO supabase_admin;
@@ -7498,8 +8151,8 @@ ALTER EVENT TRIGGER issue_pg_cron_access OWNER TO supabase_admin;
 --
 
 CREATE EVENT TRIGGER issue_pg_graphql_access ON ddl_command_end
-         WHEN TAG IN ('CREATE EXTENSION')
-   EXECUTE FUNCTION extensions.grant_pg_graphql_access();
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_graphql_access();
 
 
 ALTER EVENT TRIGGER issue_pg_graphql_access OWNER TO supabase_admin;
@@ -7509,8 +8162,8 @@ ALTER EVENT TRIGGER issue_pg_graphql_access OWNER TO supabase_admin;
 --
 
 CREATE EVENT TRIGGER issue_pg_net_access ON ddl_command_end
-         WHEN TAG IN ('CREATE EXTENSION')
-   EXECUTE FUNCTION extensions.grant_pg_net_access();
+         WHEN TAG IN ('CREATE EXTENSION')
+   EXECUTE FUNCTION extensions.grant_pg_net_access();
 
 
 ALTER EVENT TRIGGER issue_pg_net_access OWNER TO supabase_admin;
@@ -7520,7 +8173,7 @@ ALTER EVENT TRIGGER issue_pg_net_access OWNER TO supabase_admin;
 --
 
 CREATE EVENT TRIGGER pgrst_ddl_watch ON ddl_command_end
-   EXECUTE FUNCTION extensions.pgrst_ddl_watch();
+   EXECUTE FUNCTION extensions.pgrst_ddl_watch();
 
 
 ALTER EVENT TRIGGER pgrst_ddl_watch OWNER TO supabase_admin;
@@ -7530,7 +8183,7 @@ ALTER EVENT TRIGGER pgrst_ddl_watch OWNER TO supabase_admin;
 --
 
 CREATE EVENT TRIGGER pgrst_drop_watch ON sql_drop
-   EXECUTE FUNCTION extensions.pgrst_drop_watch();
+   EXECUTE FUNCTION extensions.pgrst_drop_watch();
 
 
 ALTER EVENT TRIGGER pgrst_drop_watch OWNER TO supabase_admin;
@@ -7539,4 +8192,5 @@ ALTER EVENT TRIGGER pgrst_drop_watch OWNER TO supabase_admin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict gc4V8YSSag8vY3t883yIYCXZSf3mQvII0MM8ZOIFsF4DhMK6lZEMUQFqI9CTKLo
+\unrestrict 55AqvnaFDcSOoXHxKUcegkihb8mohPV2vBsOp8zI51uSkhYhh21DhYJDHSokxua
+

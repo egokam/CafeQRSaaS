@@ -77,7 +77,8 @@ async function hasRoleCookie(role: CafeRole, cafeId: string, email?: string) {
   return isValidSignedCookieValue(value, payload);
 }
 
-async function assertAdminCafeAccess(cafeId: string) {
+// التصدير مطلوب لاستخدامها في الملفات الأخرى
+export async function assertAdminCafeAccess(cafeId: string) {
   const { data: cafe, error } = await supabaseAdmin
     .from("cafes")
     .select("id, owner_email")
@@ -92,7 +93,7 @@ async function assertAdminCafeAccess(cafeId: string) {
   return cafe;
 }
 
-async function assertCashierCafeAccess(cafeId: string) {
+export async function assertCashierCafeAccess(cafeId: string) {
   const isAllowed = await hasRoleCookie("cashier", cafeId);
   if (!isAllowed) throw new Error("UNAUTHORIZED_CASHIER");
 }
@@ -102,7 +103,6 @@ function normalizeOrderItems(items: unknown) {
 
   return items
     .map((item: any) => ({
-      // الاعتماد على product_id الحقيقي للبحث في قاعدة البيانات، وإلا العودة لـ id
       id: String(item?.product_id || item?.id || ""),
       quantity: Math.max(1, Math.min(99, Number(item?.quantity || 1))),
       modifiers: typeof item?.modifiers === 'object' && item.modifiers !== null ? item.modifiers : {},
@@ -311,6 +311,8 @@ export async function updateCafeSettings(
   longitude?: number | null
 ) {
   try {
+    await assertAdminCafeAccess(cafeId);
+
     const updates: any = {
       name: name,
     };
@@ -346,6 +348,8 @@ export async function updateCafeSettings(
 export async function adminAddProduct(productData: any) {
   try {
     if (!productData?.cafe_id) throw new Error("Missing cafe id");
+    
+    await assertAdminCafeAccess(productData.cafe_id);
 
     const { data: cafe } = await supabaseAdmin
       .from("cafes")
@@ -364,11 +368,9 @@ export async function adminAddProduct(productData: any) {
       }
     }
 
-    // استخراج الإضافات وحذفها من الكائن الأساسي
     const modifierIds = Array.isArray(productData.modifier_ids) ? productData.modifier_ids : [];
     delete productData.modifier_ids;
 
-    // إضافة المنتج وجلب المعرّف الخاص به
     const { data: insertedProduct, error: productError } = await supabaseAdmin
       .from("products")
       .insert([productData])
@@ -377,7 +379,6 @@ export async function adminAddProduct(productData: any) {
 
     if (productError || !insertedProduct) throw productError || new Error("Failed to insert product");
 
-    // إدراج الروابط في جدول product_modifiers إذا تم تحديد إضافات
     if (modifierIds.length > 0) {
       const modifierInserts = modifierIds.map((modId: string, index: number) => ({
         product_id: insertedProduct.id,
@@ -409,12 +410,12 @@ export async function adminUpdateProduct(id: string, productData: Record<string,
 
     if (fetchError || !product) throw fetchError || new Error("Product not found");
 
-    // التحقق من وجود الإضافات في الطلب واستخراجها
+    await assertAdminCafeAccess(product.cafe_id);
+
     const hasModifiersUpdate = 'modifier_ids' in productData;
     const modifierIds = Array.isArray(productData.modifier_ids) ? productData.modifier_ids : [];
     delete productData.modifier_ids;
 
-    // تحديث البيانات الأساسية للمنتج
     const { error: updateError } = await supabaseAdmin
       .from("products")
       .update(productData)
@@ -422,9 +423,7 @@ export async function adminUpdateProduct(id: string, productData: Record<string,
 
     if (updateError) throw updateError;
 
-    // تحديث روابط الإضافات في حال تم إرسالها
     if (hasModifiersUpdate) {
-      // حذف الروابط القديمة
       const { error: delError } = await supabaseAdmin
         .from("product_modifiers")
         .delete()
@@ -432,7 +431,6 @@ export async function adminUpdateProduct(id: string, productData: Record<string,
 
       if (delError) throw delError;
 
-      // إدراج الروابط الجديدة
       if (modifierIds.length > 0) {
         const modifierInserts = modifierIds.map((modId: string, index: number) => ({
           product_id: id,
@@ -464,6 +462,8 @@ export async function adminDeleteProduct(id: string) {
       .single();
 
     if (fetchError || !product) throw fetchError || new Error("Product not found");
+
+    await assertAdminCafeAccess(product.cafe_id);
 
     const { error } = await supabaseAdmin.from("products").delete().eq("id", id);
     if (error) throw error;
@@ -522,6 +522,8 @@ export async function cashierMarkOutOfStock(productId: string) {
 
 export async function adminCheckOrAddTable(cafeId: string, tableNumber: string) {
   try {
+    await assertAdminCafeAccess(cafeId);
+
     const token = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
     if (token.includes('.')) {
       const payload = JSON.parse(atob(token.split('.')[1]));
@@ -662,7 +664,6 @@ export async function getAdminMonthlySales(cafeId: string) {
 export async function getCashierCafeBySlug(cafeSlug: string) {
   const { data, error } = await supabaseAdmin
     .from("cafes")
-    // 🌟 تمت إضافة 'name' إلى الاستعلام هنا
     .select("id, name, plan_type, max_cashiers, is_white_label")
     .eq("slug", cafeSlug)
     .single();
@@ -673,8 +674,9 @@ export async function getCashierCafeBySlug(cafeSlug: string) {
 
   return { success: true, cafe: data };
 }
+
 export async function getCashierActiveOrders(cafeId: string) {
-  noStore(); // 🌟 هذا يمنع الكاش ويجلب البيانات الحية دائماً للكاشير
+  noStore(); 
   try {
     await assertCashierCafeAccess(cafeId);
     const orders = await getActiveOrdersForCafe(cafeId);
@@ -774,7 +776,7 @@ export async function createManualCashierOrder(payload: {
 }
 
 export async function getAdminTables(cafeId: string) {
-  noStore(); // 🌟 هذا السطر السحري يجبر Next.js على جلب البيانات حية من قاعدة البيانات دائماً ويمنع الكاش
+  noStore(); 
   try {
     const { data, error } = await supabaseAdmin
       .from("tables")
@@ -791,7 +793,16 @@ export async function getAdminTables(cafeId: string) {
 
 export async function adminDeleteTable(tableId: string) {
   try {
-    // 🌟 1. مسح الطلبات المرتبطة أولاً لتجنب أي قيود خفية (Foreign Key Constraints)
+    const { data: table, error: fetchError } = await supabaseAdmin
+      .from("tables")
+      .select("cafe_id")
+      .eq("id", tableId)
+      .single();
+
+    if (fetchError || !table) throw fetchError || new Error("Table not found");
+
+    await assertAdminCafeAccess(table.cafe_id);
+
     const { error: ordersError } = await supabaseAdmin
       .from("orders")
       .delete()
@@ -802,7 +813,6 @@ export async function adminDeleteTable(tableId: string) {
       throw ordersError;
     }
 
-    // 🌟 2. مسح الطاولة نفسها
     const { error: tableError } = await supabaseAdmin
       .from("tables")
       .delete()
@@ -813,7 +823,6 @@ export async function adminDeleteTable(tableId: string) {
       throw tableError;
     }
 
-    // 🌟 3. مسح كاش المسارات لإجبار التحديث
     revalidatePath('/', 'layout');
 
     return { success: true };
@@ -903,6 +912,8 @@ export async function getAdminPosDevices(cafeId: string) {
 
 export async function updateDeviceStatus(cafeId: string, deviceId: string, newStatus: 'approved' | 'blocked' | 'pending') {
   try {
+    await assertAdminCafeAccess(cafeId);
+
     if (newStatus === 'approved') {
       const { data: cafe } = await supabaseAdmin
         .from("cafes")
@@ -941,6 +952,8 @@ export async function updateDeviceStatus(cafeId: string, deviceId: string, newSt
 
 export async function deletePosDevice(cafeId: string, deviceId: string) {
   try {
+    await assertAdminCafeAccess(cafeId);
+
     const { error } = await supabaseAdmin
       .from("pos_devices")
       .delete()

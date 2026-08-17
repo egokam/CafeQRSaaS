@@ -20,6 +20,13 @@ function getPlanLimits(planType: string) {
 
 export async function POST(req: Request) {
   try {
+    // 🔒 التحقق الأمني الصارم: رفض أي طلب لا يحمل الرمز السري الخاص بك
+    const secretToken = req.headers.get("x-telegram-bot-api-secret-token");
+    if (secretToken !== process.env.TELEGRAM_WEBHOOK_SECRET) {
+      console.warn("🚨 Unauthorized Telegram Webhook Attempt Blocked!");
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const body = await req.json();
 
     // 1. Handle Callback Queries (Inline Keyboard Clicks)
