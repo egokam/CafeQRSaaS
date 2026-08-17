@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 55AqvnaFDcSOoXHxKUcegkihb8mohPV2vBsOp8zI51uSkhYhh21DhYJDHSokxua
+\restrict b6gMgQUHQXFAgAf5vmaSoLSj9W71g2cAywr8YI0JNLPyqfWKV2cE6PZGcNtejeI
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.6
@@ -848,24 +848,15 @@ ALTER FUNCTION pgbouncer.get_auth(p_usename text) OWNER TO supabase_admin;
 
 CREATE FUNCTION public.check_order_rate_limit() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
-
-BEGIN
-
-  IF (SELECT count(*) FROM orders 
-
-      WHERE session_id = NEW.session_id 
-
-      AND created_at > NOW() - INTERVAL '1 minute') >= 3 THEN
-
-    RAISE EXCEPTION 'هدئ اللعب! لا يمكنك طلب أكثر من 3 مرات في الدقيقة.';
-
-  END IF;
-
-  RETURN NEW;
-
-END;
-
+    AS $$
+BEGIN
+  IF (SELECT count(*) FROM orders 
+      WHERE session_id = NEW.session_id 
+      AND created_at > NOW() - INTERVAL '1 minute') >= 3 THEN
+    RAISE EXCEPTION 'هدئ اللعب! لا يمكنك طلب أكثر من 3 مرات في الدقيقة.';
+  END IF;
+  RETURN NEW;
+END;
 $$;
 
 
@@ -6027,52 +6018,10 @@ ALTER TABLE auth.sso_providers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auth.users ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: pos_devices Allow all for pos_devices; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow all for pos_devices" ON public.pos_devices USING (true) WITH CHECK (true);
-
-
---
--- Name: modifier_groups Allow all on modifier_groups; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow all on modifier_groups" ON public.modifier_groups USING (true) WITH CHECK (true);
-
-
---
--- Name: modifier_options Allow all on modifier_options; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow all on modifier_options" ON public.modifier_options USING (true) WITH CHECK (true);
-
-
---
--- Name: product_modifiers Allow all on product_modifiers; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow all on product_modifiers" ON public.product_modifiers USING (true) WITH CHECK (true);
-
-
---
 -- Name: products Allow cafe admin access; Type: POLICY; Schema: public; Owner: postgres
 --
 
 CREATE POLICY "Allow cafe admin access" ON public.products USING ((auth.uid() IS NOT NULL));
-
-
---
--- Name: payment_receipts Allow insert access to receipts; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow insert access to receipts" ON public.payment_receipts FOR INSERT WITH CHECK (true);
-
-
---
--- Name: cafes Allow owner to update their own cafe; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow owner to update their own cafe" ON public.cafes FOR UPDATE USING ((auth.uid() = owner_auth_id));
 
 
 --
@@ -6090,31 +6039,10 @@ CREATE POLICY "Allow public insert orders" ON public.orders FOR INSERT WITH CHEC
 
 
 --
--- Name: payment_receipts Allow public insert receipts; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow public insert receipts" ON public.payment_receipts USING (true) WITH CHECK (true);
-
-
---
--- Name: cafes Allow public read cafes; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow public read cafes" ON public.cafes FOR SELECT USING (true);
-
-
---
 -- Name: products Allow public read for products; Type: POLICY; Schema: public; Owner: postgres
 --
 
 CREATE POLICY "Allow public read for products" ON public.products FOR SELECT USING (true);
-
-
---
--- Name: payment_receipts Allow public read for receipts; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow public read for receipts" ON public.payment_receipts FOR SELECT USING (true);
 
 
 --
@@ -6139,48 +6067,6 @@ CREATE POLICY "Allow public read tables" ON public.tables FOR SELECT USING (true
 
 
 --
--- Name: payment_receipts Allow read access to receipts; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow read access to receipts" ON public.payment_receipts FOR SELECT USING (true);
-
-
---
--- Name: payment_receipts Allow update access to receipts; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Allow update access to receipts" ON public.payment_receipts FOR UPDATE USING (true);
-
-
---
--- Name: tables Enable insert for authenticated users; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Enable insert for authenticated users" ON public.tables FOR INSERT TO authenticated WITH CHECK (true);
-
-
---
--- Name: pos_devices Enable insert for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Enable insert for authenticated users only" ON public.pos_devices FOR INSERT WITH CHECK (true);
-
-
---
--- Name: pos_devices Enable insert for everyone; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Enable insert for everyone" ON public.pos_devices FOR INSERT WITH CHECK (true);
-
-
---
--- Name: pos_devices Enable read access for all users; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Enable read access for all users" ON public.pos_devices FOR SELECT USING (true);
-
-
---
 -- Name: orders Enable read access for everyone; Type: POLICY; Schema: public; Owner: postgres
 --
 
@@ -6195,17 +6081,80 @@ CREATE POLICY "Enable read access for realtime" ON public.orders FOR SELECT USIN
 
 
 --
--- Name: pos_devices Enable update for authenticated users only; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY "Enable update for authenticated users only" ON public.pos_devices FOR UPDATE USING (true);
-
-
---
 -- Name: menu_categories Public categories access; Type: POLICY; Schema: public; Owner: postgres
 --
 
 CREATE POLICY "Public categories access" ON public.menu_categories FOR SELECT USING (true);
+
+
+--
+-- Name: orders Public insert orders; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public insert orders" ON public.orders FOR INSERT WITH CHECK (true);
+
+
+--
+-- Name: cafes Public read active cafes; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public read active cafes" ON public.cafes FOR SELECT USING ((is_active = true));
+
+
+--
+-- Name: products Public read active products; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public read active products" ON public.products FOR SELECT USING ((is_active = true));
+
+
+--
+-- Name: menu_categories Public read categories; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public read categories" ON public.menu_categories FOR SELECT USING (true);
+
+
+--
+-- Name: modifier_groups Public read modifier groups; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public read modifier groups" ON public.modifier_groups FOR SELECT USING (true);
+
+
+--
+-- Name: modifier_options Public read modifier options; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public read modifier options" ON public.modifier_options FOR SELECT USING (true);
+
+
+--
+-- Name: platform_settings Public read platform settings; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public read platform settings" ON public.platform_settings FOR SELECT USING (true);
+
+
+--
+-- Name: product_modifiers Public read product modifiers; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public read product modifiers" ON public.product_modifiers FOR SELECT USING (true);
+
+
+--
+-- Name: tables Public read tables; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public read tables" ON public.tables FOR SELECT USING (true);
+
+
+--
+-- Name: orders Public select orders; Type: POLICY; Schema: public; Owner: postgres
+--
+
+CREATE POLICY "Public select orders" ON public.orders FOR SELECT USING (true);
 
 
 --
@@ -6214,6 +6163,12 @@ CREATE POLICY "Public categories access" ON public.menu_categories FOR SELECT US
 
 CREATE POLICY "Strict Client Orders Access" ON public.orders FOR SELECT USING (((auth.uid() = client_auth_id) OR (auth.role() = 'authenticated'::text)));
 
+
+--
+-- Name: admin_messages; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.admin_messages ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: cafes; Type: ROW SECURITY; Schema: public; Owner: postgres
@@ -6276,24 +6231,16 @@ ALTER TABLE public.product_modifiers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 
 --
--- Name: orders public_all_orders; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY public_all_orders ON public.orders USING (true) WITH CHECK (true);
-
-
---
--- Name: products public_all_products; Type: POLICY; Schema: public; Owner: postgres
---
-
-CREATE POLICY public_all_products ON public.products USING (true) WITH CHECK (true);
-
-
---
 -- Name: tables; Type: ROW SECURITY; Schema: public; Owner: postgres
 --
 
 ALTER TABLE public.tables ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: telegram_bot_state; Type: ROW SECURITY; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.telegram_bot_state ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: messages; Type: ROW SECURITY; Schema: realtime; Owner: supabase_realtime_admin
@@ -6313,13 +6260,6 @@ CREATE POLICY "Allow public receipt updates" ON storage.objects FOR UPDATE USING
 --
 
 CREATE POLICY "Allow public receipt uploads" ON storage.objects FOR INSERT WITH CHECK ((bucket_id = 'receipts'::text));
-
-
---
--- Name: objects Enable full access to storage; Type: POLICY; Schema: storage; Owner: supabase_storage_admin
---
-
-CREATE POLICY "Enable full access to storage" ON storage.objects USING (true) WITH CHECK (true);
 
 
 --
@@ -8192,5 +8132,5 @@ ALTER EVENT TRIGGER pgrst_drop_watch OWNER TO supabase_admin;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 55AqvnaFDcSOoXHxKUcegkihb8mohPV2vBsOp8zI51uSkhYhh21DhYJDHSokxua
+\unrestrict b6gMgQUHQXFAgAf5vmaSoLSj9W71g2cAywr8YI0JNLPyqfWKV2cE6PZGcNtejeI
 
