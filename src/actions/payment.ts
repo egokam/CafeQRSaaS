@@ -2,13 +2,23 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
+import { randomUUID } from "crypto";
 import { assertAdminCafeAccess } from "./auth"; // 🔒 استيراد قفل الأمان
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-export async function sendTelegramReceipt(data: {
+const RECEIPT_PLANS = new Set(["silver", "gold", "diamond"]);
+const RECEIPT_CYCLES = new Set(["monthly", "yearly"]);
+const RECEIPT_FILE_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+const MAX_RECEIPT_FILE_SIZE = 5 * 1024 * 1024;
+
+type TelegramReceiptData = {
   receiptId: string;
   cafeId: string;
   cafeName: string;
@@ -16,9 +26,9 @@ export async function sendTelegramReceipt(data: {
   receiptUrl: string;
   planId: string;
   billingCycle: string;
-}) {
-  await assertAdminCafeAccess(data.cafeId); // 🔒 حماية: فقط مالك المقهى يمكنه إرسال إشعار الدفع
+};
 
+async function sendTelegramReceiptNotification(data: TelegramReceiptData) {
   const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
   const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
@@ -66,6 +76,178 @@ export async function sendTelegramReceipt(data: {
   if (!res.ok) {
     const errData = await res.text();
     throw new Error("فشل إرسال الإشعار إلى Telegram: " + errData);
+  }
+}
+
+// Kept as a separately callable action for existing callers, but all new
+// receipt submissions use submitPaymentReceipt below so the record and the
+// notification are created from one authenticated server-side workflow.
+export async function sendTelegramReceipt(data: TelegramReceiptData) {
+  await assertAdminCafeAccess(data.cafeId);
+  await sendTelegramReceiptNotification(data);
+}
+
+export async function getAdminBillingDetails(cafeId: string) {
+  try {
+    await assertAdminCafeAccess(cafeId);
+
+    const [cafeResult, pendingResult, rejectedResult] = await Promise.all([
+      supabaseAdmin
+        .from("cafes")
+        .select("plan_type, billing_cycle, subscription_status, subscription_ends_at")
+        .eq("id", cafeId)
+        .single(),
+      supabaseAdmin
+        .from("payment_receipts")
+        .select("id, requested_plan, requested_cycle, status")
+        .eq("cafe_id", cafeId)
+        .in("status", ["pending", "under_review", "processing"])
+        .order("uploaded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("payment_receipts")
+        .select("rejection_reason")
+        .eq("cafe_id", cafeId)
+        .eq("status", "rejected")
+        .order("uploaded_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (cafeResult.error || !cafeResult.data) throw cafeResult.error || new Error("CAFE_NOT_FOUND");
+    if (pendingResult.error) throw pendingResult.error;
+    if (rejectedResult.error) throw rejectedResult.error;
+
+    return {
+      success: true,
+      cafe: cafeResult.data,
+      pendingReceipt: pendingResult.data,
+      rejectionReason: rejectedResult.data?.rejection_reason || null,
+    };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unable to load billing details";
+    return { success: false, error: message };
+  }
+}
+
+export async function submitPaymentReceipt(formData: FormData) {
+  let uploadedObjectPath: string | null = null;
+
+  try {
+    const cafeId = String(formData.get("cafeId") || "");
+    const requestedPlan = String(formData.get("requestedPlan") || "").toLowerCase();
+    const requestedCycle = String(formData.get("requestedCycle") || "").toLowerCase();
+    const fileEntry = formData.get("receipt");
+
+    if (!cafeId || !RECEIPT_PLANS.has(requestedPlan) || !RECEIPT_CYCLES.has(requestedCycle)) {
+      throw new Error("INVALID_RECEIPT_REQUEST");
+    }
+    if (!(fileEntry instanceof File) || fileEntry.size === 0) {
+      throw new Error("RECEIPT_FILE_REQUIRED");
+    }
+    if (fileEntry.size > MAX_RECEIPT_FILE_SIZE || !RECEIPT_FILE_TYPES[fileEntry.type]) {
+      throw new Error("INVALID_RECEIPT_FILE");
+    }
+
+    const cafe = await assertAdminCafeAccess(cafeId);
+    const { data: existingReceipt, error: existingReceiptError } = await supabaseAdmin
+      .from("payment_receipts")
+      .select("id")
+      .eq("cafe_id", cafeId)
+      .in("status", ["pending", "under_review", "processing"])
+      .limit(1)
+      .maybeSingle();
+
+    if (existingReceiptError) throw existingReceiptError;
+    if (existingReceipt) throw new Error("PENDING_RECEIPT_EXISTS");
+
+    const amountByPlan = {
+      silver: { monthly: 249, yearly: 2490 },
+      gold: { monthly: 399, yearly: 3990 },
+      diamond: { monthly: 799, yearly: 7990 },
+    } as const;
+    const amount = amountByPlan[requestedPlan as keyof typeof amountByPlan][
+      requestedCycle as "monthly" | "yearly"
+    ];
+    const extension = RECEIPT_FILE_TYPES[fileEntry.type];
+    uploadedObjectPath = `${cafeId}/${randomUUID()}.${extension}`;
+
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from("receipts")
+      .upload(uploadedObjectPath, Buffer.from(await fileEntry.arrayBuffer()), {
+        contentType: fileEntry.type,
+        upsert: false,
+      });
+    if (uploadError) throw uploadError;
+
+    const { data: publicUrlData } = supabaseAdmin.storage
+      .from("receipts")
+      .getPublicUrl(uploadedObjectPath);
+    const receiptUrl = publicUrlData.publicUrl;
+
+    const { data: receipt, error: receiptError } = await supabaseAdmin
+      .from("payment_receipts")
+      .insert({
+        cafe_id: cafeId,
+        amount,
+        receipt_url: receiptUrl,
+        bank_name: "CIH BANK",
+        status: "pending",
+        requested_plan: requestedPlan,
+        requested_cycle: requestedCycle,
+      })
+      .select("id")
+      .single();
+    if (receiptError || !receipt) throw receiptError || new Error("RECEIPT_INSERT_FAILED");
+
+    try {
+      const { data: cafeDetails } = await supabaseAdmin
+        .from("cafes")
+        .select("name")
+        .eq("id", cafe.id)
+        .single();
+      await sendTelegramReceiptNotification({
+        receiptId: receipt.id,
+        cafeId,
+        cafeName: cafeDetails?.name || "Cafe",
+        amount,
+        receiptUrl,
+        planId: requestedPlan,
+        billingCycle: requestedCycle,
+      });
+    } catch (notificationError) {
+      // The receipt exists safely even if Telegram is temporarily unavailable.
+      console.error("Telegram receipt notification failed", notificationError);
+    }
+
+    return { success: true, receiptId: receipt.id };
+  } catch (error: unknown) {
+    if (uploadedObjectPath) {
+      await supabaseAdmin.storage.from("receipts").remove([uploadedObjectPath]);
+    }
+    const message = error instanceof Error ? error.message : "Unable to submit receipt";
+    return { success: false, error: message };
+  }
+}
+
+export async function cancelPendingPaymentReceipt(cafeId: string, receiptId: string) {
+  try {
+    await assertAdminCafeAccess(cafeId);
+    const { data, error } = await supabaseAdmin
+      .from("payment_receipts")
+      .update({ status: "canceled" })
+      .eq("id", receiptId)
+      .eq("cafe_id", cafeId)
+      .in("status", ["pending", "under_review", "processing"])
+      .select("id")
+      .maybeSingle();
+
+    if (error || !data) throw error || new Error("RECEIPT_CANNOT_BE_CANCELLED");
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Unable to cancel receipt";
+    return { success: false, error: message };
   }
 }
 

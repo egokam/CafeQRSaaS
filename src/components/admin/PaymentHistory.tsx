@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
 import { 
   History, 
   AlertCircle, 
@@ -113,14 +112,7 @@ export default function PaymentHistory({ cafeId, activeLang, dir }: PaymentHisto
   useEffect(() => {
     if (!cafeId) return;
 
-    fetchHistory();
-
-    const channel = supabase.channel(`receipts_history_${cafeId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "payment_receipts", filter: `cafe_id=eq.${cafeId}` }, () => {
-        fetchHistory();
-      }).subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    void fetchHistory();
   }, [cafeId]);
 
   const getStatusConfig = (status: string) => {

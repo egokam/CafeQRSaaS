@@ -19,8 +19,10 @@ import {
   Banknote,
   Clock
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
-import { sendTelegramReceipt } from "@/actions/payment";
+import {
+  cancelPendingPaymentReceipt,
+  getAdminBillingDetails,
+} from "@/actions/payment";
 import PaymentHistory from "./PaymentHistory";
 
 interface BillingTabProps {
@@ -356,38 +358,26 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
     const fetchBillingDetails = async () => {
       setIsLoading(true);
       try {
-        const { data: cafeData, error: cafeError } = await supabase
-          .from("cafes")
-          .select("plan_type, billing_cycle, subscription_status, subscription_ends_at")
-          .eq("id", cafeId)
-          .single();
-
-        if (!cafeError && cafeData) {
-          setCurrentPlan(cafeData.plan_type || "silver");
-          setCurrentCycle(cafeData.billing_cycle || "monthly");
-          setSelectedCycle((cafeData.billing_cycle as "monthly" | "yearly") || "monthly");
-          setSubStatus(cafeData.subscription_status || "active");
-
-          if (cafeData.subscription_ends_at) {
-            const ends = new Date(cafeData.subscription_ends_at);
-            const diffDays = Math.ceil((ends.getTime() - Date.now()) / (1000 * 3600 * 24));
-            setDaysRemaining(diffDays);
-          }
+        const result = await getAdminBillingDetails(cafeId);
+        if (!result.success || !result.cafe) {
+          throw new Error(result.error || "Unable to load billing details");
         }
 
-        const { data: pendingReceipts, error: receiptError } = await supabase
-          .from("payment_receipts")
-          .select("id, requested_plan, requested_cycle, status")
-          .eq("cafe_id", cafeId)
-          .in("status", ["pending", "under_review", "processing"])
-          .order("uploaded_at", { ascending: false });
+        const cafeData = result.cafe;
 
-        if (receiptError) {
-          console.error("Receipt error:", receiptError);
+        setCurrentPlan(cafeData.plan_type || "silver");
+        setCurrentCycle(cafeData.billing_cycle || "monthly");
+        setSelectedCycle((cafeData.billing_cycle as "monthly" | "yearly") || "monthly");
+        setSubStatus(cafeData.subscription_status || "active");
+
+        if (cafeData.subscription_ends_at) {
+          const ends = new Date(cafeData.subscription_ends_at);
+          const diffDays = Math.ceil((ends.getTime() - Date.now()) / (1000 * 3600 * 24));
+          setDaysRemaining(diffDays);
         }
 
-        if (pendingReceipts && pendingReceipts.length > 0) {
-          const receipt = pendingReceipts[0];
+        if (result.pendingReceipt) {
+          const receipt = result.pendingReceipt;
           setHasPendingReceipt(true);
           setPendingReceiptId(receipt.id);
         } else {
@@ -395,19 +385,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
           setPendingReceiptId(null);
         }
 
-        if (cafeData?.subscription_status === "paused") {
-          const { data: rejectedReceipt } = await supabase
-            .from("payment_receipts")
-            .select("rejection_reason")
-            .eq("cafe_id", cafeId)
-            .eq("status", "rejected")
-            .order("uploaded_at", { ascending: false })
-            .limit(1)
-            .single();
-
-          if (rejectedReceipt?.rejection_reason) {
-            setRejectionReason(rejectedReceipt.rejection_reason);
-          }
+        if (cafeData.subscription_status === "paused" && result.rejectionReason) {
+          setRejectionReason(result.rejectionReason);
         }
       } catch (err) {
         console.error("Error fetching plan:", err);
@@ -430,7 +409,8 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
 
     setIsUploading(true);
     try {
-      await supabase.from("payment_receipts").update({ status: "canceled" }).eq("id", pendingReceiptId);
+      const result = await cancelPendingPaymentReceipt(cafeId, pendingReceiptId);
+      if (!result.success) throw new Error(result.error || "Unable to cancel receipt");
       setHasPendingReceipt(false);
       setPendingReceiptId(null);
     } catch (err) {
@@ -476,50 +456,21 @@ export default function BillingTab({ cafeId, cafeName, activeLang = 'en', t }: B
     setIsUploading(true);
 
     try {
-      const selectedPlanData = PLANS.find(p => p.id === pendingPlanId);
-      const amountStr = selectedPlanData?.prices[selectedCycle].replace(/,/g, '') || "0";
-      const amountNum = parseInt(amountStr);
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${cafeId}_${Date.now()}.${fileExt}`;
-      const filePath = `receipts/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("receipts")
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from("receipts")
-        .getPublicUrl(filePath);
-      const receiptUrl = publicUrlData.publicUrl;
-
-      const { data: receiptData, error: dbError } = await supabase.from("payment_receipts").insert({
-        cafe_id: cafeId,
-        amount: amountNum,
-        receipt_url: receiptUrl,
-        bank_name: BANK_INFO.bankName,
-        status: "pending",
-        requested_plan: pendingPlanId,
-        requested_cycle: selectedCycle
-      }).select("id").single();
-
-      if (dbError) throw dbError;
-
-      try {
-        await sendTelegramReceipt({
-          receiptId: receiptData?.id || "N/A",
-          cafeId: cafeId,
-          cafeName: cafeName,
-          amount: amountNum,
-          receiptUrl: receiptUrl,
-          planId: pendingPlanId,
-          billingCycle: selectedCycle
-        });
-      } catch (tgError) {
-        console.error("Telegram notification failed:", tgError);
+      const formData = new FormData();
+      formData.set("cafeId", cafeId);
+      formData.set("requestedPlan", pendingPlanId);
+      formData.set("requestedCycle", selectedCycle);
+      formData.set("receipt", file);
+      const response = await fetch("/api/admin/receipts", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result) {
+        throw new Error("Unable to submit receipt. Please try again.");
       }
+      if (!result.success) throw new Error(result.error || "Unable to submit receipt");
 
       alert(l.successMsg);
       window.location.reload();

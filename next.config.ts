@@ -3,6 +3,13 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  experimental: {
+    // Payment receipts are sent through an authenticated Server Action. Allow
+    // the 5MB validated image plus multipart request overhead.
+    serverActions: {
+      bodySizeLimit: '6mb',
+    },
+  },
   images: {
     remotePatterns: [
       {
