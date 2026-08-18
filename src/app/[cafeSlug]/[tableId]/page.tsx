@@ -5,7 +5,7 @@ import { CheckCircle, Clock, Coffee, Receipt, X as XIcon, Zap } from "lucide-rea
 import { useCart } from "../../../store/useCart";
 import { supabase } from "../../../lib/supabase";
 import { checkCafeSubscription } from "../../../actions/saas";
-import { cancelClientOrder, createClientOrder, getCachedCafeMenu } from "../../../actions/menu";
+import { cancelClientOrder, createClientOrder, getCachedCafeMenu, getClientActiveOrders } from "../../../actions/menu";
 
 import Topbar from "../../../components/client/Topbar";
 import Searchbar from "../../../components/client/Searchbar";
@@ -188,17 +188,6 @@ const TRANSLATIONS: Record<Lang, Translation> = {
 
 export const formatMAD = (price: number) => `${Number(price).toFixed(0)}`;
 
-const getSafeUUID = () => {
-  if (typeof window !== "undefined" && window.crypto && window.crypto.randomUUID) {
-    return window.crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = (Math.random() * 16) | 0,
-      v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-};
-
 export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug: string; tableId: string }> }) {
   const { cafeSlug, tableId: urlTableId } = use(params);
   const { items, totalItems, totalPrice, clearCart } = useCart();
@@ -253,21 +242,13 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     setActiveSubCategory("all");
   }, [activeCategoryId]);
 
-  const fetchUserOrders = async (sessionId: string, targetCafeId = cafeData?.id) => {
+  const fetchUserOrders = async (targetCafeId = cafeData?.id, legacySessionId?: string) => {
     if (!targetCafeId) return;
-    const { data } = await supabase
-      .from("orders")
-      .select("*, tables(table_number)")
-      .eq("cafe_id", targetCafeId)
-      .eq("session_id", sessionId)
-      .neq("status", "completed")
-      .neq("status", "rejected")
-      .neq("status", "cancelled")
-      .order("created_at", { ascending: false });
+    const result = await getClientActiveOrders(targetCafeId, legacySessionId);
 
-    if (data) {
-      setActiveOrders(data);
-      if (data.length === 0) setShowOrdersModal(false);
+    if (result.success) {
+      setActiveOrders(result.orders);
+      if (result.orders.length === 0) setShowOrdersModal(false);
     }
   };
 
@@ -275,8 +256,6 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     const fetchRealData = async () => {
       try {
         setIsLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) await supabase.auth.signInAnonymously();
 
         const subCheck = await checkCafeSubscription(cafeSlug);
         if (subCheck.status === "not_found") { setIsCafeNotFound(true); setIsLoading(false); return; }
@@ -305,12 +284,11 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
           if (cats) setCategories(cats);
         }
 
-        let sessionId = localStorage.getItem("cafe_lux_client_session");
-        if (!sessionId) {
-          sessionId = getSafeUUID();
-          localStorage.setItem("cafe_lux_client_session", sessionId);
-        }
-        if (menuData.success) await fetchUserOrders(sessionId, menuData.cafe.id);
+        // Preserve any order that was started under the previous local-storage
+        // mechanism, then migrate it to an HttpOnly per-cafe cookie.
+        const legacySessionId = localStorage.getItem("cafe_lux_client_session") || undefined;
+        if (legacySessionId) localStorage.removeItem("cafe_lux_client_session");
+        if (menuData.success) await fetchUserOrders(menuData.cafe.id, legacySessionId);
       } catch (error) {
         console.error("Error loading client data:", error);
       } finally {
@@ -321,9 +299,8 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
   }, [cafeSlug, urlTableId]);
 
   useEffect(() => {
-    const sessionId = localStorage.getItem("cafe_lux_client_session");
-    if (!sessionId || !cafeData?.id || activeOrders.length === 0) return;
-    const pollingInterval = setInterval(() => fetchUserOrders(sessionId, cafeData.id), 5000);
+    if (!cafeData?.id || activeOrders.length === 0) return;
+    const pollingInterval = setInterval(() => fetchUserOrders(cafeData.id), 5000);
     return () => clearInterval(pollingInterval);
   }, [activeOrders.length, cafeData?.id]);
 
@@ -336,10 +313,7 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
     setIsSubmitting(true);
     
     try {
-      const sessionId = localStorage.getItem("cafe_lux_client_session");
-      if (!sessionId) throw new Error("Missing session");
-
-      const res = await createClientOrder({ cafeId: cafeData.id, tableId, sessionId, items });
+      const res = await createClientOrder({ cafeId: cafeData.id, tableId, items });
       if (!res.success || !res.order) throw new Error(res.error);
 
       setActiveOrders((prev) => [res.order, ...prev]);
@@ -356,17 +330,16 @@ export default function ClientMenuPage({ params }: { params: Promise<{ cafeSlug:
 
   const handleCancelOrder = async (orderId: string) => {
     if (!confirm(activeLang === "ar" ? "هل أنت متأكد من الإلغاء؟" : "Are you sure?")) return;
-    const sessionId = localStorage.getItem("cafe_lux_client_session");
-    if (!sessionId || !cafeData?.id) return;
+    if (!cafeData?.id) return;
     try {
       setActiveOrders((prev) => {
         const newOrders = prev.filter((o) => o.id !== orderId);
         if (newOrders.length === 0) setShowOrdersModal(false);
         return newOrders;
       });
-      await cancelClientOrder(orderId, cafeData.id, sessionId);
+      await cancelClientOrder(orderId, cafeData.id);
     } catch {
-      fetchUserOrders(sessionId, cafeData.id);
+      fetchUserOrders(cafeData.id);
     }
   };
 

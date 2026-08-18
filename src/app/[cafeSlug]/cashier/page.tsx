@@ -10,7 +10,9 @@ import {
   createManualCashierOrder,
   getCashierActiveOrders,
   getCashierCafeBySlug,
+  getCashierDeviceStatus,
   getCashierWorkspace,
+  hasCashierCafeAccess,
   loginCashierWithDevice,
 } from "../../../actions/auth";
 import { checkCafeSubscription } from "../../../actions/saas";
@@ -32,6 +34,14 @@ const formatMAD = (price: number) => {
 };
 
 const LANGUAGES = ["en", "fr", "ar"];
+
+const createDeviceId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `dev_${crypto.randomUUID()}`;
+  }
+
+  return `dev_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+};
 
 export default function CashierDashboard({ params }: { params: Promise<{ cafeSlug: string }> }) {
   const { cafeSlug } = use(params);
@@ -89,16 +99,10 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   };
 
   const fetchOrders = async (cId: string) => {
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*, tables(table_number)')
-      .eq('cafe_id', cId)
-      .neq('status', 'completed')
-      .neq('status', 'rejected')
-      .neq('status', 'cancelled')
-      .order('created_at', { ascending: false });
+    const result = await getCashierActiveOrders(cId);
 
-    if (data) {
+    if (result.success) {
+      const data = result.orders;
       let hasNewOrder = false;
       
       setOrders(data);
@@ -125,7 +129,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     let storedId = localStorage.getItem(`cafeqr_device_${cafeSlug}`);
 
     if (!storedId || !storedId.startsWith('dev_')) {
-      storedId = 'dev_' + Math.random().toString(36).substring(2, 15);
+      storedId = createDeviceId();
       localStorage.setItem(`cafeqr_device_${cafeSlug}`, storedId);
     }
 
@@ -149,17 +153,12 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       setCafeDataObj(cafeRes.cafe);
 
       try {
-        const { data: deviceData } = await supabase
-          .from("pos_devices")
-          .select("status")
-          .eq("cafe_id", cId)
-          .eq("device_id", storedId)
-          .maybeSingle();
+        const deviceResult = await getCashierDeviceStatus(cafeSlug, storedId);
 
-        if (deviceData) {
-          setDeviceStatus(deviceData.status as any);
+        if (deviceResult.success) {
+          setDeviceStatus(deviceResult.status);
 
-          if (deviceData.status === 'approved' && sessionStorage.getItem(`cashier_auth_${cafeSlug}`) === 'true') {
+          if (deviceResult.status === 'approved' && await hasCashierCafeAccess(cId)) {
             const workspace = await getCashierWorkspace(cId);
             if (workspace.success) {
               setProducts(workspace.products);
@@ -172,10 +171,10 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
               setIsAuthenticated(true);
               
               await fetchCategories(cId);
-            } else {
-              sessionStorage.removeItem(`cashier_auth_${cafeSlug}`);
             }
           }
+        } else {
+          console.error("Unable to read cashier device status:", deviceResult.error);
         }
       } catch (err) {
         console.error("Error verifying device session:", err);
@@ -185,6 +184,37 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     };
     initCafe();
   }, [cafeSlug]);
+
+  // Approval happens while the cashier is unauthenticated, so database
+  // Realtime cannot be the source of truth here. Poll the scoped server action
+  // instead; it works with the hardened RLS policy and also catches a later
+  // block/revocation of an active device.
+  useEffect(() => {
+    if (!deviceId || (!isAuthenticated && deviceStatus !== 'pending')) return;
+
+    let cancelled = false;
+    const refreshDeviceStatus = async () => {
+      const result = await getCashierDeviceStatus(cafeSlug, deviceId);
+      if (cancelled || !result.success) return;
+
+      if (result.status === 'approved') {
+        setDeviceStatus('approved');
+        return;
+      }
+
+      if (result.status === 'pending' || result.status === 'blocked' || result.status === 'none') {
+        setDeviceStatus(result.status);
+        setIsAuthenticated(false);
+      }
+    };
+
+    void refreshDeviceStatus();
+    const interval = window.setInterval(refreshDeviceStatus, isAuthenticated ? 10_000 : 5_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [cafeSlug, deviceId, deviceStatus, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated || !cafeId) return;
@@ -199,17 +229,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
   useEffect(() => {
     if (!isAuthenticated || !cafeId || !deviceId) return;
-
-    const deviceChannel = supabase.channel(`device_${deviceId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pos_devices', filter: `device_id=eq.${deviceId}` }, (payload: any) => {
-        if (payload.new.status === 'blocked') {
-          setIsAuthenticated(false);
-          setDeviceStatus('blocked');
-        } else if (payload.new.status === 'pending') {
-          setIsAuthenticated(false);
-          setDeviceStatus('pending');
-        }
-      }).subscribe();
 
     const slotChannel = supabase.channel(`cashier_slots_${cafeId}`, { config: { presence: { key: deviceId } } });
 
@@ -235,7 +254,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     });
 
     return () => {
-      supabase.removeChannel(deviceChannel);
       supabase.removeChannel(slotChannel);
     };
   }, [isAuthenticated, cafeId, deviceId, cafeDataObj?.max_cashiers]);
@@ -263,7 +281,6 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       await fetchCategories(cafeId); 
 
       setIsAuthenticated(true);
-      sessionStorage.setItem(`cashier_auth_${cafeSlug}`, 'true');
       setDeviceStatus('approved');
       setAttempts(0);
       setPinInput("");

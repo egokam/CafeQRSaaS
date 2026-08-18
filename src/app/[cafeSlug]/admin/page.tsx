@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use, useRef, useCallback } from "react";
+import { useState, useEffect, use, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import {
   QrCode, PackageSearch, Lock, Settings, AlertTriangle,
@@ -10,9 +10,15 @@ import {
 import {
   getAdminCafeBySlug,
   getAdminMonthlySales,
+  getAdminPosDevices,
+  getAdminProducts,
+  hasAdminCafeAccess,
+  requestAdminPasswordRecovery,
+  resetAdminPasswordWithOtp,
   signInAdminWithEmail,
   getAdminTables
 } from "../../../actions/auth";
+import { getAdminMessages } from "../../../actions/support";
 
 import MenuTab from "../../../components/admin/MenuTab";
 import ModifiersTab from "../../../components/admin/ModifiersTab"; // 🌟 تم الاستيراد هنا
@@ -116,17 +122,12 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
   const [devicesList, setDevicesList] = useState<any[]>([]);
   const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+  const [devicesError, setDevicesError] = useState<string | null>(null);
 
   const [hasUnreadSupport, setHasUnreadSupport] = useState(false);
-  const [latestAdminMessage, setLatestAdminMessage] = useState<any>(null);
+  const [latestAdminMessage] = useState<any>(null);
   const [isChatConnected, setIsChatConnected] = useState(false);
   
-  const activeTabRef = useRef(activeTab);
-
-  useEffect(() => {
-    activeTabRef.current = activeTab;
-  }, [activeTab]);
-
   const handleMessagesRead = useCallback(() => {
     setHasUnreadSupport(false);
   }, []);
@@ -165,33 +166,20 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     if (!cafeId || !isAuthenticated) return;
 
     const checkUnreadMessages = async () => {
-      const { data } = await supabase.from("admin_messages").select("id").eq("cafe_id", cafeId).eq("sender", "super_admin").eq("is_read", false).limit(1);
-      if (data && data.length > 0 && activeTabRef.current !== 'support') {
-        setHasUnreadSupport(true);
+      try {
+        const messages = await getAdminMessages(cafeId);
+        setIsChatConnected(true);
+        if (activeTab !== 'support' && messages.some((message) => message.sender === 'super_admin' && !message.is_read)) {
+          setHasUnreadSupport(true);
+        }
+      } catch {
+        setIsChatConnected(false);
       }
     };
     checkUnreadMessages();
-
-    const channelName = `global_alerts_listener_${cafeId}`;
-    
-    supabase.getChannels().forEach(c => {
-      if (c.topic === `realtime:${channelName}`) supabase.removeChannel(c);
-    });
-
-    const globalMessagesChannel = supabase.channel(channelName)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "admin_messages" }, (payload) => {
-        if (payload.new && payload.new.cafe_id === cafeId) {
-          setLatestAdminMessage(payload.new); 
-          if (payload.new.sender === 'super_admin' && activeTabRef.current !== 'support') {
-            setHasUnreadSupport(true);
-          }
-        }
-      }).subscribe((status) => {
-        setIsChatConnected(status === 'SUBSCRIBED');
-      });
-
-    return () => { supabase.removeChannel(globalMessagesChannel); };
-  }, [cafeId, isAuthenticated]);
+    const interval = window.setInterval(checkUnreadMessages, 30_000);
+    return () => window.clearInterval(interval);
+  }, [activeTab, cafeId, isAuthenticated]);
 
   const fetchTables = async (cId: string) => {
     setIsLoadingTables(true);
@@ -200,27 +188,42 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     setIsLoadingTables(false);
   };
 
-  const fetchDevices = async (cId: string) => {
-    setIsLoadingDevices(true);
+  const fetchDevices = async (cId: string, background = false) => {
+    if (!cId) return false;
+    if (!background) setIsLoadingDevices(true);
     try {
-      const { data } = await supabase.from("pos_devices").select("*").eq("cafe_id", cId).order("created_at", { ascending: false });
-      if (data) setDevicesList(data);
-    } catch (err) {} finally { setIsLoadingDevices(false); }
+      const res = await getAdminPosDevices(cId);
+      if (!res.success) {
+        setDevicesError(res.error || "Unable to load POS devices");
+        return false;
+      }
+
+      setDevicesList(res.devices);
+      setDevicesError(null);
+      return true;
+    } catch (error: unknown) {
+      setDevicesError(error instanceof Error ? error.message : "Unable to load POS devices");
+      return false;
+    } finally {
+      if (!background) setIsLoadingDevices(false);
+    }
   };
+
+  useEffect(() => {
+    if (!isAuthenticated || !cafeId || activeTab !== "devices") return;
+
+    void fetchDevices(cafeId);
+    const interval = window.setInterval(() => {
+      void fetchDevices(cafeId, true);
+    }, 5_000);
+
+    return () => window.clearInterval(interval);
+  }, [activeTab, cafeId, isAuthenticated]);
 
   const fetchProducts = async (cId: string) => {
     try {
-      const { data } = await supabase
-        .from("products")
-        .select(`
-          *,
-          product_modifiers (
-            modifier_group_id
-          )
-        `)
-        .eq("cafe_id", cId)
-        .order("created_at", { ascending: false });
-      if (data) setProducts(data);
+      const res = await getAdminProducts(cId);
+      if (res.success) setProducts(res.products);
     } catch (err) {}
   };
 
@@ -260,23 +263,16 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
       if (cafeData.subscription_ends_at) setSubscriptionEndsAt(cafeData.subscription_ends_at);
       if (cafeData.subscription_status) setSubscriptionStatus(cafeData.subscription_status);
 
-      if (cafeData.owner_email) {
-        setOwnerEmail(cafeData.owner_email);
-        const sessionKey = `admin_auth_${cafeSlug}`;
-        if (sessionStorage.getItem(sessionKey) === 'true') {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user && user.email?.toLowerCase() === cafeData.owner_email.toLowerCase()) {
-            setIsAuthenticated(true);
-            await Promise.all([
-              fetchProducts(cafeData.id),
-              cafeData.plan_type !== 'silver' && cafeData.plan_type !== 'starter' ? fetchMonthlySales(cafeData.id) : Promise.resolve(),
-              fetchTables(cafeData.id),
-              fetchDevices(cafeData.id)
-            ]);
-          } else {
-            sessionStorage.removeItem(sessionKey); await supabase.auth.signOut(); setIsAuthenticated(false);
-          }
-        }
+      if (cafeData.owner_email) setOwnerEmail(cafeData.owner_email);
+
+      if (await hasAdminCafeAccess(cafeData.id)) {
+        setIsAuthenticated(true);
+        await Promise.all([
+          fetchProducts(cafeData.id),
+          cafeData.plan_type !== 'silver' && cafeData.plan_type !== 'starter' ? fetchMonthlySales(cafeData.id) : Promise.resolve(),
+          fetchTables(cafeData.id),
+          fetchDevices(cafeData.id)
+        ]);
       }
       setIsLoading(false);
     };
@@ -287,11 +283,10 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     if (!cafeId || !isAuthenticated) return;
 
     const slotsTopic = `cashier_slots_${cafeId}`;
-    const devicesTopic = `admin_devices_live_${cafeId}`;
     const adminKey = `admin_${Math.random().toString(36).substring(2, 10)}`;
 
     supabase.getChannels().forEach(c => {
-      if (c.topic === `realtime:${slotsTopic}` || c.topic === `realtime:${devicesTopic}`) supabase.removeChannel(c);
+      if (c.topic === `realtime:${slotsTopic}`) supabase.removeChannel(c);
     });
 
     const cashierChannel = supabase.channel(slotsTopic, { config: { presence: { key: adminKey } } });
@@ -314,9 +309,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         }
       });
 
-    const devicesChannel = supabase.channel(devicesTopic).on('postgres_changes', { event: '*', schema: 'public', table: 'pos_devices', filter: `cafe_id=eq.${cafeId}` }, () => { fetchDevices(cafeId); }).subscribe();
-
-    return () => { cashierChannel.untrack(); supabase.removeChannel(cashierChannel); supabase.removeChannel(devicesChannel); };
+    return () => { cashierChannel.untrack(); supabase.removeChannel(cashierChannel); };
   }, [cafeId, isAuthenticated]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -328,11 +321,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
     setIsChecking(false);
 
     if (res.success) {
-      if (res.session?.access_token && res.session?.refresh_token) {
-        await supabase.auth.setSession({ access_token: res.session.access_token, refresh_token: res.session.refresh_token });
-      }
       setIsAuthenticated(true);
-      sessionStorage.setItem(`admin_auth_${cafeSlug}`, 'true');
       await Promise.all([
         fetchProducts(cafeId),
         planType !== 'silver' && planType !== 'starter' ? fetchMonthlySales(cafeId) : Promise.resolve(),
@@ -344,39 +333,38 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
   const handleAutoRecovery = async () => {
     if (!ownerEmail) { alert(t.noOwnerEmail); return; }
     setIsChecking(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(ownerEmail);
+    const { success, error } = await requestAdminPasswordRecovery(cafeId, ownerEmail);
     setIsChecking(false);
-    if (!error) {
+    if (success) {
       setAuthMode("otp");
       const maskedEmail = ownerEmail.replace(/^(.)(.*)(.@.*)$/, (_, a, b, c) => a + b.replace(/./g, '*') + c);
       alert(`${t.otpSent}${maskedEmail} 📩`);
-    } else alert(t.sendError + error.message);
+    } else alert(t.sendError + (error || ""));
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otpInput || !ownerEmail) return;
     setIsChecking(true);
-    const { error } = await supabase.auth.verifyOtp({ email: ownerEmail, token: otpInput, type: 'recovery' });
+    // The OTP is verified together with the password update so no Supabase
+    // browser session is created or shared with another role.
     setIsChecking(false);
-    if (error) alert(t.invalidOtp); else setAuthMode("reset");
+    setAuthMode("reset");
   };
 
   const handleSetNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPasswordInput) return;
     setIsChecking(true);
-    const { error } = await supabase.auth.updateUser({ password: newPasswordInput });
+    if (!cafeId || !ownerEmail || !otpInput) return;
+    const { success, error } = await resetAdminPasswordWithOtp(cafeId, ownerEmail, otpInput, newPasswordInput);
     setIsChecking(false);
 
-    if (error) alert(t.passwordUpdateFail + error.message);
+    if (!success) alert(t.passwordUpdateFail + (error || ""));
     else {
       const loginRes = await signInAdminWithEmail(ownerEmail, newPasswordInput);
       if (!loginRes.success) { alert(loginRes.error || t.invalidLogin); return; }
-      if (loginRes.session?.access_token && loginRes.session?.refresh_token) {
-        await supabase.auth.setSession({ access_token: loginRes.session.access_token, refresh_token: loginRes.session.refresh_token });
-      }
-      alert(t.passwordUpdateSuccess); setIsAuthenticated(true); sessionStorage.setItem(`admin_auth_${cafeSlug}`, 'true'); setAuthMode("login");
+      alert(t.passwordUpdateSuccess); setIsAuthenticated(true); setAuthMode("login");
       if (cafeId) {
         await Promise.all([
           fetchProducts(cafeId),
@@ -500,7 +488,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
 
         {activeTab === 'qr' && <TablesTab cafeId={cafeId!} cafeSlug={cafeSlug} cafeName={cafeName} activeLang={activeLang} t={t} tablesList={tablesList} setTablesList={setTablesList} fetchTables={fetchTables} isLoadingTables={isLoadingTables} maxTables={maxTables} />}
         {activeTab === 'sales' && <SalesTab cafeId={cafeId!} activeLang={activeLang} t={t} planType={planType} monthlyOrders={monthlyOrders} monthlyIncome={monthlyIncome} isLoadingSales={isLoadingSales} fetchMonthlySales={fetchMonthlySales} setActiveTab={switchTab} />}
-        {activeTab === 'devices' && <DevicesTab cafeId={cafeId!} activeLang={activeLang} t={t} devicesList={devicesList} fetchDevices={fetchDevices} isLoadingDevices={isLoadingDevices} maxCashiers={maxCashiers} />}
+        {activeTab === 'devices' && <DevicesTab cafeId={cafeId!} activeLang={activeLang} t={t} devicesList={devicesList} fetchDevices={fetchDevices} isLoadingDevices={isLoadingDevices} devicesError={devicesError} maxCashiers={maxCashiers} />}
         
         {activeTab === 'settings' && <SettingsTab cafeId={cafeId!} activeLang={activeLang} t={t} cafeName={cafeName} setCafeName={setCafeName} maxCashiers={maxCashiers} activeCashiers={activeCashiers} planType={planType} billingCycle={billingCycle} maxTables={maxTables} maxMenu={maxMenu} cafeLatitude={cafeLatitude} cafeLongitude={cafeLongitude} />}
         

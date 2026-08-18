@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "../../lib/supabase";
 import { Plus, Edit2, Trash2, Loader2, Check, X, CircleDot, CheckSquare, PlusSquare, SlidersHorizontal, Settings2 } from "lucide-react";
+import { deleteAdminModifierGroup, getAdminModifierGroups, saveAdminModifierGroup } from "../../actions/menu";
 
 type ModifierType = 'single_choice' | 'multiple_choice' | 'incremental' | 'slider';
 
@@ -31,13 +31,8 @@ export default function ModifiersTab({ cafeId, activeLang }: { cafeId: string, a
 
   const fetchModifierGroups = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase
-      .from('modifier_groups')
-      .select('*, modifier_options(*)')
-      .eq('cafe_id', cafeId)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) setGroups(data);
+    const result = await getAdminModifierGroups(cafeId);
+    if (result.success) setGroups(result.groups);
     setIsLoading(false);
   };
 
@@ -83,43 +78,19 @@ export default function ModifiersTab({ cafeId, activeLang }: { cafeId: string, a
 
     setIsSaving(true);
     try {
-      let savedGroupId = editingGroupId;
-
       const groupData = {
-        cafe_id: cafeId,
+        id: editingGroupId || undefined,
         name_ar: nameAr,
         name_en: nameEn,
         name_fr: nameFr,
         type,
         min_selections: minSelections,
-        max_selections: maxSelections
+        max_selections: maxSelections,
+        options,
       };
 
-      if (editingGroupId) {
-        const { error } = await supabase.from('modifier_groups').update(groupData).eq('id', editingGroupId);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from('modifier_groups').insert([groupData]).select().single();
-        if (error || !data) throw error;
-        savedGroupId = data.id;
-      }
-
-      if (savedGroupId) {
-        await supabase.from('modifier_options').delete().eq('modifier_group_id', savedGroupId);
-
-        const optionsToInsert = options.map(opt => ({
-          modifier_group_id: savedGroupId,
-          name_ar: opt.name_ar,
-          name_en: opt.name_en,
-          name_fr: opt.name_fr,
-          price_adjustment: opt.price_adjustment
-        }));
-
-        if (optionsToInsert.length > 0) {
-          const { error: optionsError } = await supabase.from('modifier_options').insert(optionsToInsert);
-          if (optionsError) throw optionsError;
-        }
-      }
+      const result = await saveAdminModifierGroup(cafeId, groupData);
+      if (!result.success) throw new Error(result.error);
 
       resetForm();
       fetchModifierGroups();
@@ -133,8 +104,8 @@ export default function ModifiersTab({ cafeId, activeLang }: { cafeId: string, a
   const handleDelete = async (id: string) => {
     if (!confirm(activeLang === 'ar' ? 'هل أنت متأكد من حذف هذه المجموعة؟' : 'Are you sure you want to delete this group?')) return;
     try {
-      const { error } = await supabase.from('modifier_groups').delete().eq('id', id);
-      if (error) throw error;
+      const result = await deleteAdminModifierGroup(cafeId, id);
+      if (!result.success) throw new Error(result.error);
       fetchModifierGroups();
     } catch (err: any) {
       alert("Error deleting: " + err.message);

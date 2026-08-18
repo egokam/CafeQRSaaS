@@ -7,8 +7,12 @@ import { createHmac, timingSafeEqual } from "crypto";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+const superAdminEmail = (
+  process.env.SUPER_ADMIN_EMAIL || "elotmanikamal607@gmail.com"
+).trim().toLowerCase();
 
 type CafeRole = "admin" | "cashier";
+type PosDeviceStatus = "pending" | "approved" | "blocked";
 type OrderInputItem = { id?: unknown; quantity?: unknown };
 type PricedProduct = {
   id: string;
@@ -19,8 +23,33 @@ type PricedProduct = {
 };
 type ProductMutationData = Record<string, unknown> & { cafe_id?: string };
 
+const PRODUCT_MUTABLE_COLUMNS = [
+  "name_ar",
+  "name_en",
+  "name_fr",
+  "description_ar",
+  "price",
+  "category",
+  "category_id",
+  "sub_category",
+  "image_url",
+  "is_active",
+] as const;
+
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Unexpected error";
+
+const POS_DEVICE_STATUSES = new Set<PosDeviceStatus>([
+  "pending",
+  "approved",
+  "blocked",
+]);
+
+const isValidPosDeviceId = (value: unknown): value is string =>
+  typeof value === "string" && /^dev_[a-zA-Z0-9_-]{8,128}$/.test(value);
+
+const isValidPosDeviceName = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0 && value.trim().length <= 200;
 
 const cookieOptions = {
   httpOnly: true,
@@ -31,24 +60,31 @@ const cookieOptions = {
 };
 
 const getAuthSecret = () =>
-  process.env.AUTH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || "cafeqr-dev-secret";
+  process.env.AUTH_SECRET || supabaseServiceKey;
 
 const signPayload = (payload: string) =>
   createHmac("sha256", getAuthSecret()).update(payload).digest("hex");
 
 const getRoleCookieName = (role: CafeRole, cafeId: string) => `cafeqr_${role}_${cafeId}`;
+const superAdminCookieName = "cafeqr_super_admin";
 
-const getRolePayload = (role: CafeRole, cafeId: string, email?: string) =>
+const getRolePayload = (role: CafeRole, cafeId: string, identity?: string) =>
   role === "admin"
-    ? `${role}:${cafeId}:${email?.toLowerCase() || ""}`
-    : `${role}:${cafeId}`;
+    ? `${role}:${cafeId}:${identity?.toLowerCase() || ""}`
+    : `${role}:${cafeId}:${identity || ""}`;
 
 const createSignedCookieValue = (payload: string) => `${payload}.${signPayload(payload)}`;
 
 const isValidSignedCookieValue = (value: string | undefined, payload: string) => {
   if (!value) return false;
 
-  const [rawPayload, signature] = value.split(".");
+  // Payloads may contain an email address, and email addresses can contain
+  // dots. Split at the final delimiter so the HMAC is read intact.
+  const separatorIndex = value.lastIndexOf(".");
+  if (separatorIndex <= 0) return false;
+
+  const rawPayload = value.slice(0, separatorIndex);
+  const signature = value.slice(separatorIndex + 1);
   if (rawPayload !== payload || !signature) return false;
 
   const expectedSignature = signPayload(payload);
@@ -57,6 +93,66 @@ const isValidSignedCookieValue = (value: string | undefined, payload: string) =>
 
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 };
+
+function sanitizeProductMutation(data: ProductMutationData) {
+  const updates: Record<string, unknown> = {};
+
+  for (const column of PRODUCT_MUTABLE_COLUMNS) {
+    if (column in data) updates[column] = data[column];
+  }
+
+  if (typeof updates.name_ar !== "string" || updates.name_ar.trim() === "") {
+    throw new Error("Product name is required");
+  }
+
+  const price = Number(updates.price);
+  if (!Number.isFinite(price) || price < 0) {
+    throw new Error("Product price must be a non-negative number");
+  }
+  updates.price = price;
+
+  for (const column of [
+    "name_en",
+    "name_fr",
+    "description_ar",
+    "category",
+    "category_id",
+    "sub_category",
+    "image_url",
+  ]) {
+    if (column in updates && updates[column] !== null && typeof updates[column] !== "string") {
+      throw new Error(`Invalid ${column}`);
+    }
+  }
+
+  if ("is_active" in updates && typeof updates.is_active !== "boolean") {
+    throw new Error("Invalid is_active value");
+  }
+
+  return updates;
+}
+
+async function assertModifierGroupsBelongToCafe(cafeId: string, rawModifierIds: unknown) {
+  if (!Array.isArray(rawModifierIds)) return [] as string[];
+
+  const modifierIds = [...new Set(rawModifierIds.filter((id): id is string => typeof id === "string"))];
+  if (modifierIds.length !== rawModifierIds.length) {
+    throw new Error("Invalid modifier group id");
+  }
+  if (modifierIds.length === 0) return modifierIds;
+
+  const { data, error } = await supabaseAdmin
+    .from("modifier_groups")
+    .select("id")
+    .eq("cafe_id", cafeId)
+    .in("id", modifierIds);
+
+  if (error || !data || data.length !== modifierIds.length) {
+    throw new Error("One or more modifier groups do not belong to this cafe");
+  }
+
+  return modifierIds;
+}
 
 async function setRoleCookie(role: CafeRole, cafeId: string, email?: string) {
   const cookieStore = await cookies();
@@ -77,6 +173,41 @@ async function hasRoleCookie(role: CafeRole, cafeId: string, email?: string) {
   return isValidSignedCookieValue(value, payload);
 }
 
+const getSuperAdminPayload = () => `super_admin:${superAdminEmail}`;
+
+async function setSuperAdminCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set(
+    superAdminCookieName,
+    createSignedCookieValue(getSuperAdminPayload()),
+    cookieOptions
+  );
+}
+
+export async function assertSuperAdminAccess() {
+  const cookieStore = await cookies();
+  const value = cookieStore.get(superAdminCookieName)?.value;
+
+  if (!isValidSignedCookieValue(value, getSuperAdminPayload())) {
+    throw new Error("UNAUTHORIZED_SUPER_ADMIN");
+  }
+}
+
+export async function hasSuperAdminAccess() {
+  try {
+    await assertSuperAdminAccess();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function signOutSuperAdmin() {
+  const cookieStore = await cookies();
+  cookieStore.delete(superAdminCookieName);
+  return { success: true };
+}
+
 export async function assertAdminCafeAccess(cafeId: string) {
   const { data: cafe, error } = await supabaseAdmin
     .from("cafes")
@@ -93,8 +224,38 @@ export async function assertAdminCafeAccess(cafeId: string) {
 }
 
 export async function assertCashierCafeAccess(cafeId: string) {
-  const isAllowed = await hasRoleCookie("cashier", cafeId);
-  if (!isAllowed) throw new Error("UNAUTHORIZED_CASHIER");
+  const cookieStore = await cookies();
+  const value = cookieStore.get(getRoleCookieName("cashier", cafeId))?.value;
+  const [payload] = value?.split(".") || [];
+  const [role, payloadCafeId, deviceId] = payload?.split(":") || [];
+
+  if (
+    role !== "cashier" ||
+    payloadCafeId !== cafeId ||
+    !isValidPosDeviceId(deviceId) ||
+    !isValidSignedCookieValue(value, payload)
+  ) {
+    throw new Error("UNAUTHORIZED_CASHIER");
+  }
+
+  const { data: device, error } = await supabaseAdmin
+    .from("pos_devices")
+    .select("id")
+    .eq("cafe_id", cafeId)
+    .eq("device_id", deviceId)
+    .eq("status", "approved")
+    .maybeSingle();
+
+  if (error || !device) throw new Error("UNAUTHORIZED_CASHIER");
+}
+
+export async function hasCashierCafeAccess(cafeId: string) {
+  try {
+    await assertCashierCafeAccess(cafeId);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function normalizeOrderItems(items: unknown) {
@@ -193,12 +354,65 @@ export async function signInAdminWithEmail(email: string, password: string) {
 
   await setRoleCookie("admin", cafeData.id, cafeData.owner_email);
 
-  return {
-    success: true,
-    session: data.session,
-    user: data.user,
-    cafe: cafeData,
-  };
+  return { success: true, cafe: cafeData };
+}
+
+export async function signInSuperAdmin(email: string, password: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail !== superAdminEmail) {
+    return { success: false, error: "UNAUTHORIZED_SUPER_ADMIN" };
+  }
+
+  const tempAuthClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await tempAuthClient.auth.signInWithPassword({
+    email: normalizedEmail,
+    password,
+  });
+
+  if (error || data.user?.email?.toLowerCase() !== superAdminEmail) {
+    return { success: false, error: "INVALID_CREDENTIALS" };
+  }
+
+  await setSuperAdminCookie();
+  return { success: true };
+}
+
+export async function sendSuperAdminOtp(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail !== superAdminEmail) {
+    return { success: false, error: "UNAUTHORIZED_SUPER_ADMIN" };
+  }
+
+  const { error } = await supabaseAdmin.auth.signInWithOtp({
+    email: normalizedEmail,
+    options: { shouldCreateUser: false },
+  });
+  return { success: !error, error: error?.message };
+}
+
+export async function verifySuperAdminOtp(email: string, otp: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail !== superAdminEmail) {
+    return { success: false, error: "UNAUTHORIZED_SUPER_ADMIN" };
+  }
+
+  const tempAuthClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error } = await tempAuthClient.auth.verifyOtp({
+    email: normalizedEmail,
+    token: otp.trim(),
+    type: "email",
+  });
+
+  if (error || data.user?.email?.toLowerCase() !== superAdminEmail) {
+    return { success: false, error: error?.message || "INVALID_OTP" };
+  }
+
+  await setSuperAdminCookie();
+  return { success: true };
 }
 
 export async function signUpNewCafe(
@@ -248,6 +462,68 @@ export async function sendRecoveryEmail(email: string) {
   return { success: !error, error: error?.message };
 }
 
+export async function requestAdminPasswordRecovery(cafeId: string, email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data: cafe, error: cafeError } = await supabaseAdmin
+    .from("cafes")
+    .select("id, slug, owner_email")
+    .eq("id", cafeId)
+    .ilike("owner_email", normalizedEmail)
+    .maybeSingle();
+
+  if (cafeError || !cafe) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
+  const { error } = await supabaseAdmin.auth.resetPasswordForEmail(cafe.owner_email, {
+    redirectTo: `${siteUrl}/${cafe.slug}/admin`,
+  });
+
+  return { success: !error, error: error?.message };
+}
+
+export async function resetAdminPasswordWithOtp(
+  cafeId: string,
+  email: string,
+  otp: string,
+  newPassword: string
+) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (newPassword.length < 8) {
+    return { success: false, error: "WEAK_PASSWORD" };
+  }
+
+  const { data: cafe, error: cafeError } = await supabaseAdmin
+    .from("cafes")
+    .select("id, owner_email, owner_auth_id")
+    .eq("id", cafeId)
+    .ilike("owner_email", normalizedEmail)
+    .maybeSingle();
+
+  if (cafeError || !cafe) {
+    return { success: false, error: "UNAUTHORIZED_ADMIN" };
+  }
+
+  const tempAuthClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data, error: otpError } = await tempAuthClient.auth.verifyOtp({
+    email: normalizedEmail,
+    token: otp.trim(),
+    type: "recovery",
+  });
+
+  if (otpError || !data.user || (cafe.owner_auth_id && data.user.id !== cafe.owner_auth_id)) {
+    return { success: false, error: "INVALID_OTP" };
+  }
+
+  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(data.user.id, {
+    password: newPassword,
+  });
+  return { success: !updateError, error: updateError?.message };
+}
+
 export async function verifyPin(cafeId: string, role: "admin" | "cashier", pin: string) {
   await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -261,7 +537,8 @@ export async function verifyPin(cafeId: string, role: "admin" | "cashier", pin: 
     if (error || !data || data.subscription_status === "suspended") return false;
 
     const isValid = pin === data.cashier_pin;
-    if (isValid) await setRoleCookie("cashier", cafeId);
+    // Cashier workspaces are bound to an approved POS device in
+    // loginCashierWithDevice; a PIN alone must not create a reusable session.
     return isValid;
   }
 
@@ -295,6 +572,18 @@ export async function verifyOtpAndUpdatePins(
 
   if (otpError) {
     return { success: false, error: "رمز التحقق غير صحيح أو منتهي الصلاحية" };
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const { data: cafe, error: cafeError } = await supabaseAdmin
+    .from("cafes")
+    .select("id")
+    .eq("id", cafeId)
+    .ilike("owner_email", normalizedEmail)
+    .maybeSingle();
+
+  if (cafeError || !cafe) {
+    return { success: false, error: "غير مصرح بتحديث رموز هذا المقهى" };
   }
 
   const { error: updateError } = await supabaseAdmin
@@ -357,32 +646,35 @@ export async function updateCafeSettings(
 export async function adminAddProduct(productData: any) {
   try {
     if (!productData?.cafe_id) throw new Error("Missing cafe id");
-    
-    await assertAdminCafeAccess(productData.cafe_id);
+    const cafeId = String(productData.cafe_id);
+    await assertAdminCafeAccess(cafeId);
 
     const { data: cafe } = await supabaseAdmin
       .from("cafes")
       .select("max_menu_items")
-      .eq("id", productData.cafe_id)
+      .eq("id", cafeId)
       .single();
 
     if (cafe && cafe.max_menu_items < 9999) {
       const { count } = await supabaseAdmin
         .from("products")
         .select("*", { count: 'exact', head: true })
-        .eq("cafe_id", productData.cafe_id);
+        .eq("cafe_id", cafeId);
 
       if (count !== null && count >= cafe.max_menu_items) {
         return { success: false, error: `لقد وصلت للحد الأقصى المسموح به للمنتجات (${cafe.max_menu_items}). يرجى ترقية باقتك لإضافة المزيد.` };
       }
     }
 
-    const modifierIds = Array.isArray(productData.modifier_ids) ? productData.modifier_ids : [];
-    delete productData.modifier_ids;
+    const modifierIds = await assertModifierGroupsBelongToCafe(cafeId, productData.modifier_ids);
+    const productInsert = {
+      ...sanitizeProductMutation(productData),
+      cafe_id: cafeId,
+    };
 
     const { data: insertedProduct, error: productError } = await supabaseAdmin
       .from("products")
-      .insert([productData])
+      .insert([productInsert])
       .select("id")
       .single();
 
@@ -422,12 +714,14 @@ export async function adminUpdateProduct(id: string, productData: Record<string,
     await assertAdminCafeAccess(product.cafe_id);
 
     const hasModifiersUpdate = 'modifier_ids' in productData;
-    const modifierIds = Array.isArray(productData.modifier_ids) ? productData.modifier_ids : [];
-    delete productData.modifier_ids;
+    const modifierIds = hasModifiersUpdate
+      ? await assertModifierGroupsBelongToCafe(product.cafe_id, productData.modifier_ids)
+      : [];
+    const productUpdate = sanitizeProductMutation(productData);
 
     const { error: updateError } = await supabaseAdmin
       .from("products")
-      .update(productData)
+      .update(productUpdate)
       .eq("id", id);
 
     if (updateError) throw updateError;
@@ -625,8 +919,9 @@ export async function getAdminProducts(cafeId: string) {
 
     const { data, error } = await supabaseAdmin
       .from("products")
-      .select("*")
-      .eq("cafe_id", cafeId);
+      .select("*, product_modifiers(modifier_group_id)")
+      .eq("cafe_id", cafeId)
+      .order("created_at", { ascending: false });
 
     if (error) throw error;
     return { success: true, products: data || [] };
@@ -774,6 +1069,8 @@ export async function createManualCashierOrder(payload: {
 export async function getAdminTables(cafeId: string) {
   noStore(); 
   try {
+    await assertAdminCafeAccess(cafeId);
+
     const { data, error } = await supabaseAdmin
       .from("tables")
       .select("*")
@@ -834,6 +1131,13 @@ export async function loginCashierWithDevice(
   deviceId: string,
   deviceName: string
 ) {
+  if (!isValidPosDeviceId(deviceId)) {
+    return { success: false, error: "معرّف الجهاز غير صالح" };
+  }
+  if (!isValidPosDeviceName(deviceName)) {
+    return { success: false, error: "اسم الجهاز غير صالح" };
+  }
+
   const { data: cafe, error: cafeError } = await supabaseAdmin
     .from("cafes")
     .select("id, cashier_pin, subscription_status")
@@ -851,21 +1155,58 @@ export async function loginCashierWithDevice(
     .eq("device_id", deviceId)
     .maybeSingle();
 
-  if (deviceError && deviceError.code !== 'PGRST116') {
-    console.error("🚨 Supabase Select Error:", deviceError);
+  if (deviceError) {
+    console.error("[loginCashierWithDevice] POS device lookup failed", {
+      cafeId: cafe.id,
+      message: deviceError.message,
+      code: deviceError.code,
+    });
+    return { success: false, error: `فشل التحقق من حالة الجهاز: ${deviceError.message}` };
   }
 
   if (!device) {
-    const { error: insertError } = await supabaseAdmin.from("pos_devices").insert([{
-      cafe_id: cafe.id,
-      device_id: deviceId,
-      device_name: deviceName,
-      status: 'pending'
-    }]);
+    const { data: insertedDevice, error: insertError } = await supabaseAdmin
+      .from("pos_devices")
+      .insert({
+        cafe_id: cafe.id,
+        device_id: deviceId,
+        device_name: deviceName.trim(),
+        status: "pending",
+      })
+      .select("id, status")
+      .maybeSingle();
 
     if (insertError) {
-      console.error("🚨 Database Insert Failed! Table might not exist:", insertError);
+      // A duplicate can happen if the user submits twice or two browser tabs
+      // register the same locally persisted device at once. Read the scoped
+      // row rather than incorrectly reporting a failed registration.
+      if (insertError.code === "23505") {
+        const { data: existingDevice, error: retryError } = await supabaseAdmin
+          .from("pos_devices")
+          .select("status")
+          .eq("cafe_id", cafe.id)
+          .eq("device_id", deviceId)
+          .maybeSingle();
+
+        if (!retryError && existingDevice) {
+          return {
+            success: false,
+            status: existingDevice.status as PosDeviceStatus,
+            error: "جهازك قيد المراجعة. يرجى انتظار موافقة الإدارة ⏳",
+          };
+        }
+      }
+
+      console.error("[loginCashierWithDevice] POS device registration failed", {
+        cafeId: cafe.id,
+        message: insertError.message,
+        code: insertError.code,
+      });
       return { success: false, error: `فشل الحفظ في قاعدة البيانات: ${insertError.message}` };
+    }
+
+    if (!insertedDevice) {
+      return { success: false, error: "تعذر تأكيد تسجيل الجهاز" };
     }
 
     return { success: false, status: 'pending', error: "تم تسجيل جهازك. يرجى انتظار موافقة الإدارة." };
@@ -880,13 +1221,72 @@ export async function loginCashierWithDevice(
   }
 
   if (device.status === 'approved') {
-    await supabaseAdmin.from("pos_devices").update({ last_active: new Date().toISOString() }).eq("id", device.id);
+    const { error: activityError } = await supabaseAdmin
+      .from("pos_devices")
+      .update({ last_active: new Date().toISOString() })
+      .eq("id", device.id)
+      .eq("cafe_id", cafe.id);
 
-    await setRoleCookie("cashier", cafe.id);
+    if (activityError) {
+      console.error("[loginCashierWithDevice] POS device activity update failed", {
+        cafeId: cafe.id,
+        deviceId,
+        message: activityError.message,
+        code: activityError.code,
+      });
+      return { success: false, error: `فشل تحديث حالة الجهاز: ${activityError.message}` };
+    }
+
+    await setRoleCookie("cashier", cafe.id, deviceId);
     return { success: true, cafeId: cafe.id };
   }
 
   return { success: false, error: "حالة الجهاز غير معروفة" };
+}
+
+/**
+ * The unauthenticated cashier needs only its own registration state while it
+ * is waiting for approval. This server action keeps the service-role client
+ * on the server and scopes the lookup to the supplied cafe slug + device ID.
+ */
+export async function getCashierDeviceStatus(cafeSlug: string, deviceId: string) {
+  noStore();
+
+  if (!isValidPosDeviceId(deviceId)) {
+    return { success: false, error: "INVALID_DEVICE_ID" };
+  }
+
+  const { data: cafe, error: cafeError } = await supabaseAdmin
+    .from("cafes")
+    .select("id")
+    .eq("slug", cafeSlug)
+    .maybeSingle();
+
+  if (cafeError || !cafe) {
+    return { success: false, error: "CAFE_NOT_FOUND" };
+  }
+
+  const { data: device, error: deviceError } = await supabaseAdmin
+    .from("pos_devices")
+    .select("status")
+    .eq("cafe_id", cafe.id)
+    .eq("device_id", deviceId)
+    .maybeSingle();
+
+  if (deviceError) {
+    console.error("[getCashierDeviceStatus] POS device lookup failed", {
+      cafeId: cafe.id,
+      message: deviceError.message,
+      code: deviceError.code,
+    });
+    return { success: false, error: "DEVICE_STATUS_LOOKUP_FAILED" };
+  }
+
+  if (!device || !POS_DEVICE_STATUSES.has(device.status as PosDeviceStatus)) {
+    return { success: true, status: "none" as const };
+  }
+
+  return { success: true, status: device.status as PosDeviceStatus };
 }
 
 export async function getAdminPosDevices(cafeId: string) {
@@ -907,24 +1307,44 @@ export async function getAdminPosDevices(cafeId: string) {
   }
 }
 
-export async function updateDeviceStatus(cafeId: string, deviceId: string, newStatus: 'approved' | 'blocked' | 'pending') {
+export async function updateDeviceStatus(cafeId: string, deviceId: string, newStatus: PosDeviceStatus) {
   try {
     await assertAdminCafeAccess(cafeId);
 
-    if (newStatus === 'approved') {
-      const { data: cafe } = await supabaseAdmin
+    if (!POS_DEVICE_STATUSES.has(newStatus)) {
+      return { success: false, error: "Invalid device status" };
+    }
+
+    const { data: device, error: deviceError } = await supabaseAdmin
+      .from("pos_devices")
+      .select("id, status")
+      .eq("id", deviceId)
+      .eq("cafe_id", cafeId)
+      .maybeSingle();
+
+    if (deviceError) throw deviceError;
+    if (!device) return { success: false, error: "Device not found for this cafe" };
+
+    if (device.status === newStatus) {
+      return { success: true, device };
+    }
+
+    if (newStatus === 'approved' && device.status !== 'approved') {
+      const { data: cafe, error: cafeError } = await supabaseAdmin
         .from("cafes")
         .select("max_cashiers")
         .eq("id", cafeId)
         .single();
+      if (cafeError || !cafe) throw cafeError || new Error("Cafe not found");
 
-      let maxAllowed = cafe?.max_cashiers || 1;
+      const maxAllowed = cafe.max_cashiers || 1;
 
-      const { count } = await supabaseAdmin
+      const { count, error: countError } = await supabaseAdmin
         .from("pos_devices")
         .select("*", { count: "exact", head: true })
         .eq("cafe_id", cafeId)
         .eq("status", "approved");
+      if (countError) throw countError;
 
       if (count !== null && count >= maxAllowed) {
         return {
@@ -934,16 +1354,24 @@ export async function updateDeviceStatus(cafeId: string, deviceId: string, newSt
       }
     }
 
-    const { error } = await supabaseAdmin
+    const { data: updatedDevice, error } = await supabaseAdmin
       .from("pos_devices")
       .update({ status: newStatus })
       .eq("id", deviceId)
-      .eq("cafe_id", cafeId);
+      .eq("cafe_id", cafeId)
+      .select("id, cafe_id, device_id, device_name, status, last_active, created_at")
+      .maybeSingle();
 
     if (error) throw error;
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error?.message };
+    if (!updatedDevice) return { success: false, error: "Device status update affected no rows" };
+    return { success: true, device: updatedDevice };
+  } catch (error: unknown) {
+    console.error("[updateDeviceStatus] POS device update failed", {
+      cafeId,
+      deviceId,
+      error: getErrorMessage(error),
+    });
+    return { success: false, error: getErrorMessage(error) };
   }
 }
 
@@ -951,15 +1379,23 @@ export async function deletePosDevice(cafeId: string, deviceId: string) {
   try {
     await assertAdminCafeAccess(cafeId);
 
-    const { error } = await supabaseAdmin
+    const { data: deletedDevice, error } = await supabaseAdmin
       .from("pos_devices")
       .delete()
       .eq("id", deviceId)
-      .eq("cafe_id", cafeId);
+      .eq("cafe_id", cafeId)
+      .select("id")
+      .maybeSingle();
 
     if (error) throw error;
+    if (!deletedDevice) return { success: false, error: "Device not found for this cafe" };
     return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error?.message };
+  } catch (error: unknown) {
+    console.error("[deletePosDevice] POS device deletion failed", {
+      cafeId,
+      deviceId,
+      error: getErrorMessage(error),
+    });
+    return { success: false, error: getErrorMessage(error) };
   }
 }

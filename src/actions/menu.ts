@@ -2,11 +2,41 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { unstable_cache, revalidatePath, unstable_noStore as noStore } from "next/cache";
+import { cookies } from "next/headers";
+import { randomUUID } from "crypto";
 import { assertAdminCafeAccess } from "./auth"; // 🔒 استيراد التحقق الأمني
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+const CLIENT_SESSION_COOKIE_MAX_AGE = 60 * 60 * 24;
+const isValidClientSessionId = (value: string | undefined): value is string =>
+  typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+const getClientSessionCookieName = (cafeId: string) => `cafeqr_client_${cafeId}`;
+
+async function getClientOrderSession(cafeId: string, legacySessionId?: string) {
+  const cookieStore = await cookies();
+  const cookieName = getClientSessionCookieName(cafeId);
+  const existingSessionId = cookieStore.get(cookieName)?.value;
+
+  if (isValidClientSessionId(existingSessionId)) return existingSessionId;
+
+  // One-time migration: retain orders started before cookie sessions were
+  // introduced, then stop exposing the identifier to browser JavaScript.
+  const sessionId = isValidClientSessionId(legacySessionId)
+    ? legacySessionId
+    : randomUUID();
+  cookieStore.set(cookieName, sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: CLIENT_SESSION_COOKIE_MAX_AGE,
+    path: "/",
+  });
+  return sessionId;
+}
 
 type OrderInputItem = { id?: unknown; quantity?: unknown; modifiers?: Record<string, number> };
 type PricedProduct = {
@@ -20,6 +50,87 @@ type PricedProduct = {
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : "Unexpected error";
+
+const MODIFIER_TYPES = new Set([
+  "single_choice",
+  "multiple_choice",
+  "incremental",
+  "slider",
+]);
+
+type ModifierOptionInput = {
+  name_ar?: unknown;
+  name_en?: unknown;
+  name_fr?: unknown;
+  price_adjustment?: unknown;
+};
+
+type ModifierGroupInput = {
+  id?: unknown;
+  name_ar?: unknown;
+  name_en?: unknown;
+  name_fr?: unknown;
+  type?: unknown;
+  min_selections?: unknown;
+  max_selections?: unknown;
+  options?: unknown;
+};
+
+const getOptionalModifierText = (value: unknown, name: string) => {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string" || value.length > 255) throw new Error(`Invalid ${name}`);
+  return value.trim() || null;
+};
+
+function sanitizeModifierGroup(input: ModifierGroupInput) {
+  if (typeof input.type !== "string" || !MODIFIER_TYPES.has(input.type)) {
+    throw new Error("Invalid modifier type");
+  }
+
+  const minSelections = Number(input.min_selections);
+  const maxSelections = Number(input.max_selections);
+  if (!Number.isInteger(minSelections) || !Number.isInteger(maxSelections) || minSelections < 0 || maxSelections < minSelections || maxSelections > 50) {
+    throw new Error("Invalid modifier selection limits");
+  }
+
+  if (!Array.isArray(input.options) || input.options.length === 0 || input.options.length > 100) {
+    throw new Error("A modifier group needs between 1 and 100 options");
+  }
+
+  const options = input.options.map((rawOption) => {
+    if (!rawOption || typeof rawOption !== "object") throw new Error("Invalid modifier option");
+    const option = rawOption as ModifierOptionInput;
+    const price = Number(option.price_adjustment ?? 0);
+    if (!Number.isFinite(price) || price < 0) throw new Error("Invalid modifier option price");
+
+    const nameAr = getOptionalModifierText(option.name_ar, "option name_ar");
+    const nameEn = getOptionalModifierText(option.name_en, "option name_en");
+    const nameFr = getOptionalModifierText(option.name_fr, "option name_fr");
+    if (!nameAr && !nameEn && !nameFr) throw new Error("Modifier option name is required");
+
+    return {
+      name_ar: nameAr,
+      name_en: nameEn,
+      name_fr: nameFr,
+      price_adjustment: price,
+    };
+  });
+
+  const nameAr = getOptionalModifierText(input.name_ar, "name_ar");
+  const nameEn = getOptionalModifierText(input.name_en, "name_en");
+  const nameFr = getOptionalModifierText(input.name_fr, "name_fr");
+  if (!nameAr && !nameEn && !nameFr) throw new Error("Modifier group name is required");
+
+  return {
+    name_ar: nameAr,
+    name_en: nameEn,
+    name_fr: nameFr,
+    type: input.type,
+    min_selections: minSelections,
+    max_selections: maxSelections,
+    options,
+  };
+}
 
 function normalizeOrderItems(items: unknown) {
   if (!Array.isArray(items)) return [];
@@ -88,16 +199,31 @@ export async function buildServerPricedOrderItems(cafeId: string, items: any[]) 
   normalizedItems.forEach(item => extractIds(item.modifiers));
 
   // 3. جلب أسعار الإضافات من قاعدة البيانات لضمان دقتها
-  const optionsMap = new Map<string, number>();
+  const modifierGroupsByProduct = new Map<string, Set<string>>();
+  const { data: productModifiers, error: productModifiersError } = await supabaseAdmin
+    .from("product_modifiers")
+    .select("product_id, modifier_group_id")
+    .in("product_id", productIds);
+
+  if (productModifiersError) throw productModifiersError;
+  for (const productModifier of productModifiers || []) {
+    const groups = modifierGroupsByProduct.get(productModifier.product_id) || new Set<string>();
+    groups.add(productModifier.modifier_group_id);
+    modifierGroupsByProduct.set(productModifier.product_id, groups);
+  }
+
+  const optionsMap = new Map<string, { price: number; modifierGroupId: string }>();
   if (allOptionIds.size > 0) {
-    const { data: options } = await supabaseAdmin
+    const { data: options, error: optionsError } = await supabaseAdmin
       .from('modifier_options')
-      .select('id, price_adjustment')
+      .select('id, modifier_group_id, price_adjustment')
       .in('id', Array.from(allOptionIds));
-      
-    if (options) {
-      options.forEach(opt => optionsMap.set(opt.id, Number(opt.price_adjustment || 0)));
-    }
+
+    if (optionsError) throw optionsError;
+    options?.forEach((option) => optionsMap.set(option.id, {
+      price: Number(option.price_adjustment || 0),
+      modifierGroupId: option.modifier_group_id,
+    }));
   }
 
   // 4. تجميع الطلب وحساب السعر النهائي بشكل آمن
@@ -107,8 +233,16 @@ export async function buildServerPricedOrderItems(cafeId: string, items: any[]) 
 
     // حساب تكلفة الإضافات لهذا المنتج تحديداً
     let modifiersTotal = 0;
+    const selectedOptionIds = new Set<string>();
+    const allowedModifierGroups = modifierGroupsByProduct.get(product.id) || new Set<string>();
     const calculateModifiers = (val: any) => {
-      if (typeof val === 'string' && optionsMap.has(val)) modifiersTotal += optionsMap.get(val)!;
+      if (typeof val === 'string' && optionsMap.has(val) && !selectedOptionIds.has(val)) {
+        const option = optionsMap.get(val)!;
+        if (allowedModifierGroups.has(option.modifierGroupId)) {
+          selectedOptionIds.add(val);
+          modifiersTotal += option.price;
+        }
+      }
       else if (Array.isArray(val)) val.forEach(calculateModifiers);
       else if (typeof val === 'object' && val !== null) Object.values(val).forEach(calculateModifiers);
     };
@@ -207,9 +341,10 @@ export const getCachedCafeMenu = unstable_cache(
   }
 );
 
-export async function getClientActiveOrders(cafeId: string, sessionId: string) {
+export async function getClientActiveOrders(cafeId: string, legacySessionId?: string) {
   noStore();
   try {
+    const sessionId = await getClientOrderSession(cafeId, legacySessionId);
     const { data, error } = await supabaseAdmin
       .from('orders')
       .select('*, tables(table_number)')
@@ -230,11 +365,20 @@ export async function getClientActiveOrders(cafeId: string, sessionId: string) {
 export async function createClientOrder(payload: {
   cafeId: string;
   tableId: string;
-  sessionId: string;
   items: any[];
 }) {
   try {
+    const sessionId = await getClientOrderSession(payload.cafeId);
     await assertCafeCanAcceptOrders(payload.cafeId); // 🔒 منع الطلب إذا كان المقهى موقوفاً أو انتهى اشتراكه
+
+    const { data: table, error: tableError } = await supabaseAdmin
+      .from("tables")
+      .select("id")
+      .eq("id", payload.tableId)
+      .eq("cafe_id", payload.cafeId)
+      .maybeSingle();
+
+    if (tableError || !table) throw new Error("INVALID_TABLE");
 
     const { serverItems, totalAmount } = await buildServerPricedOrderItems(
       payload.cafeId,
@@ -247,7 +391,7 @@ export async function createClientOrder(payload: {
         {
           cafe_id: payload.cafeId,
           table_id: payload.tableId,
-          session_id: payload.sessionId,
+          session_id: sessionId,
           items: serverItems,
           total_amount: totalAmount,
           status: "pending",
@@ -264,9 +408,10 @@ export async function createClientOrder(payload: {
   }
 }
 
-export async function cancelClientOrder(orderId: string, cafeId: string, sessionId: string) {
+export async function cancelClientOrder(orderId: string, cafeId: string) {
   try {
-    if (!orderId || !cafeId || !sessionId) throw new Error("Missing order context");
+    if (!orderId || !cafeId) throw new Error("Missing order context");
+    const sessionId = await getClientOrderSession(cafeId);
 
     const { data, error } = await supabaseAdmin
       .from("orders")
@@ -293,6 +438,86 @@ export async function getCategories(cafeId: string) {
     .eq('cafe_id', cafeId)
     .order('created_at', { ascending: true });
   return { success: !error, data: data || [], error: error?.message };
+}
+
+export async function getAdminModifierGroups(cafeId: string) {
+  try {
+    await assertAdminCafeAccess(cafeId);
+    const { data, error } = await supabaseAdmin
+      .from("modifier_groups")
+      .select("*, modifier_options(*)")
+      .eq("cafe_id", cafeId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return { success: true, groups: data || [] };
+  } catch (error: unknown) {
+    return { success: false, groups: [], error: getErrorMessage(error) };
+  }
+}
+
+export async function saveAdminModifierGroup(cafeId: string, input: ModifierGroupInput) {
+  try {
+    await assertAdminCafeAccess(cafeId);
+    const { options, ...groupData } = sanitizeModifierGroup(input);
+    const groupId = typeof input.id === "string" ? input.id : undefined;
+    let savedGroupId = groupId;
+
+    if (savedGroupId) {
+      const { data: existing, error: existingError } = await supabaseAdmin
+        .from("modifier_groups")
+        .select("id")
+        .eq("id", savedGroupId)
+        .eq("cafe_id", cafeId)
+        .maybeSingle();
+      if (existingError || !existing) throw new Error("Modifier group not found");
+
+      const { error } = await supabaseAdmin
+        .from("modifier_groups")
+        .update(groupData)
+        .eq("id", savedGroupId)
+        .eq("cafe_id", cafeId);
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabaseAdmin
+        .from("modifier_groups")
+        .insert({ ...groupData, cafe_id: cafeId })
+        .select("id")
+        .single();
+      if (error || !data) throw error || new Error("Unable to create modifier group");
+      savedGroupId = data.id;
+    }
+
+    const { error: deleteError } = await supabaseAdmin
+      .from("modifier_options")
+      .delete()
+      .eq("modifier_group_id", savedGroupId);
+    if (deleteError) throw deleteError;
+
+    const { error: insertError } = await supabaseAdmin
+      .from("modifier_options")
+      .insert(options.map((option) => ({ ...option, modifier_group_id: savedGroupId })));
+    if (insertError) throw insertError;
+
+    return { success: true, groupId: savedGroupId };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
+export async function deleteAdminModifierGroup(cafeId: string, groupId: string) {
+  try {
+    await assertAdminCafeAccess(cafeId);
+    const { error } = await supabaseAdmin
+      .from("modifier_groups")
+      .delete()
+      .eq("id", groupId)
+      .eq("cafe_id", cafeId);
+    if (error) throw error;
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
 }
 
 export async function addCategory(cafeId: string, name_ar: string, name_en: string, name_fr: string, icon: string, subcategories: string[] = []) {

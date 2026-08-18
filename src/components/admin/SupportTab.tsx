@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/supabase";
 import { MessageCircle, Send, Loader2, Wifi } from "lucide-react";
-import { sendSupportTicket } from "@/actions/support";
+import { getAdminMessages, markAdminMessagesRead, sendSupportTicket } from "@/actions/support";
 
 interface SupportTabProps {
   cafeId: string;
@@ -42,17 +41,13 @@ export default function SupportTab({ cafeId, cafeName, planType, activeLang, t, 
     if (!cafeId) return;
 
     const fetchInitialMessages = async () => {
-      const { data } = await supabase
-        .from("admin_messages")
-        .select("*")
-        .eq("cafe_id", cafeId)
-        .order("created_at", { ascending: true });
+      const data = await getAdminMessages(cafeId);
         
       if (data) {
         setMessages(data);
         const hasUnread = data.some(m => m.sender === 'super_admin' && !m.is_read);
         if (hasUnread) {
-          await supabase.from("admin_messages").update({ is_read: true }).eq("cafe_id", cafeId).eq("sender", "super_admin").eq("is_read", false);
+          await markAdminMessagesRead(cafeId);
           onMessagesReadRef.current();
         }
       }
@@ -73,7 +68,7 @@ export default function SupportTab({ cafeId, cafeName, planType, activeLang, t, 
       
       // تعليم الرسالة كمقروءة فور وصولها لأننا داخل التبويب حالياً
       if (latestMessage.sender === 'super_admin') {
-        supabase.from("admin_messages").update({ is_read: true }).eq("id", latestMessage.id).then(() => {
+        markAdminMessagesRead(cafeId).then(() => {
           onMessagesReadRef.current();
         });
       }

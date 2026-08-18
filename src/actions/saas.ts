@@ -2,8 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
-import { cookies } from "next/headers";
-import { assertAdminCafeAccess } from "./auth"; // 🔒 استيراد قفل الملاك
+import { assertAdminCafeAccess, assertSuperAdminAccess } from "./auth"; // 🔒 استيراد قفل الملاك
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -63,32 +62,10 @@ const CAFE_NUMERIC_COLUMNS = new Set([
   "longitude",
 ]);
 
-// 🔒 دالة ذكية للتحقق من هوية المدير العام بدون كسر الواجهة الأمامية
-async function verifySuperAdmin(providedToken?: string) {
-  let token = providedToken;
-
-  // إذا لم يتم تمرير التوكن يدوياً، سنبحث عنه في الكوكيز
-  if (!token) {
-    const cookieStore = await cookies();
-    const authCookie = cookieStore.getAll().find(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'));
-    if (authCookie) {
-      try {
-        const parsed = JSON.parse(authCookie.value);
-        token = Array.isArray(parsed) ? parsed[0] : parsed.access_token;
-      } catch {
-        token = authCookie.value;
-      }
-    }
-  }
-
-  if (!token) throw new Error("SECURITY ALERT: UNAUTHORIZED SUPER ADMIN ACCESS BLOCKED! (No Token)");
-
-  const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
-  const adminEmail = "elotmanikamal607@gmail.com"; 
-
-  if (error || !user || user.email?.toLowerCase() !== adminEmail.toLowerCase()) {
-    throw new Error("SECURITY ALERT: UNAUTHORIZED SUPER ADMIN ACCESS BLOCKED!");
-  }
+// The super-admin cookie is signed server-side and is separate from every
+// Supabase/browser session, so another role cannot overwrite this access.
+async function verifySuperAdmin() {
+  await assertSuperAdminAccess();
 }
 
 const normalizeCafePlan = (plan: string): CafePlan => {
@@ -233,8 +210,8 @@ export async function getPlatformBankDetails() {
 }
 
 // 4. جلب خريطة المنصة الشاملة للمدير الأكبر
-export async function getUltimateDashboardData(accessToken?: string) {
-  await verifySuperAdmin(accessToken); // 🔒 حماية
+export async function getUltimateDashboardData() {
+  await verifySuperAdmin(); // 🔒 حماية
 
   const { data: cafes, error: cafesErr } = await supabaseAdmin
     .from('cafes')
@@ -279,10 +256,9 @@ export async function forceUpdateCafeSub(
   newCycle: string,
   latitude?: string | null,
   longitude?: string | null,
-  accessToken?: string // 🔒 متغير اختياري للتوثيق
 ) {
   try {
-    await verifySuperAdmin(accessToken); // 🔒 حماية
+    await verifySuperAdmin(); // 🔒 حماية
 
     const normalizedPlan = normalizeCafePlan(newPlan);
     const planLimits = getCafePlanLimits(normalizedPlan);
@@ -372,10 +348,9 @@ export async function provisionNewCafe(payload: {
   trialDays: number;
   adminPin: string;
   cashierPin: string;
-  accessToken?: string; // 🔒 متغير اختياري للتوثيق
 }) {
   try {
-    await verifySuperAdmin(payload.accessToken); // 🔒 حماية
+    await verifySuperAdmin(); // 🔒 حماية
 
     const cleanSlug = payload.slug.toLowerCase().trim().replace(/[^a-z0-9-]/g, '-');
     const pass = payload.ownerPassword || "CafeSaaS2026!";
@@ -432,9 +407,9 @@ export async function provisionNewCafe(payload: {
 }
 
 // 7. تحديث حساب المالك
-export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: string, newEmail?: string, newPassword?: string, accessToken?: string) {
+export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: string, newEmail?: string, newPassword?: string) {
   try {
-    await verifySuperAdmin(accessToken); // 🔒 حماية
+    await verifySuperAdmin(); // 🔒 حماية
 
     if (!newEmail || newEmail.trim() === '') throw new Error("البريد الإلكتروني مطلوب!");
 
@@ -498,9 +473,9 @@ export async function updateCafeOwnerCredentials(cafeId: string, oldAuthUserId: 
 }
 
 // 8. الإعدام النهائي
-export async function deleteCafeCompletely(cafeId: string, authUserId: string, accessToken?: string) {
+export async function deleteCafeCompletely(cafeId: string, authUserId: string) {
   try {
-    await verifySuperAdmin(accessToken); // 🔒 حماية
+    await verifySuperAdmin(); // 🔒 حماية
 
     await supabaseAdmin.from('payment_receipts').delete().eq('cafe_id', cafeId);
     await supabaseAdmin.from('orders').delete().eq('cafe_id', cafeId);

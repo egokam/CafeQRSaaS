@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { signInSuperAdmin, sendSuperAdminOtp, verifySuperAdminOtp } from "@/actions/auth";
 import { KeyRound, Mail, Lock, ShieldAlert, Loader2, ArrowRight, Fingerprint, ChevronRight } from "lucide-react";
 import { LanguageSwitcher } from "@/components/landing/LanguageSwitcher"; 
 
@@ -40,8 +40,8 @@ export default function SuperOwnerLogin() {
       return;
     }
     setLoading(true); setErrorMsg("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setErrorMsg(t("errors.invalidLogin")); setLoading(false); } 
+    const result = await signInSuperAdmin(email, password);
+    if (!result.success) { setErrorMsg(t("errors.invalidLogin")); setLoading(false); }
     else { router.push("/ego-owner-9539"); router.refresh(); }
   };
 
@@ -49,9 +49,9 @@ export default function SuperOwnerLogin() {
     e.preventDefault();
     if (email.toLowerCase() !== ALLOWED_ADMIN.toLowerCase()) { setErrorMsg(t("errors.unauthorized")); return; }
     setLoading(true); setErrorMsg("");
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+    const result = await sendSuperAdminOtp(email);
     setLoading(false);
-    if (error) setErrorMsg(t("errors.sendOtpFailed"));
+    if (!result.success) setErrorMsg(t("errors.sendOtpFailed"));
     else setOtpSent(true);
   };
 
@@ -59,8 +59,8 @@ export default function SuperOwnerLogin() {
     e.preventDefault();
     if (email.toLowerCase() !== ALLOWED_ADMIN.toLowerCase()) { setErrorMsg(t("errors.unauthorized")); return; }
     setLoading(true); setErrorMsg("");
-    const { error } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "email" });
-    if (error) { setErrorMsg(t("errors.invalidOtp")); setLoading(false); } 
+    const result = await verifySuperAdminOtp(email, otpCode);
+    if (!result.success) { setErrorMsg(t("errors.invalidOtp")); setLoading(false); }
     else { router.push("/ego-owner-9539"); router.refresh(); }
   };
 

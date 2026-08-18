@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabase";
 import { getUltimateDashboardData, forceUpdateCafeSub, provisionNewCafe, updateCafeOwnerCredentials, deleteCafeCompletely } from "../../actions/saas";
+import { hasSuperAdminAccess, signOutSuperAdmin } from "../../actions/auth";
 import {
   Building2, ShieldCheck, AlertOctagon, Clock, Search,
   ChevronDown, DollarSign, Activity, RefreshCcw, Sprout,
@@ -16,8 +16,6 @@ import { Cairo } from "next/font/google";
 import CafeDossierModal from "@/components/s-admin/CafeDossierModal";
 
 const cairo = Cairo({ subsets: ["arabic"], weight: ["400", "500", "700", "900"] });
-const ALLOWED_SUPER_ADMIN = "elotmanikamal607@gmail.com";
-
 export default function UltimateSuperAdminDashboard() {
   const router = useRouter();
   const t = useTranslations("SuperAdminDashboard");
@@ -46,16 +44,9 @@ export default function UltimateSuperAdminDashboard() {
   const [facResult, setFacResult] = useState<any | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const loadAll = async (token?: string) => {
+  const loadAll = async () => {
     try {
-      let currentToken = token;
-      if (!currentToken) {
-        const { data: { session } } = await supabase.auth.getSession();
-        currentToken = session?.access_token;
-      }
-      if (!currentToken) return;
-
-      const res = await getUltimateDashboardData(currentToken);
+      const res = await getUltimateDashboardData();
       setData(res);
     } catch (error) {
       console.error("Dashboard Load Error:", error);
@@ -68,31 +59,20 @@ export default function UltimateSuperAdminDashboard() {
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    hasSuperAdminAccess().then((isAllowed) => {
       if (!isMounted) return;
-      if (error || !session || !session.user) { router.replace("/ego-owner-9539/login"); return; }
-
-      if (session.user.email?.toLowerCase() !== ALLOWED_SUPER_ADMIN.toLowerCase()) {
-        supabase.auth.signOut();
-        alert(t("errors.unauthorized"));
+      if (!isAllowed) {
         router.replace("/ego-owner-9539/login");
         return;
       }
-      loadAll(session.access_token);
+      loadAll();
     });
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (!isMounted) return;
-      if (event === 'SIGNED_OUT') {
-        router.replace("/ego-owner-9539/login");
-      }
-    });
-
-    return () => { isMounted = false; authListener.subscription.unsubscribe(); };
+    return () => { isMounted = false; };
   }, [router]);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOutSuperAdmin();
     router.push("/ego-owner-9539/login");
     router.refresh();
   };
