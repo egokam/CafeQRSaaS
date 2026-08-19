@@ -5,6 +5,20 @@ BEGIN;
 
 DROP POLICY IF EXISTS "Allow public access for admin_messages" ON public.admin_messages;
 
+DO $$
+DECLARE
+  employee_policy record;
+BEGIN
+  FOR employee_policy IN
+    SELECT policyname
+    FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'employees'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.employees', employee_policy.policyname);
+  END LOOP;
+END;
+$$;
+
 DROP POLICY IF EXISTS "Allow public insert orders" ON public.orders;
 DROP POLICY IF EXISTS "Enable read access for everyone" ON public.orders;
 DROP POLICY IF EXISTS "Enable read access for realtime" ON public.orders;
@@ -43,6 +57,7 @@ $$;
 REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
   ON TABLE public.admin_messages,
            public.cafes,
+           public.employees,
            public.menu_categories,
            public.modifier_groups,
            public.modifier_options,
@@ -57,6 +72,9 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
   FROM anon, authenticated;
 
 REVOKE ALL PRIVILEGES ON TABLE public.pos_devices FROM anon, authenticated;
+REVOKE ALL PRIVILEGES ON TABLE public.employees FROM anon, authenticated;
+CREATE POLICY employees_service_role_access ON public.employees
+  FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- Serialise approvals per cafe at the database layer. This protects the
 -- subscription limit if two admins approve devices concurrently, while the

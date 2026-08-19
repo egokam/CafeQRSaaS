@@ -3,7 +3,7 @@
 import { useState, useEffect, use, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import * as Icons from "lucide-react";
-import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag, Ban, Hourglass, Loader2, Zap, LayoutGrid } from "lucide-react";
+import { Check, X, Clock, ChefHat, AlertOctagon, Printer, Lock, LogOut, AlertTriangle, Plus, UtensilsCrossed, ShoppingBag, Ban, Hourglass, Loader2, Zap, LayoutGrid } from "lucide-react";
 import {
   cashierMarkOutOfStock,
   cashierUpdateOrderStatus,
@@ -13,8 +13,13 @@ import {
   getCashierDeviceStatus,
   getCashierWorkspace,
   hasCashierCafeAccess,
+  hasCashierEmployeeAccess,
   loginCashierWithDevice,
 } from "../../../actions/auth";
+import {
+  logoutCashierShift,
+  verifyCashierPin,
+} from "../../../actions/employees";
 import { checkCafeSubscription } from "../../../actions/saas";
 
 const TRANSLATIONS: Record<string, any> = {
@@ -51,7 +56,12 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const dir = activeLang === 'ar' ? 'rtl' : 'ltr';
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isTerminalAuthorized, setIsTerminalAuthorized] = useState(false);
   const [pinInput, setPinInput] = useState("");
+  const [employeeUsername, setEmployeeUsername] = useState("");
+  const [employeePin, setEmployeePin] = useState("");
+  const [employeeId, setEmployeeId] = useState<string | null>(null);
+  const [employeeName, setEmployeeName] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
@@ -79,6 +89,24 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [posCart, setPosCart] = useState<{ [key: string]: any }>({});
   const [posCategory, setPosCategory] = useState<string>("ALL");
   const [isSubmittingPos, setIsSubmittingPos] = useState(false);
+
+  const lockCopy = activeLang === "ar"
+    ? {
+        terminalTitle: "تهيئة جهاز الكاشير", terminalSub: "أدخل رمز الجهاز لتسجيل هذا المتصفح. ستحتاج موافقة الإدارة في أول مرة.",
+        employeeTitle: "تسجيل دخول الموظف", employeeSub: "أدخل اسم المستخدم ورمز PIN لبدء ورديتك.",
+        username: "اسم المستخدم", terminalPin: "رمز الجهاز", lockShift: "قفل الوردية",
+      }
+    : activeLang === "fr"
+      ? {
+          terminalTitle: "Configuration du terminal", terminalSub: "Entrez le PIN du terminal pour enregistrer ce navigateur. La première connexion doit être approuvée.",
+          employeeTitle: "Connexion employé", employeeSub: "Entrez votre identifiant et PIN pour commencer votre quart.",
+          username: "Identifiant", terminalPin: "PIN du terminal", lockShift: "Verrouiller le quart",
+        }
+      : {
+          terminalTitle: "Terminal setup", terminalSub: "Enter the terminal PIN to register this browser. The first connection needs admin approval.",
+          employeeTitle: "Employee sign in", employeeSub: "Enter your username and PIN to begin your shift.",
+          username: "Username", terminalPin: "Terminal PIN", lockShift: "Lock shift",
+        };
 
   // 🌟 استخراج البيانات والتحليل الذكي لاسم المنتج والإضافات بناءً على اللغة المطلوبة
   const parseProductData = (item: any, lang: string) => {
@@ -117,12 +145,32 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       if (hasNewOrder) {
         new Audio('/bell.mp3').play().catch(() => { });
       }
+    } else if (result.error === "UNAUTHORIZED_CASHIER_EMPLOYEE") {
+      // The admin may have deactivated this person from another screen. End
+      // the local shift as soon as the next protected poll detects it.
+      void logoutCashierShift(cId);
+      setIsAuthenticated(false);
+      setEmployeeId(null);
+      setEmployeeName("");
     }
   };
 
   const fetchCategories = async (cId: string) => {
     const { data } = await supabase.from('menu_categories').select('*').eq('cafe_id', cId).order('created_at', { ascending: true });
     if (data) setCategories(data);
+  };
+
+  const loadEmployeeWorkspace = async (cId: string) => {
+    const workspace = await getCashierWorkspace(cId);
+    if (!workspace.success) return false;
+
+    setProducts(workspace.products);
+    setTables(workspace.tables);
+    setOrders(workspace.orders);
+    workspace.orders.forEach((o: any) => knownOrderIds.current.add(o.id));
+    if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
+    await fetchCategories(cId);
+    return true;
   };
 
   useEffect(() => {
@@ -159,18 +207,15 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           setDeviceStatus(deviceResult.status);
 
           if (deviceResult.status === 'approved' && await hasCashierCafeAccess(cId)) {
-            const workspace = await getCashierWorkspace(cId);
-            if (workspace.success) {
-              setProducts(workspace.products);
-              setTables(workspace.tables);
-              setOrders(workspace.orders);
-              
-              workspace.orders.forEach((o: any) => knownOrderIds.current.add(o.id));
-
-              if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
-              setIsAuthenticated(true);
-              
-              await fetchCategories(cId);
+            setIsTerminalAuthorized(true);
+            const employeeSession = await hasCashierEmployeeAccess(cId);
+            if (employeeSession.success && employeeSession.employee) {
+              const loaded = await loadEmployeeWorkspace(cId);
+              if (loaded) {
+                setEmployeeId(employeeSession.employee.id);
+                setEmployeeName(employeeSession.employee.name);
+                setIsAuthenticated(true);
+              }
             }
           }
         } else {
@@ -190,7 +235,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   // instead; it works with the hardened RLS policy and also catches a later
   // block/revocation of an active device.
   useEffect(() => {
-    if (!deviceId || (!isAuthenticated && deviceStatus !== 'pending')) return;
+    if (!deviceId || (!isTerminalAuthorized && deviceStatus !== 'pending')) return;
 
     let cancelled = false;
     const refreshDeviceStatus = async () => {
@@ -204,7 +249,10 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
       if (result.status === 'pending' || result.status === 'blocked' || result.status === 'none') {
         setDeviceStatus(result.status);
+        setIsTerminalAuthorized(false);
         setIsAuthenticated(false);
+        setEmployeeId(null);
+        setEmployeeName("");
       }
     };
 
@@ -214,7 +262,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [cafeSlug, deviceId, deviceStatus, isAuthenticated]);
+  }, [cafeSlug, deviceId, deviceStatus, isAuthenticated, isTerminalAuthorized]);
 
   useEffect(() => {
     if (!isAuthenticated || !cafeId) return;
@@ -246,6 +294,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       if (!allowedKeys.includes(deviceId)) {
         setIsSessionFull(true);
         setIsAuthenticated(false);
+        setEmployeeId(null);
+        setEmployeeName("");
+        void logoutCashierShift(cafeId);
       }
     });
 
@@ -259,7 +310,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   }, [isAuthenticated, cafeId, deviceId, cafeDataObj?.max_cashiers]);
 
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleTerminalLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLocked || !cafeId || !deviceId) return;
 
@@ -269,18 +320,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     setIsChecking(false);
 
     if (res.success) {
-      const workspace = await getCashierWorkspace(cafeId);
-      if (!workspace.success) { alert(t.updateError); return; }
-      
-      setProducts(workspace.products);
-      setTables(workspace.tables);
-      setOrders(workspace.orders);
-      workspace.orders.forEach((o: any) => knownOrderIds.current.add(o.id));
-      if (workspace.tables.length > 0) setSelectedTableId(workspace.tables[0].id);
-
-      await fetchCategories(cafeId); 
-
-      setIsAuthenticated(true);
+      setIsTerminalAuthorized(true);
       setDeviceStatus('approved');
       setAttempts(0);
       setPinInput("");
@@ -298,6 +338,52 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         setTimeout(() => { setIsLocked(false); setAttempts(0); }, 60000);
       } else alert(res.error || t.wrongPin);
     }
+  };
+
+  const handleEmployeeLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isLocked || !cafeId || !isTerminalAuthorized) return;
+
+    setIsChecking(true);
+    const result = await verifyCashierPin(cafeId, employeeUsername, employeePin);
+    if (!result.success || !result.employee) {
+      setIsChecking(false);
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      setEmployeePin("");
+      if (newAttempts >= 5) {
+        setIsLocked(true);
+        alert(t.tempBan);
+        setTimeout(() => { setIsLocked(false); setAttempts(0); }, 60000);
+      } else {
+        alert(result.error || t.wrongPin);
+      }
+      return;
+    }
+
+    const loaded = await loadEmployeeWorkspace(cafeId);
+    setIsChecking(false);
+    if (!loaded) {
+      await logoutCashierShift(cafeId);
+      alert(t.updateError);
+      return;
+    }
+
+    setEmployeeId(result.employee.id);
+    setEmployeeName(result.employee.name);
+    setEmployeePin("");
+    setAttempts(0);
+    setIsAuthenticated(true);
+  };
+
+  const lockShift = async () => {
+    if (cafeId) await logoutCashierShift(cafeId);
+    setIsAuthenticated(false);
+    setEmployeeId(null);
+    setEmployeeName("");
+    setEmployeePin("");
+    setShowPOS(false);
+    setPosCart({});
   };
 
   const handlePrintReceipt = (order: any) => {
@@ -427,19 +513,24 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   }
 
   if (!isAuthenticated) {
+    const isEmployeeLock = isTerminalAuthorized && deviceStatus === 'approved';
     return (
       <div className="min-h-screen bg-muted/20 flex flex-col items-center justify-center p-6" dir={dir}>
         <div className={`absolute top-6 ${activeLang === 'ar' ? 'left-6' : 'right-6'}`}><LanguageToggle /></div>
         <div className="bg-white p-8 rounded-[2rem] shadow-sm border w-full max-w-sm text-center">
           <div className="bg-foreground w-20 h-20 rounded-full flex items-center justify-center text-white mx-auto mb-6"><Lock size={36} /></div>
-          <h2 className="text-2xl font-extrabold mb-2">{t.cashierZone}</h2>
-          <p className="text-muted-foreground mb-8 text-sm font-bold">{t.enterPin}</p>
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <input type="password" inputMode="numeric" value={pinInput} onChange={(e) => setPinInput(e.target.value)} className="border-2 rounded-2xl p-4 text-center text-3xl tracking-[0.5em] font-mono outline-none" placeholder="••••" autoFocus dir="ltr" disabled={isChecking} />
+          <h2 className="text-2xl font-extrabold mb-2">{isEmployeeLock ? lockCopy.employeeTitle : lockCopy.terminalTitle}</h2>
+          <p className="text-muted-foreground mb-8 text-sm font-bold">{isEmployeeLock ? lockCopy.employeeSub : lockCopy.terminalSub}</p>
+          <form onSubmit={isEmployeeLock ? handleEmployeeLogin : handleTerminalLogin} className="flex flex-col gap-4">
+            {isEmployeeLock && (
+              <input type="text" value={employeeUsername} onChange={(e) => setEmployeeUsername(e.target.value)} autoComplete="username" autoCapitalize="none" maxLength={50} required className="border-2 rounded-2xl p-4 text-center font-bold outline-none" placeholder={lockCopy.username} autoFocus disabled={isChecking} />
+            )}
+            <input type="password" inputMode="numeric" autoComplete="current-password" value={isEmployeeLock ? employeePin : pinInput} onChange={(e) => isEmployeeLock ? setEmployeePin(e.target.value.replace(/\D/g, "")) : setPinInput(e.target.value.replace(/\D/g, ""))} className="border-2 rounded-2xl p-4 text-center text-3xl tracking-[0.5em] font-mono outline-none" placeholder="••••" autoFocus={!isEmployeeLock} required disabled={isChecking} />
             <button disabled={isChecking} type="submit" className="py-4 rounded-2xl font-bold text-lg text-white bg-foreground hover:opacity-90 disabled:opacity-50">
               {isChecking ? <Loader2 className="animate-spin mx-auto" size={24} /> : t.loginBtn}
             </button>
           </form>
+          {!isEmployeeLock && <p className="mt-4 text-[11px] text-muted-foreground">{lockCopy.terminalPin}</p>}
         </div>
       </div>
     );
@@ -464,6 +555,13 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
           <div className="flex items-center gap-4 flex-wrap shrink-0">
             <LanguageToggle />
+            <button
+              onClick={() => void lockShift()}
+              className="border border-border hover:bg-muted px-4 py-3 rounded-2xl font-bold text-sm flex items-center gap-2"
+              title={employeeId || undefined}
+            >
+              <LogOut size={17} /> {lockCopy.lockShift}{employeeName ? ` · ${employeeName}` : ""}
+            </button>
             <button
               onClick={() => setShowPOS(true)}
               className="bg-foreground hover:bg-foreground/90 text-white px-6 py-4 rounded-2xl font-black text-sm flex items-center justify-center gap-2.5 shadow-xl transition-transform active:scale-95 shrink-0"

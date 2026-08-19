@@ -4,7 +4,7 @@ import { useState, useEffect, use, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import {
   QrCode, PackageSearch, Lock, Settings, AlertTriangle,
-  CreditCard, TrendingUp, Laptop, KeyRound, MessageCircle, Wand2
+  CreditCard, TrendingUp, Laptop, KeyRound, MessageCircle, Wand2, Users
 } from "lucide-react";
 
 import {
@@ -25,6 +25,7 @@ import ModifiersTab from "../../../components/admin/ModifiersTab"; // 🌟 تم 
 import TablesTab from "../../../components/admin/TablesTab";
 import SalesTab from "../../../components/admin/SalesTab";
 import DevicesTab from "../../../components/admin/DevicesTab";
+import EmployeesTab from "../../../components/admin/EmployeesTab";
 import SettingsTab from "../../../components/admin/SettingsTab";
 import BillingTab from "@/components/admin/BillingTab";
 import SupportTab from "@/components/admin/SupportTab";
@@ -51,6 +52,7 @@ const TAB_TO_HASH: Record<string, string> = {
   qr: "tables",
   sales: "sales",
   devices: "devices",
+  employees: "employees",
   settings: "settings",
   billing: "billing",
   support: "support",
@@ -64,6 +66,7 @@ const HASH_TO_TAB: Record<string, string> = {
   "#qr": "qr",
   "#sales": "sales",
   "#devices": "devices",
+  "#employees": "employees",
   "#settings": "settings",
   "#billing": "billing",
   "#support": "support",
@@ -462,6 +465,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
               <button onClick={() => switchTab('qr')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'qr' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><QrCode size={18} /> {t.tabTables}</button>
               <button onClick={() => switchTab('sales')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'sales' ? 'bg-white text-emerald-600 shadow-sm' : 'text-muted-foreground'}`}><TrendingUp size={18} /> {t.tabSales}</button>
               <button onClick={() => switchTab('devices')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'devices' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Laptop size={18} /> {t.tabDevices}</button>
+              <button onClick={() => switchTab('employees')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'employees' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Users size={18} /> {activeLang === 'ar' ? 'الموظفون' : activeLang === 'fr' ? 'Employés' : 'Employees'}</button>
               <button onClick={() => switchTab('settings')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'settings' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><Settings size={18} /> {t.tabSettings}</button>
               <button onClick={() => switchTab('billing')} className={`flex items-center gap-2 px-5 py-3 rounded-lg font-bold text-sm ${activeTab === 'billing' ? 'bg-white text-primary shadow-sm' : 'text-muted-foreground'}`}><CreditCard size={18} /> {t.tabBilling}</button>
               
@@ -489,6 +493,7 @@ export default function AdminDashboard({ params }: { params: Promise<{ cafeSlug:
         {activeTab === 'qr' && <TablesTab cafeId={cafeId!} cafeSlug={cafeSlug} cafeName={cafeName} activeLang={activeLang} t={t} tablesList={tablesList} setTablesList={setTablesList} fetchTables={fetchTables} isLoadingTables={isLoadingTables} maxTables={maxTables} />}
         {activeTab === 'sales' && <SalesTab cafeId={cafeId!} activeLang={activeLang} t={t} planType={planType} monthlyOrders={monthlyOrders} monthlyIncome={monthlyIncome} isLoadingSales={isLoadingSales} fetchMonthlySales={fetchMonthlySales} setActiveTab={switchTab} />}
         {activeTab === 'devices' && <DevicesTab cafeId={cafeId!} activeLang={activeLang} t={t} devicesList={devicesList} fetchDevices={fetchDevices} isLoadingDevices={isLoadingDevices} devicesError={devicesError} maxCashiers={maxCashiers} />}
+        {activeTab === 'employees' && <EmployeesTab cafeId={cafeId!} activeLang={activeLang} />}
         
         {activeTab === 'settings' && <SettingsTab cafeId={cafeId!} activeLang={activeLang} t={t} cafeName={cafeName} setCafeName={setCafeName} maxCashiers={maxCashiers} activeCashiers={activeCashiers} planType={planType} billingCycle={billingCycle} maxTables={maxTables} maxMenu={maxMenu} cafeLatitude={cafeLatitude} cafeLongitude={cafeLongitude} />}
         

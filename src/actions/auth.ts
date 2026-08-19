@@ -13,6 +13,12 @@ const superAdminEmail = (
 
 type CafeRole = "admin" | "cashier";
 type PosDeviceStatus = "pending" | "approved" | "blocked";
+export type CashierEmployeeSession = {
+  id: string;
+  cafeId: string;
+  name: string;
+  username: string;
+};
 type OrderInputItem = { id?: unknown; quantity?: unknown };
 type PricedProduct = {
   id: string;
@@ -66,6 +72,7 @@ const signPayload = (payload: string) =>
   createHmac("sha256", getAuthSecret()).update(payload).digest("hex");
 
 const getRoleCookieName = (role: CafeRole, cafeId: string) => `cafeqr_${role}_${cafeId}`;
+const getCashierEmployeeCookieName = (cafeId: string) => `cafeqr_employee_${cafeId}`;
 const superAdminCookieName = "cafeqr_super_admin";
 
 const getRolePayload = (role: CafeRole, cafeId: string, identity?: string) =>
@@ -224,9 +231,19 @@ export async function assertAdminCafeAccess(cafeId: string) {
 }
 
 export async function assertCashierCafeAccess(cafeId: string) {
+  await getApprovedCashierDevice(cafeId);
+}
+
+/**
+ * Validates the terminal-level session before a cashier can authenticate as an
+ * employee. The device and employee sessions deliberately use separate
+ * cookies: approving a terminal never impersonates a staff member.
+ */
+export async function getApprovedCashierDevice(cafeId: string) {
   const cookieStore = await cookies();
   const value = cookieStore.get(getRoleCookieName("cashier", cafeId))?.value;
-  const [payload] = value?.split(".") || [];
+  const separatorIndex = value?.lastIndexOf(".") ?? -1;
+  const payload = separatorIndex > 0 ? value!.slice(0, separatorIndex) : "";
   const [role, payloadCafeId, deviceId] = payload?.split(":") || [];
 
   if (
@@ -247,6 +264,8 @@ export async function assertCashierCafeAccess(cafeId: string) {
     .maybeSingle();
 
   if (error || !device) throw new Error("UNAUTHORIZED_CASHIER");
+
+  return { deviceId };
 }
 
 export async function hasCashierCafeAccess(cafeId: string) {
@@ -255,6 +274,82 @@ export async function hasCashierCafeAccess(cafeId: string) {
     return true;
   } catch {
     return false;
+  }
+}
+
+const getCashierEmployeePayload = (cafeId: string, deviceId: string, employeeId: string) =>
+  `cashier_employee:${cafeId}:${deviceId}:${employeeId}`;
+
+/** Set only after both the device and the employee PIN have been verified. */
+export async function setCashierEmployeeSession(
+  cafeId: string,
+  deviceId: string,
+  employeeId: string
+) {
+  const cookieStore = await cookies();
+  const payload = getCashierEmployeePayload(cafeId, deviceId, employeeId);
+  cookieStore.set(
+    getCashierEmployeeCookieName(cafeId),
+    createSignedCookieValue(payload),
+    cookieOptions
+  );
+}
+
+export async function clearCashierEmployeeSession(cafeId: string) {
+  const cookieStore = await cookies();
+  cookieStore.delete(getCashierEmployeeCookieName(cafeId));
+}
+
+/**
+ * Checks the terminal approval and the signed employee cookie, then reloads
+ * the employee from the database. Reloading is important: a deactivated or
+ * deleted employee is rejected immediately, even if an old cookie remains.
+ */
+export async function assertCashierEmployeeAccess(
+  cafeId: string
+): Promise<CashierEmployeeSession & { deviceId: string }> {
+  const { deviceId } = await getApprovedCashierDevice(cafeId);
+  const cookieStore = await cookies();
+  const value = cookieStore.get(getCashierEmployeeCookieName(cafeId))?.value;
+  const separatorIndex = value?.lastIndexOf(".") ?? -1;
+  const payload = separatorIndex > 0 ? value!.slice(0, separatorIndex) : "";
+  const [role, payloadCafeId, payloadDeviceId, employeeId] = payload.split(":");
+
+  if (
+    role !== "cashier_employee" ||
+    payloadCafeId !== cafeId ||
+    payloadDeviceId !== deviceId ||
+    !employeeId ||
+    !isValidSignedCookieValue(value, payload)
+  ) {
+    throw new Error("UNAUTHORIZED_CASHIER_EMPLOYEE");
+  }
+
+  const { data: employee, error } = await supabaseAdmin
+    .from("employees")
+    .select("id, cafe_id, name, username, is_active")
+    .eq("id", employeeId)
+    .eq("cafe_id", cafeId)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error || !employee) throw new Error("UNAUTHORIZED_CASHIER_EMPLOYEE");
+
+  return {
+    id: employee.id,
+    cafeId: employee.cafe_id,
+    name: employee.name,
+    username: employee.username,
+    deviceId,
+  };
+}
+
+export async function hasCashierEmployeeAccess(cafeId: string) {
+  try {
+    const employee = await assertCashierEmployeeAccess(cafeId);
+    return { success: true as const, employee };
+  } catch {
+    return { success: false as const, employee: null };
   }
 }
 
@@ -784,6 +879,7 @@ export async function cashierUpdateOrderStatus(orderId: string, status: string) 
     return { success: false, error: "Invalid status" };
   }
 
+  let employee: CashierEmployeeSession & { deviceId: string };
   try {
     const { data: order, error: fetchError } = await supabaseAdmin
       .from("orders")
@@ -792,12 +888,15 @@ export async function cashierUpdateOrderStatus(orderId: string, status: string) 
       .single();
 
     if (fetchError || !order) throw fetchError || new Error("Order not found");
-    await assertCashierCafeAccess(order.cafe_id);
+    employee = await assertCashierEmployeeAccess(order.cafe_id);
   } catch {
     return { success: false, error: "Unauthorized" };
   }
 
-  const { error } = await supabaseAdmin.from("orders").update({ status }).eq("id", orderId);
+  const { error } = await supabaseAdmin
+    .from("orders")
+    .update({ status, employee_id: employee.id })
+    .eq("id", orderId);
   return { success: !error, error: error?.message };
 }
 
@@ -810,7 +909,7 @@ export async function cashierMarkOutOfStock(productId: string) {
       .single();
 
     if (fetchError || !product) throw fetchError || new Error("Product not found");
-    await assertCashierCafeAccess(product.cafe_id);
+    await assertCashierEmployeeAccess(product.cafe_id);
   } catch {
     return { success: false, error: "Unauthorized" };
   }
@@ -969,7 +1068,7 @@ export async function getCashierCafeBySlug(cafeSlug: string) {
 export async function getCashierActiveOrders(cafeId: string) {
   noStore(); 
   try {
-    await assertCashierCafeAccess(cafeId);
+    await assertCashierEmployeeAccess(cafeId);
     const orders = await getActiveOrdersForCafe(cafeId);
     return { success: true, orders };
   } catch (error: unknown) {
@@ -979,7 +1078,7 @@ export async function getCashierActiveOrders(cafeId: string) {
 
 export async function getCashierWorkspace(cafeId: string) {
   try {
-    await assertCashierCafeAccess(cafeId);
+    await assertCashierEmployeeAccess(cafeId);
 
     const [productsRes, tablesRes, orders] = await Promise.all([
       supabaseAdmin
@@ -1021,7 +1120,7 @@ export async function createManualCashierOrder(payload: {
   items: OrderInputItem[];
 }) {
   try {
-    await assertCashierCafeAccess(payload.cafeId);
+    const employee = await assertCashierEmployeeAccess(payload.cafeId);
 
     const { data: table, error: tableError } = await supabaseAdmin
       .from("tables")
@@ -1047,6 +1146,7 @@ export async function createManualCashierOrder(payload: {
           items: serverItems,
           total_amount: totalAmount,
           status: "accepted",
+          employee_id: employee.id,
         },
       ])
       .select()
