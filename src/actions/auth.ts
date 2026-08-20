@@ -19,13 +19,38 @@ export type CashierEmployeeSession = {
   name: string;
   username: string;
 };
-type OrderInputItem = { id?: unknown; quantity?: unknown };
+type CashierDeviceContext = {
+  deviceId: string;
+  posDeviceId: string;
+};
+type OrderInputItem = {
+  id?: unknown;
+  product_id?: unknown;
+  cart_id?: unknown;
+  quantity?: unknown;
+  modifiers?: unknown;
+};
 type PricedProduct = {
   id: string;
   name_ar: string | null;
   name_en: string | null;
   name_fr: string | null;
   price: string | number;
+};
+type ModifierSelectionMap = Record<string, number>;
+type LinkedModifierGroup = {
+  id: string;
+  type: "single_choice" | "multiple_choice" | "incremental" | "slider";
+  min_selections: number | null;
+  max_selections: number | null;
+};
+type PricedModifierOption = {
+  id: string;
+  modifier_group_id: string;
+  price_adjustment: number | string | null;
+  name_ar: string | null;
+  name_en: string | null;
+  name_fr: string | null;
 };
 type ProductMutationData = Record<string, unknown> & { cafe_id?: string };
 
@@ -150,12 +175,16 @@ async function assertModifierGroupsBelongToCafe(cafeId: string, rawModifierIds: 
 
   const { data, error } = await supabaseAdmin
     .from("modifier_groups")
-    .select("id")
-    .eq("cafe_id", cafeId)
+    .select("id, cafe_id, is_global")
     .in("id", modifierIds);
 
-  if (error || !data || data.length !== modifierIds.length) {
-    throw new Error("One or more modifier groups do not belong to this cafe");
+  if (
+    error ||
+    !data ||
+    data.length !== modifierIds.length ||
+    data.some((group) => !group.is_global && group.cafe_id !== cafeId)
+  ) {
+    throw new Error("One or more modifier groups are not available to this cafe");
   }
 
   return modifierIds;
@@ -265,7 +294,7 @@ export async function getApprovedCashierDevice(cafeId: string) {
 
   if (error || !device) throw new Error("UNAUTHORIZED_CASHIER");
 
-  return { deviceId };
+  return { deviceId, posDeviceId: device.id } satisfies CashierDeviceContext;
 }
 
 export async function hasCashierCafeAccess(cafeId: string) {
@@ -307,8 +336,8 @@ export async function clearCashierEmployeeSession(cafeId: string) {
  */
 export async function assertCashierEmployeeAccess(
   cafeId: string
-): Promise<CashierEmployeeSession & { deviceId: string }> {
-  const { deviceId } = await getApprovedCashierDevice(cafeId);
+): Promise<CashierEmployeeSession & CashierDeviceContext> {
+  const { deviceId, posDeviceId } = await getApprovedCashierDevice(cafeId);
   const cookieStore = await cookies();
   const value = cookieStore.get(getCashierEmployeeCookieName(cafeId))?.value;
   const separatorIndex = value?.lastIndexOf(".") ?? -1;
@@ -341,6 +370,7 @@ export async function assertCashierEmployeeAccess(
     name: employee.name,
     username: employee.username,
     deviceId,
+    posDeviceId,
   };
 }
 
@@ -353,21 +383,89 @@ export async function hasCashierEmployeeAccess(cafeId: string) {
   }
 }
 
+/**
+ * A heartbeat is accepted only from the signed-in employee on the same
+ * approved POS device. The client supplies the internal device UUID; the
+ * server derives the cafe from that device and verifies its signed session.
+ */
+export async function pingCashierHeartbeat(posDeviceId: string) {
+  if (
+    typeof posDeviceId !== "string" ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(posDeviceId)
+  ) {
+    return { success: false, error: "INVALID_POS_DEVICE" };
+  }
+
+  try {
+    const { data: device, error: deviceError } = await supabaseAdmin
+      .from("pos_devices")
+      .select("id, cafe_id")
+      .eq("id", posDeviceId)
+      .maybeSingle();
+    if (deviceError || !device) throw new Error("POS_DEVICE_NOT_FOUND");
+
+    const session = await assertCashierEmployeeAccess(device.cafe_id);
+    if (session.posDeviceId !== device.id) throw new Error("UNAUTHORIZED_CASHIER");
+
+    const { error: heartbeatError } = await supabaseAdmin
+      .from("pos_devices")
+      .update({ last_heartbeat: new Date().toISOString(), last_active: new Date().toISOString() })
+      .eq("id", device.id)
+      .eq("cafe_id", device.cafe_id)
+      .eq("status", "approved");
+    if (heartbeatError) throw heartbeatError;
+
+    const { error: redistributionError } = await supabaseAdmin.rpc(
+      "redistribute_stale_orders",
+      { p_cafe_id: device.cafe_id }
+    );
+    if (redistributionError) throw redistributionError;
+
+    return { success: true, cafeId: device.cafe_id, posDeviceId: device.id };
+  } catch (error: unknown) {
+    return { success: false, error: getErrorMessage(error) };
+  }
+}
+
 function normalizeOrderItems(items: unknown) {
   if (!Array.isArray(items)) return [];
 
   return items
-    .map((item: any) => ({
-      id: String(item?.product_id || item?.id || ""),
-      quantity: Math.max(1, Math.min(99, Number(item?.quantity || 1))),
-      modifiers: typeof item?.modifiers === 'object' && item.modifiers !== null ? item.modifiers : {},
-    }))
-    .filter((item) => item.id);
+    .map((item: any) => {
+      const rawSelections = item?.modifiers;
+      const modifiers: ModifierSelectionMap = {};
+
+      if (rawSelections !== undefined) {
+        if (!rawSelections || typeof rawSelections !== "object" || Array.isArray(rawSelections)) {
+          throw new Error("INVALID_MODIFIERS");
+        }
+
+        for (const [optionId, rawQuantity] of Object.entries(rawSelections)) {
+          if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(optionId)) {
+            throw new Error("INVALID_MODIFIERS");
+          }
+          const quantity = Number(rawQuantity);
+          if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+            throw new Error("INVALID_MODIFIERS");
+          }
+          modifiers[optionId] = quantity;
+        }
+      }
+
+      const productId = String(item?.product_id || item?.id || "");
+      return {
+        productId,
+        cartId: String(item?.cart_id || item?.id || productId),
+        quantity: Math.max(1, Math.min(99, Number(item?.quantity || 1))),
+        modifiers,
+      };
+    })
+    .filter((item) => item.productId);
 }
 
 async function buildServerPricedOrderItems(cafeId: string, items: OrderInputItem[]) {
   const normalizedItems = normalizeOrderItems(items);
-  const productIds = normalizedItems.map((item) => item.id);
+  const productIds = [...new Set(normalizedItems.map((item) => item.productId))];
 
   if (productIds.length === 0) {
     throw new Error("EMPTY_ORDER");
@@ -386,17 +484,96 @@ async function buildServerPricedOrderItems(cafeId: string, items: OrderInputItem
 
   const pricedProducts = products as PricedProduct[];
   const productsById = new Map(pricedProducts.map((product) => [product.id, product]));
+
+  const { data: productModifiers, error: productModifiersError } = await supabaseAdmin
+    .from("product_modifiers")
+    .select("product_id, modifier_group_id, modifier_groups(id, type, min_selections, max_selections)")
+    .in("product_id", productIds);
+  if (productModifiersError) throw productModifiersError;
+
+  const groupsByProduct = new Map<string, Map<string, LinkedModifierGroup>>();
+  for (const productModifier of productModifiers || []) {
+    const rawGroup = productModifier.modifier_groups;
+    const group = (Array.isArray(rawGroup) ? rawGroup[0] : rawGroup) as LinkedModifierGroup | null;
+    if (!group) continue;
+    const groups = groupsByProduct.get(productModifier.product_id) || new Map<string, LinkedModifierGroup>();
+    groups.set(group.id, group);
+    groupsByProduct.set(productModifier.product_id, groups);
+  }
+
+  const selectedOptionIds = [...new Set(normalizedItems.flatMap((item) => Object.keys(item.modifiers)))];
+  const optionsById = new Map<string, PricedModifierOption>();
+  if (selectedOptionIds.length > 0) {
+    const { data: modifierOptions, error: modifierOptionsError } = await supabaseAdmin
+      .from("modifier_options")
+      .select("id, modifier_group_id, price_adjustment, name_ar, name_en, name_fr")
+      .in("id", selectedOptionIds);
+    if (modifierOptionsError || !modifierOptions || modifierOptions.length !== selectedOptionIds.length) {
+      throw new Error("INVALID_MODIFIERS");
+    }
+    for (const option of modifierOptions as PricedModifierOption[]) optionsById.set(option.id, option);
+  }
+
+  const nameFor = (
+    productName: string | null,
+    optionNames: string[],
+    separator: string
+  ) => optionNames.length > 0 ? `${productName || ""} (+ ${optionNames.join(separator)})` : productName;
+
   const serverItems = normalizedItems.map((item) => {
-    const product = productsById.get(item.id);
+    const product = productsById.get(item.productId);
     if (!product) throw new Error("INVALID_ORDER_ITEMS");
 
+    const groups = groupsByProduct.get(product.id) || new Map<string, LinkedModifierGroup>();
+    const selectionsByGroup = new Map<string, { option: PricedModifierOption; quantity: number }[]>();
+
+    for (const [optionId, quantity] of Object.entries(item.modifiers)) {
+      const option = optionsById.get(optionId);
+      const group = option ? groups.get(option.modifier_group_id) : null;
+      if (!option || !group) throw new Error("INVALID_MODIFIERS");
+      const selected = selectionsByGroup.get(group.id) || [];
+      selected.push({ option, quantity });
+      selectionsByGroup.set(group.id, selected);
+    }
+
+    let modifiersTotal = 0;
+    const namesAr: string[] = [];
+    const namesEn: string[] = [];
+    const namesFr: string[] = [];
+
+    for (const group of groups.values()) {
+      const selected = selectionsByGroup.get(group.id) || [];
+      const selectionCount = group.type === "incremental"
+        ? selected.reduce((sum, selection) => sum + selection.quantity, 0)
+        : selected.length;
+      const min = Math.max(0, Number(group.min_selections || 0));
+      const max = Math.max(min, Number(group.max_selections || 0));
+
+      if (selectionCount < min || selectionCount > max) {
+        throw new Error("MODIFIER_SELECTION_LIMIT");
+      }
+      if ((group.type === "single_choice" || group.type === "slider") && selectionCount > 1) {
+        throw new Error("MODIFIER_SELECTION_LIMIT");
+      }
+
+      for (const { option, quantity } of selected) {
+        modifiersTotal += Number(option.price_adjustment || 0) * quantity;
+        const suffix = quantity > 1 ? ` (x${quantity})` : "";
+        namesAr.push(`${option.name_ar || option.name_en || option.name_fr || ""}${suffix}`);
+        namesEn.push(`${option.name_en || option.name_ar || option.name_fr || ""}${suffix}`);
+        namesFr.push(`${option.name_fr || option.name_en || option.name_ar || ""}${suffix}`);
+      }
+    }
+
     return {
-      id: product.id,
-      name_ar: product.name_ar,
-      name_en: product.name_en,
-      name_fr: product.name_fr,
-      price: Number(product.price),
+      id: item.cartId,
+      product_id: product.id,
+      name_ar: nameFor(product.name_ar, namesAr, "، "),
+      name_en: nameFor(product.name_en, namesEn, ", "),
+      name_fr: nameFor(product.name_fr, namesFr, ", "),
+      price: Number(product.price) + modifiersTotal,
       quantity: item.quantity,
+      modifiers: item.modifiers,
     };
   });
 
@@ -408,11 +585,15 @@ async function buildServerPricedOrderItems(cafeId: string, items: OrderInputItem
   return { serverItems, totalAmount };
 }
 
-async function getActiveOrdersForCafe(cafeId: string) {
+async function getActiveOrdersForCafe(cafeId: string, posDeviceId: string) {
   const { data, error } = await supabaseAdmin
     .from("orders")
     .select("*, tables(table_number)")
     .eq("cafe_id", cafeId)
+    // The NULL branch is intentionally retained as a fail-safe while no POS
+    // is alive or immediately after a routing failure. Only server actions
+    // can read this data; browser roles remain blocked by RLS.
+    .or(`assigned_device_id.eq.${posDeviceId},assigned_device_id.is.null`)
     .neq("status", "completed")
     .neq("status", "rejected")
     .neq("status", "cancelled")
@@ -879,25 +1060,39 @@ export async function cashierUpdateOrderStatus(orderId: string, status: string) 
     return { success: false, error: "Invalid status" };
   }
 
-  let employee: CashierEmployeeSession & { deviceId: string };
+  let employee: CashierEmployeeSession & CashierDeviceContext;
+  let order: { cafe_id: string; assigned_device_id: string | null };
   try {
-    const { data: order, error: fetchError } = await supabaseAdmin
+    const { data: fetchedOrder, error: fetchError } = await supabaseAdmin
       .from("orders")
-      .select("cafe_id")
+      .select("cafe_id, assigned_device_id")
       .eq("id", orderId)
       .single();
 
-    if (fetchError || !order) throw fetchError || new Error("Order not found");
+    if (fetchError || !fetchedOrder) throw fetchError || new Error("Order not found");
+    order = fetchedOrder;
     employee = await assertCashierEmployeeAccess(order.cafe_id);
+    if (order.assigned_device_id && order.assigned_device_id !== employee.posDeviceId) {
+      throw new Error("ORDER_ASSIGNED_TO_ANOTHER_CASHIER");
+    }
   } catch {
     return { success: false, error: "Unauthorized" };
   }
 
-  const { error } = await supabaseAdmin
+  // This WHERE predicate atomically claims a NULL fallback order. If two POS
+  // terminals see one during a routing outage, only one can transition it.
+  const { data, error } = await supabaseAdmin
     .from("orders")
-    .update({ status, employee_id: employee.id })
-    .eq("id", orderId);
-  return { success: !error, error: error?.message };
+    .update({ status, employee_id: employee.id, assigned_device_id: employee.posDeviceId })
+    .eq("id", orderId)
+    .eq("cafe_id", order.cafe_id)
+    .or(`assigned_device_id.eq.${employee.posDeviceId},assigned_device_id.is.null`)
+    .select("id")
+    .maybeSingle();
+  return {
+    success: !error && Boolean(data),
+    error: error?.message || (!data ? "Order assignment changed" : undefined),
+  };
 }
 
 export async function cashierMarkOutOfStock(productId: string) {
@@ -1068,8 +1263,8 @@ export async function getCashierCafeBySlug(cafeSlug: string) {
 export async function getCashierActiveOrders(cafeId: string) {
   noStore(); 
   try {
-    await assertCashierEmployeeAccess(cafeId);
-    const orders = await getActiveOrdersForCafe(cafeId);
+    const employee = await assertCashierEmployeeAccess(cafeId);
+    const orders = await getActiveOrdersForCafe(cafeId, employee.posDeviceId);
     return { success: true, orders };
   } catch (error: unknown) {
     return { success: false, orders: [], error: getErrorMessage(error) };
@@ -1078,27 +1273,59 @@ export async function getCashierActiveOrders(cafeId: string) {
 
 export async function getCashierWorkspace(cafeId: string) {
   try {
-    await assertCashierEmployeeAccess(cafeId);
+    const employee = await assertCashierEmployeeAccess(cafeId);
 
     const [productsRes, tablesRes, orders] = await Promise.all([
       supabaseAdmin
         .from("products")
-        .select("*")
+        .select(`
+          *,
+          product_modifiers (
+            position_order,
+            modifier_groups (
+              id,
+              name_ar,
+              name_en,
+              name_fr,
+              type,
+              min_selections,
+              max_selections,
+              is_global,
+              modifier_options (
+                id,
+                modifier_group_id,
+                name_ar,
+                name_en,
+                name_fr,
+                price_adjustment
+              )
+            )
+          )
+        `)
         .eq("cafe_id", cafeId)
         .eq("is_active", true),
       supabaseAdmin
         .from("tables")
         .select("id, table_number")
         .eq("cafe_id", cafeId),
-      getActiveOrdersForCafe(cafeId),
+      getActiveOrdersForCafe(cafeId, employee.posDeviceId),
     ]);
 
     if (productsRes.error) throw productsRes.error;
     if (tablesRes.error) throw tablesRes.error;
 
+    const cashierProducts = (productsRes.data || []).map((rawProduct: any) => {
+      const { product_modifiers, ...product } = rawProduct;
+      const modifier_groups = (product_modifiers || [])
+        .sort((left: any, right: any) => Number(left.position_order || 0) - Number(right.position_order || 0))
+        .map((link: any) => link.modifier_groups)
+        .filter(Boolean);
+      return { ...product, modifier_groups };
+    });
+
     return {
       success: true,
-      products: productsRes.data || [],
+      products: cashierProducts,
       tables: tablesRes.data || [],
       orders,
     };
@@ -1147,6 +1374,7 @@ export async function createManualCashierOrder(payload: {
           total_amount: totalAmount,
           status: "accepted",
           employee_id: employee.id,
+          assigned_device_id: employee.posDeviceId,
         },
       ])
       .select()

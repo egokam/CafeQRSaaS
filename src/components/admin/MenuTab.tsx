@@ -5,7 +5,7 @@ import { X, Edit, Trash2, AlertCircle, Settings2, Loader2, Image as ImageIcon, L
 import * as Icons from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { adminAddProduct, adminUpdateProduct, adminDeleteProduct } from "../../actions/auth";
-import { getCategories, addCategory, updateCategory, deleteCategory } from "../../actions/menu";
+import { getCategories, addCategory, updateCategory, deleteCategory, getAdminModifierGroups } from "../../actions/menu";
 
 // القائمة الثابتة للأقسام
 const DEFAULT_CATEGORIES = [
@@ -175,11 +175,9 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
 
   const fetchAvailableModifiers = async () => {
     setIsLoadingModifiers(true);
-    const { data } = await supabase
-      .from('modifier_groups')
-      .select('*')
-      .eq('cafe_id', cafeId);
-    if (data) setAvailableModifiers(data);
+    const result = await getAdminModifierGroups(cafeId);
+    if (result.success) setAvailableModifiers(result.groups);
+    else setAvailableModifiers([]);
     setIsLoadingModifiers(false);
   };
 
@@ -470,6 +468,7 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
                           <span key={id} className="text-xs font-bold bg-white border border-border shadow-sm text-zinc-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
                               {getModifierIcon(mod.type)}
                               {activeLang === 'ar' ? mod.name_ar : mod.name_en}
+                              {mod.is_global && <span className="text-[9px] uppercase tracking-wide text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Global</span>}
                               <button type="button" onClick={() => setSelectedModifiers(prev => prev.filter(m => m !== id))} className="ml-1 text-zinc-400 hover:text-red-500 transition-colors"><X size={12}/></button>
                           </span>
                       );
@@ -794,6 +793,7 @@ export default function MenuTab({ cafeId, activeLang, t, products, fetchProducts
                           <span className={`font-bold text-sm ${isSelected ? 'text-primary' : 'text-zinc-900'}`}>
                             {activeLang === 'ar' ? mod.name_ar : mod.name_en}
                           </span>
+                          {mod.is_global && <span className="text-[10px] text-amber-700 font-black uppercase tracking-wide">Global</span>}
                           <span className="text-xs font-bold text-zinc-400 uppercase mt-0.5">
                             {mod.type.replace('_', ' ')}
                           </span>

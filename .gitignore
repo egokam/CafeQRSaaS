@@ -49,3 +49,7 @@ next-env.d.ts
 
 #my keys gen hhhh
 keygenJWT.js
+
+# Electron build outputs
+/dist
+/release

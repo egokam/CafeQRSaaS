@@ -8166,3 +8166,116 @@ DROP POLICY IF EXISTS employees_service_role_access ON public.employees;
 CREATE POLICY employees_service_role_access ON public.employees FOR ALL TO service_role USING (true) WITH CHECK (true);
 COMMIT;
 
+-- ServeQR POS order load-balancing migration (idempotent for existing DBs).
+BEGIN;
+ALTER TABLE public.pos_devices ADD COLUMN IF NOT EXISTS last_heartbeat timestamp with time zone;
+UPDATE public.pos_devices SET last_heartbeat = COALESCE(last_heartbeat, now());
+ALTER TABLE public.pos_devices ALTER COLUMN last_heartbeat SET DEFAULT now(), ALTER COLUMN last_heartbeat SET NOT NULL;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS assigned_device_id uuid;
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_assigned_device_id_fkey;
+ALTER TABLE public.orders ADD CONSTRAINT orders_assigned_device_id_fkey FOREIGN KEY (assigned_device_id) REFERENCES public.pos_devices(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS pos_devices_active_heartbeat_idx ON public.pos_devices(cafe_id, status, last_heartbeat DESC);
+CREATE INDEX IF NOT EXISTS orders_pending_assignment_idx ON public.orders(cafe_id, assigned_device_id, created_at) WHERE status = 'pending';
+CREATE OR REPLACE FUNCTION public.assign_order_to_cashier(p_order_id uuid, p_cafe_id uuid) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE v_assigned_device_id uuid;
+BEGIN
+  IF p_order_id IS NULL OR p_cafe_id IS NULL THEN RAISE EXCEPTION 'ORDER_ASSIGNMENT_CONTEXT_REQUIRED' USING ERRCODE = '22023'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_cafe_id::text, 0));
+  PERFORM 1 FROM public.orders WHERE id = p_order_id AND cafe_id = p_cafe_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'ORDER_NOT_FOUND_FOR_CAFE' USING ERRCODE = 'P0002'; END IF;
+  PERFORM 1 FROM public.pos_devices WHERE cafe_id = p_cafe_id AND status = 'approved' AND last_heartbeat >= now() - interval '1 minute' ORDER BY id FOR UPDATE;
+  SELECT device.id INTO v_assigned_device_id FROM public.pos_devices AS device LEFT JOIN public.orders AS pending_order ON pending_order.assigned_device_id = device.id AND pending_order.cafe_id = p_cafe_id AND pending_order.status = 'pending' WHERE device.cafe_id = p_cafe_id AND device.status = 'approved' AND device.last_heartbeat >= now() - interval '1 minute' GROUP BY device.id, device.last_heartbeat ORDER BY count(pending_order.id) ASC, device.last_heartbeat DESC, device.id ASC LIMIT 1;
+  UPDATE public.orders SET assigned_device_id = v_assigned_device_id WHERE id = p_order_id AND cafe_id = p_cafe_id;
+  RETURN v_assigned_device_id;
+END;
+$$;
+CREATE OR REPLACE FUNCTION public.redistribute_stale_orders(p_cafe_id uuid) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE v_order record; v_redistributed_count integer := 0;
+BEGIN
+  IF p_cafe_id IS NULL THEN RAISE EXCEPTION 'CAFE_CONTEXT_REQUIRED' USING ERRCODE = '22023'; END IF;
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_cafe_id::text, 0));
+  FOR v_order IN SELECT order_row.id FROM public.orders AS order_row LEFT JOIN public.pos_devices AS assigned_device ON assigned_device.id = order_row.assigned_device_id WHERE order_row.cafe_id = p_cafe_id AND order_row.status = 'pending' AND (order_row.assigned_device_id IS NULL OR assigned_device.id IS NULL OR assigned_device.status <> 'approved' OR assigned_device.last_heartbeat < now() - interval '1 minute') ORDER BY order_row.created_at ASC, order_row.id ASC FOR UPDATE OF order_row SKIP LOCKED LOOP
+    PERFORM public.assign_order_to_cashier(v_order.id, p_cafe_id);
+    v_redistributed_count := v_redistributed_count + 1;
+  END LOOP;
+  RETURN v_redistributed_count;
+END;
+$$;
+CREATE OR REPLACE FUNCTION public.route_new_pending_order_to_cashier() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$ BEGIN IF NEW.status = 'pending' THEN PERFORM public.assign_order_to_cashier(NEW.id, NEW.cafe_id); END IF; RETURN NEW; END; $$;
+DROP TRIGGER IF EXISTS route_new_pending_order_to_cashier ON public.orders;
+CREATE TRIGGER route_new_pending_order_to_cashier AFTER INSERT ON public.orders FOR EACH ROW EXECUTE FUNCTION public.route_new_pending_order_to_cashier();
+REVOKE ALL ON FUNCTION public.assign_order_to_cashier(uuid, uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.redistribute_stale_orders(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.route_new_pending_order_to_cashier() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.assign_order_to_cashier(uuid, uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.redistribute_stale_orders(uuid) TO service_role;
+COMMIT;
+
+-- ServeQR global modifier templates migration. Global templates are owned by
+-- the platform (cafe_id NULL) and may be linked to any cafe product, while
+-- cafe administrators retain write access only to their own local templates.
+BEGIN;
+ALTER TABLE public.modifier_groups ADD COLUMN IF NOT EXISTS is_global boolean DEFAULT false;
+UPDATE public.modifier_groups SET is_global = false WHERE is_global IS NULL;
+ALTER TABLE public.modifier_groups ALTER COLUMN is_global SET DEFAULT false, ALTER COLUMN is_global SET NOT NULL;
+ALTER TABLE public.modifier_options ADD COLUMN IF NOT EXISTS is_global boolean DEFAULT false;
+UPDATE public.modifier_options AS option_row
+SET is_global = group_row.is_global
+FROM public.modifier_groups AS group_row
+WHERE group_row.id = option_row.modifier_group_id
+  AND option_row.is_global IS DISTINCT FROM group_row.is_global;
+ALTER TABLE public.modifier_options ALTER COLUMN is_global SET DEFAULT false, ALTER COLUMN is_global SET NOT NULL;
+ALTER TABLE public.modifier_groups DROP CONSTRAINT IF EXISTS modifier_groups_scope_check;
+ALTER TABLE public.modifier_groups ADD CONSTRAINT modifier_groups_scope_check CHECK ((is_global AND cafe_id IS NULL) OR (NOT is_global AND cafe_id IS NOT NULL));
+CREATE OR REPLACE FUNCTION public.enforce_modifier_option_scope() RETURNS trigger LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+DECLARE parent_is_global boolean;
+BEGIN
+  SELECT is_global INTO parent_is_global FROM public.modifier_groups WHERE id = NEW.modifier_group_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Modifier group % does not exist', NEW.modifier_group_id; END IF;
+  NEW.is_global := parent_is_global;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS enforce_modifier_option_scope_trigger ON public.modifier_options;
+CREATE TRIGGER enforce_modifier_option_scope_trigger BEFORE INSERT OR UPDATE OF modifier_group_id, is_global ON public.modifier_options FOR EACH ROW EXECUTE FUNCTION public.enforce_modifier_option_scope();
+CREATE OR REPLACE FUNCTION public.enforce_product_modifier_scope() RETURNS trigger LANGUAGE plpgsql SET search_path = public, pg_temp AS $$
+DECLARE product_cafe_id uuid; group_cafe_id uuid; group_is_global boolean;
+BEGIN
+  SELECT cafe_id INTO product_cafe_id FROM public.products WHERE id = NEW.product_id;
+  SELECT cafe_id, is_global INTO group_cafe_id, group_is_global FROM public.modifier_groups WHERE id = NEW.modifier_group_id;
+  IF NOT FOUND OR product_cafe_id IS NULL THEN RAISE EXCEPTION 'Product or modifier group does not exist'; END IF;
+  IF NOT group_is_global AND group_cafe_id IS DISTINCT FROM product_cafe_id THEN RAISE EXCEPTION 'A product may only link to its cafe modifier groups or global modifier groups'; END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS enforce_product_modifier_scope_trigger ON public.product_modifiers;
+CREATE TRIGGER enforce_product_modifier_scope_trigger BEFORE INSERT OR UPDATE OF product_id, modifier_group_id ON public.product_modifiers FOR EACH ROW EXECUTE FUNCTION public.enforce_product_modifier_scope();
+CREATE OR REPLACE FUNCTION public.current_cafe_id() RETURNS uuid LANGUAGE sql STABLE AS $$
+  SELECT NULLIF((COALESCE(current_setting('request.jwt.claims', true), '{}')::jsonb ->> 'cafe_id'), '')::uuid
+$$;
+DO $$
+DECLARE policy_row record;
+BEGIN
+  FOR policy_row IN SELECT schemaname, tablename, policyname FROM pg_policies WHERE schemaname = 'public' AND tablename IN ('modifier_groups', 'modifier_options', 'product_modifiers') LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', policy_row.policyname, policy_row.schemaname, policy_row.tablename);
+  END LOOP;
+END
+$$;
+ALTER TABLE public.modifier_groups ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.modifier_options ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_modifiers ENABLE ROW LEVEL SECURITY;
+GRANT SELECT ON public.modifier_groups, public.modifier_options, public.product_modifiers TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.modifier_groups, public.modifier_options, public.product_modifiers TO authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.modifier_groups, public.modifier_options, public.product_modifiers FROM anon;
+CREATE POLICY modifier_groups_scoped_read ON public.modifier_groups FOR SELECT TO anon, authenticated USING (is_global OR cafe_id = public.current_cafe_id());
+CREATE POLICY modifier_groups_local_insert ON public.modifier_groups FOR INSERT TO authenticated WITH CHECK (cafe_id = public.current_cafe_id() AND NOT is_global);
+CREATE POLICY modifier_groups_local_update ON public.modifier_groups FOR UPDATE TO authenticated USING (cafe_id = public.current_cafe_id() AND NOT is_global) WITH CHECK (cafe_id = public.current_cafe_id() AND NOT is_global);
+CREATE POLICY modifier_groups_local_delete ON public.modifier_groups FOR DELETE TO authenticated USING (cafe_id = public.current_cafe_id() AND NOT is_global);
+CREATE POLICY modifier_options_scoped_read ON public.modifier_options FOR SELECT TO anon, authenticated USING (is_global OR EXISTS (SELECT 1 FROM public.modifier_groups AS group_row WHERE group_row.id = modifier_options.modifier_group_id AND group_row.cafe_id = public.current_cafe_id()));
+CREATE POLICY modifier_options_local_insert ON public.modifier_options FOR INSERT TO authenticated WITH CHECK (EXISTS (SELECT 1 FROM public.modifier_groups AS group_row WHERE group_row.id = modifier_options.modifier_group_id AND group_row.cafe_id = public.current_cafe_id() AND NOT group_row.is_global));
+CREATE POLICY modifier_options_local_update ON public.modifier_options FOR UPDATE TO authenticated USING (EXISTS (SELECT 1 FROM public.modifier_groups AS group_row WHERE group_row.id = modifier_options.modifier_group_id AND group_row.cafe_id = public.current_cafe_id() AND NOT group_row.is_global)) WITH CHECK (EXISTS (SELECT 1 FROM public.modifier_groups AS group_row WHERE group_row.id = modifier_options.modifier_group_id AND group_row.cafe_id = public.current_cafe_id() AND NOT group_row.is_global));
+CREATE POLICY modifier_options_local_delete ON public.modifier_options FOR DELETE TO authenticated USING (EXISTS (SELECT 1 FROM public.modifier_groups AS group_row WHERE group_row.id = modifier_options.modifier_group_id AND group_row.cafe_id = public.current_cafe_id() AND NOT group_row.is_global));
+CREATE POLICY product_modifiers_scoped_read ON public.product_modifiers FOR SELECT TO anon, authenticated USING (EXISTS (SELECT 1 FROM public.products AS product_row JOIN public.modifier_groups AS group_row ON group_row.id = product_modifiers.modifier_group_id WHERE product_row.id = product_modifiers.product_id AND product_row.cafe_id = public.current_cafe_id() AND (group_row.is_global OR group_row.cafe_id = product_row.cafe_id)));
+CREATE POLICY product_modifiers_scoped_write ON public.product_modifiers FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM public.products AS product_row JOIN public.modifier_groups AS group_row ON group_row.id = product_modifiers.modifier_group_id WHERE product_row.id = product_modifiers.product_id AND product_row.cafe_id = public.current_cafe_id() AND (group_row.is_global OR group_row.cafe_id = product_row.cafe_id))) WITH CHECK (EXISTS (SELECT 1 FROM public.products AS product_row JOIN public.modifier_groups AS group_row ON group_row.id = product_modifiers.modifier_group_id WHERE product_row.id = product_modifiers.product_id AND product_row.cafe_id = public.current_cafe_id() AND (group_row.is_global OR group_row.cafe_id = product_row.cafe_id)));
+COMMIT;
+

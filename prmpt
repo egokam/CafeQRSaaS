@@ -1,8 +1,0 @@
-
-
--an order cant be recieved from a client to 2 or more cashiers. an order appeared for one cashier.
--the order goes to the cashier that is free "no orders on it". and if all of them having activ orders: it goes to the one that have less number of orders.
-this helps improuving + speeding the work. and also guarantee not doubling orders.
--and if there is just one cashier it handles it all as usual.
-- btw this system works if we have from 2 to infinity of cashiers.
--gimme a blueprint of that

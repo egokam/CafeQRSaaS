@@ -172,7 +172,7 @@ export async function deleteEmployee(cafeId: string, employeeId: string) {
  */
 export async function verifyCashierPin(cafeId: string, username: string, pin: string) {
   try {
-    const { deviceId } = await getApprovedCashierDevice(cafeId);
+    const { deviceId, posDeviceId } = await getApprovedCashierDevice(cafeId);
     const normalizedUsername = normalizeUsername(username);
     const suppliedPin = validatePin(pin);
     const { data: employee, error } = await supabaseAdmin
@@ -196,6 +196,7 @@ export async function verifyCashierPin(cafeId: string, username: string, pin: st
         name: employee.name,
         username: employee.username,
       },
+      posDeviceId,
     };
   } catch (error) {
     return { success: false, error: errorMessage(error) };

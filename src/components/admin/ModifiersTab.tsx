@@ -46,6 +46,7 @@ export default function ModifiersTab({ cafeId, activeLang }: { cafeId: string, a
   };
 
   const handleEdit = (group: any) => {
+    if (group.is_global) return;
     setEditingGroupId(group.id);
     setNameAr(group.name_ar || "");
     setNameEn(group.name_en || "");
@@ -102,6 +103,8 @@ export default function ModifiersTab({ cafeId, activeLang }: { cafeId: string, a
   };
 
   const handleDelete = async (id: string) => {
+    const group = groups.find((item) => item.id === id);
+    if (group?.is_global) return;
     if (!confirm(activeLang === 'ar' ? 'هل أنت متأكد من حذف هذه المجموعة؟' : 'Are you sure you want to delete this group?')) return;
     try {
       const result = await deleteAdminModifierGroup(cafeId, id);
@@ -166,12 +169,12 @@ export default function ModifiersTab({ cafeId, activeLang }: { cafeId: string, a
                   <div className="bg-zinc-50 p-2.5 rounded-xl border border-border">{getIcon(group.type)}</div>
                   <div>
                     <h3 className="font-bold text-zinc-900 text-lg">{group.name_ar || group.name_en || group.name_fr}</h3>
-                    <span className="text-xs font-bold text-zinc-400">{getTypeLabel(group.type)}</span>
+                    <span className="text-xs font-bold text-zinc-400 flex items-center gap-2">{getTypeLabel(group.type)} {group.is_global && <span className="text-[10px] uppercase tracking-wide text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">Global · Read only</span>}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => handleEdit(group)} className="text-blue-500 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors"><Edit2 size={16} /></button>
-                  <button onClick={() => handleDelete(group.id)} className="text-red-500 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors"><Trash2 size={16} /></button>
+                  <button disabled={group.is_global} title={group.is_global ? "Global modifiers are managed by the platform" : "Edit"} onClick={() => handleEdit(group)} className="text-blue-500 bg-blue-50 hover:bg-blue-100 p-2 rounded-lg transition-colors disabled:opacity-35 disabled:cursor-not-allowed"><Edit2 size={16} /></button>
+                  <button disabled={group.is_global} title={group.is_global ? "Global modifiers are managed by the platform" : "Delete"} onClick={() => handleDelete(group.id)} className="text-red-500 bg-red-50 hover:bg-red-100 p-2 rounded-lg transition-colors disabled:opacity-35 disabled:cursor-not-allowed"><Trash2 size={16} /></button>
                 </div>
               </div>
               

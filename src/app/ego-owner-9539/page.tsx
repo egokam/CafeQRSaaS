@@ -7,13 +7,14 @@ import { hasSuperAdminAccess, signOutSuperAdmin } from "../../actions/auth";
 import {
   Building2, ShieldCheck, AlertOctagon, Clock, Search,
   ChevronDown, DollarSign, Activity, RefreshCcw, Sprout,
-  Copy, Check, Sparkles, LogOut, XCircle, Loader2, ExternalLink
+  Copy, Check, Sparkles, LogOut, XCircle, Loader2, ExternalLink, Globe2
 } from "lucide-react";
 
 import { LanguageSwitcher } from "@/components/landing/LanguageSwitcher";
 import { useTranslations, useLocale } from "next-intl";
 import { Cairo } from "next/font/google";
 import CafeDossierModal from "@/components/s-admin/CafeDossierModal";
+import GlobalModifiersTab from "@/components/s-admin/GlobalModifiersTab";
 
 const cairo = Cairo({ subsets: ["arabic"], weight: ["400", "500", "700", "900"] });
 export default function UltimateSuperAdminDashboard() {
@@ -31,6 +32,7 @@ export default function UltimateSuperAdminDashboard() {
   const [inspectedCafe, setInspectedCafe] = useState<any | null>(null);
 
   const [showFactory, setShowFactory] = useState(false);
+  const [showGlobalModifiers, setShowGlobalModifiers] = useState(false);
   const [facName, setFacName] = useState("");
   const [facSlug, setFacSlug] = useState("");
   const [facEmail, setFacEmail] = useState("");
@@ -233,6 +235,9 @@ export default function UltimateSuperAdminDashboard() {
           </div>
 
           <div className="flex items-center flex-wrap gap-3 w-full md:w-auto">
+            <button onClick={() => setShowGlobalModifiers(true)} className="flex-1 md:flex-none bg-zinc-900/80 hover:bg-zinc-800 border border-amber-400/30 hover:border-amber-400/70 text-amber-300 font-black px-5 py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-all text-sm">
+              <Globe2 size={18} /> Global Modifiers
+            </button>
             <button onClick={() => { setShowFactory(true); setFacResult(null); }} className="flex-1 md:flex-none group relative overflow-hidden bg-gradient-to-r from-amber-400 to-orange-400 text-zinc-950 font-black px-6 py-3.5 rounded-2xl flex items-center justify-center gap-2 shadow-[0_0_30px_-10px_rgba(251,191,36,0.6)] active:scale-95 transition-all text-sm">
               <Sprout size={18} className="transition-transform group-hover:scale-110" /> {t("ui.createNewPlatform")}
             </button>
@@ -438,6 +443,12 @@ export default function UltimateSuperAdminDashboard() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {showGlobalModifiers && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-zinc-950">
+          <GlobalModifiersTab onClose={() => setShowGlobalModifiers(false)} />
         </div>
       )}
 

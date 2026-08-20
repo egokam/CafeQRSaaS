@@ -19,6 +19,78 @@ type CafePlanLimits = {
 };
 
 type CafeUpdatePayload = Record<string, string | number | boolean>;
+type ModifierType = "single_choice" | "multiple_choice" | "incremental" | "slider";
+type GlobalModifierOptionInput = {
+  id?: unknown;
+  name_ar?: unknown;
+  name_en?: unknown;
+  name_fr?: unknown;
+  price_adjustment?: unknown;
+};
+type GlobalModifierGroupInput = {
+  id?: unknown;
+  name_ar?: unknown;
+  name_en?: unknown;
+  name_fr?: unknown;
+  type?: unknown;
+  min_selections?: unknown;
+  max_selections?: unknown;
+  options?: unknown;
+};
+
+const MODIFIER_TYPES = new Set<ModifierType>([
+  "single_choice",
+  "multiple_choice",
+  "incremental",
+  "slider",
+]);
+
+const modifierText = (value: unknown, label: string) => {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string" || value.trim().length > 255) throw new Error(`Invalid ${label}`);
+  return value.trim() || null;
+};
+
+function sanitizeGlobalModifier(input: GlobalModifierGroupInput) {
+  if (typeof input.type !== "string" || !MODIFIER_TYPES.has(input.type as ModifierType)) {
+    throw new Error("Invalid modifier type");
+  }
+  const min = Number(input.min_selections);
+  const max = Number(input.max_selections);
+  if (!Number.isInteger(min) || !Number.isInteger(max) || min < 0 || max < min || max > 50) {
+    throw new Error("Invalid modifier selection limits");
+  }
+  if (!Array.isArray(input.options) || input.options.length === 0 || input.options.length > 100) {
+    throw new Error("A modifier group needs between 1 and 100 options");
+  }
+
+  const name_ar = modifierText(input.name_ar, "modifier name_ar");
+  const name_en = modifierText(input.name_en, "modifier name_en");
+  const name_fr = modifierText(input.name_fr, "modifier name_fr");
+  if (!name_ar && !name_en && !name_fr) throw new Error("Modifier group name is required");
+
+  const options = input.options.map((rawOption) => {
+    if (!rawOption || typeof rawOption !== "object") throw new Error("Invalid modifier option");
+    const option = rawOption as GlobalModifierOptionInput;
+    const price_adjustment = Number(option.price_adjustment ?? 0);
+    if (!Number.isFinite(price_adjustment) || price_adjustment < 0) throw new Error("Invalid modifier option price");
+    const optionNameAr = modifierText(option.name_ar, "option name_ar");
+    const optionNameEn = modifierText(option.name_en, "option name_en");
+    const optionNameFr = modifierText(option.name_fr, "option name_fr");
+    if (!optionNameAr && !optionNameEn && !optionNameFr) throw new Error("Modifier option name is required");
+    return { name_ar: optionNameAr, name_en: optionNameEn, name_fr: optionNameFr, price_adjustment };
+  });
+
+  return {
+    name_ar,
+    name_en,
+    name_fr,
+    type: input.type as ModifierType,
+    min_selections: min,
+    max_selections: max,
+    options,
+  };
+}
 
 type SupabaseLoggableError = {
   message?: string;
@@ -494,5 +566,95 @@ export async function deleteCafeCompletely(cafeId: string, authUserId: string) {
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };
+  }
+}
+
+/** Platform-owned modifier templates. These deliberately use cafe_id NULL and
+ * are only reachable after checking the independent super-admin session. */
+export async function getGlobalModifierGroups() {
+  try {
+    await verifySuperAdmin();
+    const { data, error } = await supabaseAdmin
+      .from("modifier_groups")
+      .select("*, modifier_options(*)")
+      .eq("is_global", true)
+      .is("cafe_id", null)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return { success: true, groups: data || [] };
+  } catch (error: unknown) {
+    return { success: false, groups: [], error: error instanceof Error ? error.message : "Unable to load global modifiers" };
+  }
+}
+
+export async function saveGlobalModifierGroup(input: GlobalModifierGroupInput) {
+  try {
+    await verifySuperAdmin();
+    const { options, ...groupData } = sanitizeGlobalModifier(input);
+    const groupId = typeof input.id === "string" ? input.id : undefined;
+    let savedGroupId = groupId;
+
+    if (savedGroupId) {
+      const { data: existing, error: existingError } = await supabaseAdmin
+        .from("modifier_groups")
+        .select("id")
+        .eq("id", savedGroupId)
+        .eq("is_global", true)
+        .is("cafe_id", null)
+        .maybeSingle();
+      if (existingError || !existing) throw new Error("Global modifier group not found");
+
+      const { error } = await supabaseAdmin
+        .from("modifier_groups")
+        .update({ ...groupData, is_global: true, cafe_id: null })
+        .eq("id", savedGroupId)
+        .eq("is_global", true)
+        .is("cafe_id", null);
+      if (error) throw error;
+    } else {
+      const { data, error } = await supabaseAdmin
+        .from("modifier_groups")
+        .insert({ ...groupData, is_global: true, cafe_id: null })
+        .select("id")
+        .single();
+      if (error || !data) throw error || new Error("Unable to create global modifier group");
+      savedGroupId = data.id;
+    }
+
+    const { error: deleteOptionsError } = await supabaseAdmin
+      .from("modifier_options")
+      .delete()
+      .eq("modifier_group_id", savedGroupId);
+    if (deleteOptionsError) throw deleteOptionsError;
+
+    const { error: insertOptionsError } = await supabaseAdmin
+      .from("modifier_options")
+      .insert(options.map((option) => ({ ...option, modifier_group_id: savedGroupId, is_global: true })));
+    if (insertOptionsError) throw insertOptionsError;
+
+    revalidatePath("/ego-owner-9539");
+    return { success: true, groupId: savedGroupId };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Unable to save global modifier" };
+  }
+}
+
+export async function deleteGlobalModifierGroup(groupId: string) {
+  try {
+    await verifySuperAdmin();
+    if (typeof groupId !== "string" || groupId.length === 0) throw new Error("Invalid modifier group id");
+    const { data, error } = await supabaseAdmin
+      .from("modifier_groups")
+      .delete()
+      .eq("id", groupId)
+      .eq("is_global", true)
+      .is("cafe_id", null)
+      .select("id")
+      .maybeSingle();
+    if (error || !data) throw error || new Error("Global modifier group not found");
+    revalidatePath("/ego-owner-9539");
+    return { success: true };
+  } catch (error: unknown) {
+    return { success: false, error: error instanceof Error ? error.message : "Unable to delete global modifier" };
   }
 }

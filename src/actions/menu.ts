@@ -446,7 +446,8 @@ export async function getAdminModifierGroups(cafeId: string) {
     const { data, error } = await supabaseAdmin
       .from("modifier_groups")
       .select("*, modifier_options(*)")
-      .eq("cafe_id", cafeId)
+      .or(`cafe_id.eq.${cafeId},is_global.eq.true`)
+      .order("is_global", { ascending: false })
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -469,6 +470,7 @@ export async function saveAdminModifierGroup(cafeId: string, input: ModifierGrou
         .select("id")
         .eq("id", savedGroupId)
         .eq("cafe_id", cafeId)
+        .eq("is_global", false)
         .maybeSingle();
       if (existingError || !existing) throw new Error("Modifier group not found");
 
@@ -476,12 +478,13 @@ export async function saveAdminModifierGroup(cafeId: string, input: ModifierGrou
         .from("modifier_groups")
         .update(groupData)
         .eq("id", savedGroupId)
-        .eq("cafe_id", cafeId);
+        .eq("cafe_id", cafeId)
+        .eq("is_global", false);
       if (error) throw error;
     } else {
       const { data, error } = await supabaseAdmin
         .from("modifier_groups")
-        .insert({ ...groupData, cafe_id: cafeId })
+        .insert({ ...groupData, cafe_id: cafeId, is_global: false })
         .select("id")
         .single();
       if (error || !data) throw error || new Error("Unable to create modifier group");
@@ -512,7 +515,8 @@ export async function deleteAdminModifierGroup(cafeId: string, groupId: string) 
       .from("modifier_groups")
       .delete()
       .eq("id", groupId)
-      .eq("cafe_id", cafeId);
+      .eq("cafe_id", cafeId)
+      .eq("is_global", false);
     if (error) throw error;
     return { success: true };
   } catch (error: unknown) {

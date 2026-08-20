@@ -15,12 +15,21 @@ import {
   hasCashierCafeAccess,
   hasCashierEmployeeAccess,
   loginCashierWithDevice,
+  pingCashierHeartbeat,
 } from "../../../actions/auth";
 import {
   logoutCashierShift,
   verifyCashierPin,
 } from "../../../actions/employees";
 import { checkCafeSubscription } from "../../../actions/saas";
+
+declare global {
+  interface Window {
+    electron?: {
+      printReceipt: (html: string) => Promise<unknown>;
+    };
+  }
+}
 
 const TRANSLATIONS: Record<string, any> = {
   en: {
@@ -67,6 +76,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [isChecking, setIsChecking] = useState(false);
 
   const [deviceId, setDeviceId] = useState("");
+  const [posDeviceId, setPosDeviceId] = useState<string | null>(null);
   const [deviceStatus, setDeviceStatus] = useState<'none' | 'pending' | 'blocked' | 'approved'>('none');
   const [isSessionFull, setIsSessionFull] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
@@ -78,6 +88,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [cafeDataObj, setCafeDataObj] = useState<any>(null);
 
   const [printOrder, setPrintOrder] = useState<any>(null);
+  const printReceiptRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
 
@@ -89,6 +100,9 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
   const [posCart, setPosCart] = useState<{ [key: string]: any }>({});
   const [posCategory, setPosCategory] = useState<string>("ALL");
   const [isSubmittingPos, setIsSubmittingPos] = useState(false);
+  const [modifierProduct, setModifierProduct] = useState<any | null>(null);
+  const [posModifierSelections, setPosModifierSelections] = useState<Record<string, number>>({});
+  const [modifierSelectionError, setModifierSelectionError] = useState<string | null>(null);
 
   const lockCopy = activeLang === "ar"
     ? {
@@ -152,6 +166,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       setIsAuthenticated(false);
       setEmployeeId(null);
       setEmployeeName("");
+      setPosDeviceId(null);
     }
   };
 
@@ -214,6 +229,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
               if (loaded) {
                 setEmployeeId(employeeSession.employee.id);
                 setEmployeeName(employeeSession.employee.name);
+                setPosDeviceId(employeeSession.employee.posDeviceId);
                 setIsAuthenticated(true);
               }
             }
@@ -253,6 +269,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         setIsAuthenticated(false);
         setEmployeeId(null);
         setEmployeeName("");
+        setPosDeviceId(null);
       }
     };
 
@@ -275,6 +292,69 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     return () => clearInterval(ordersInterval);
   }, [isAuthenticated, cafeId]);
 
+  // The database uses this heartbeat to route new orders and to reclaim work
+  // from a terminal that has gone offline. Polling remains the authoritative
+  // delivery fallback if a browser's Realtime subscription is unavailable.
+  useEffect(() => {
+    if (!isAuthenticated || !posDeviceId) return;
+
+    let cancelled = false;
+    const heartbeat = async () => {
+      const result = await pingCashierHeartbeat(posDeviceId);
+      if (!cancelled && !result.success) {
+        console.warn("Cashier heartbeat failed", result.error);
+      }
+    };
+
+    void heartbeat();
+    const interval = window.setInterval(() => { void heartbeat(); }, 15_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [isAuthenticated, posDeviceId]);
+
+  // Listen only to this device's routed orders and the NULL fallback bucket.
+  // Event data is never rendered directly: the server action applies the
+  // session-bound device filter again before replacing local state.
+  useEffect(() => {
+    if (!isAuthenticated || !cafeId || !posDeviceId) return;
+
+    let scheduled = false;
+    const refreshRoutedOrders = () => {
+      if (scheduled) return;
+      scheduled = true;
+      window.setTimeout(() => {
+        scheduled = false;
+        void fetchOrders(cafeId);
+      }, 100);
+    };
+
+    const assignedOrdersChannel = supabase
+      .channel(`cashier_orders_${cafeId}_${posDeviceId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "orders",
+        filter: `assigned_device_id=eq.${posDeviceId}`,
+      }, refreshRoutedOrders)
+      .subscribe();
+    const fallbackOrdersChannel = supabase
+      .channel(`cashier_unassigned_orders_${cafeId}_${posDeviceId}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "orders",
+        filter: "assigned_device_id=is.null",
+      }, refreshRoutedOrders)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(assignedOrdersChannel);
+      supabase.removeChannel(fallbackOrdersChannel);
+    };
+  }, [isAuthenticated, cafeId, posDeviceId]);
+
   useEffect(() => {
     if (!isAuthenticated || !cafeId || !deviceId) return;
 
@@ -296,6 +376,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
         setIsAuthenticated(false);
         setEmployeeId(null);
         setEmployeeName("");
+        setPosDeviceId(null);
         void logoutCashierShift(cafeId);
       }
     });
@@ -371,6 +452,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
     setEmployeeId(result.employee.id);
     setEmployeeName(result.employee.name);
+    setPosDeviceId(result.posDeviceId);
     setEmployeePin("");
     setAttempts(0);
     setIsAuthenticated(true);
@@ -381,6 +463,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     setIsAuthenticated(false);
     setEmployeeId(null);
     setEmployeeName("");
+    setPosDeviceId(null);
     setEmployeePin("");
     setShowPOS(false);
     setPosCart({});
@@ -388,7 +471,44 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
 
   const handlePrintReceipt = (order: any) => {
     setPrintOrder(order);
-    setTimeout(() => { window.print(); }, 150);
+    window.setTimeout(() => {
+      if (window.electron) {
+        const receiptHtml = printReceiptRef.current?.outerHTML;
+
+        if (!receiptHtml) {
+          console.error("Receipt HTML was not rendered before printing.");
+          return;
+        }
+
+        const printableReceipt = `<!doctype html>
+          <html>
+            <head>
+              <meta charset="utf-8" />
+              <style>
+                @page { margin: 0; size: 80mm auto; }
+                html, body { margin: 0; background: #fff; color: #000; }
+                .print-only, .hidden { display: block !important; }
+                .print-only { box-sizing: border-box; width: 80mm; max-width: 80mm; margin: 0 auto; padding: 4mm; font-family: monospace; font-size: 12px; }
+                .text-center { text-align: center; }
+                .text-left { text-align: left; }
+                .text-right { text-align: right; }
+                .font-bold { font-weight: 700; }
+                .font-extrabold { font-weight: 800; }
+                table { width: 100%; border-collapse: collapse; }
+                td { vertical-align: top; }
+              </style>
+            </head>
+            <body>${receiptHtml}</body>
+          </html>`;
+
+        void window.electron.printReceipt(printableReceipt).catch((error) => {
+          console.error("Unable to print receipt:", error);
+        });
+        return;
+      }
+
+      window.print();
+    }, 150);
   };
 
   const updateOrderStatus = async (order: any, newStatus: string) => {
@@ -417,11 +537,147 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     if (success) alert(`"${productName}" ${t.disabledSuccess}`);
   };
 
-  const addToPos = (prod: any) => {
-    setPosCart(prev => {
-      const curr = prev[prod.id];
-      if (curr) return { ...prev, [prod.id]: { ...curr, quantity: curr.quantity + 1 } };
-      return { ...prev, [prod.id]: { id: prod.id, name_ar: prod.name_ar, name_en: prod.name_en, name_fr: prod.name_fr, price: prod.price, quantity: 1 } };
+  const modifierOptions = (group: any) => group?.modifier_options || group?.options || [];
+
+  const modifierName = (option: any, lang: string) => {
+    if (lang === "ar") return option.name_ar || option.name_en || option.name_fr || "";
+    if (lang === "fr") return option.name_fr || option.name_en || option.name_ar || "";
+    return option.name_en || option.name_ar || option.name_fr || "";
+  };
+
+  const selectedCountForGroup = (group: any, selections: Record<string, number>) => {
+    const selected = modifierOptions(group).map((option: any) => Number(selections[option.id] || 0));
+    return group.type === "incremental"
+      ? selected.reduce((sum: number, quantity: number) => sum + quantity, 0)
+      : selected.filter(Boolean).length;
+  };
+
+  const validatePosModifierSelections = (product: any, selections: Record<string, number>) => {
+    for (const group of product.modifier_groups || []) {
+      const selectedCount = selectedCountForGroup(group, selections);
+      const min = Math.max(0, Number(group.min_selections || 0));
+      const max = Math.max(min, Number(group.max_selections || 0));
+      if (selectedCount < min || selectedCount > max) {
+        const name = activeLang === "ar"
+          ? group.name_ar || group.name_en
+          : activeLang === "fr"
+            ? group.name_fr || group.name_en || group.name_ar
+            : group.name_en || group.name_ar || group.name_fr;
+        return activeLang === "ar"
+          ? `اختر من ${min} إلى ${max} خيارات في «${name}».`
+          : `Select between ${min} and ${max} options for “${name}”.`;
+      }
+      if ((group.type === "single_choice" || group.type === "slider") && selectedCount > 1) {
+        return activeLang === "ar" ? "يسمح باختيار واحد فقط في هذه المجموعة." : "Only one option is allowed in this group.";
+      }
+    }
+    return null;
+  };
+
+  const addProductToPos = (product: any, selections: Record<string, number> = {}) => {
+    const selectedEntries = Object.entries(selections)
+      .filter(([, quantity]) => Number(quantity) > 0)
+      .sort(([leftId], [rightId]) => leftId.localeCompare(rightId));
+    const selectionsHash = selectedEntries.map(([optionId, quantity]) => `${optionId}:${quantity}`).join("-");
+    const cartId = selectionsHash ? `${product.id}-${selectionsHash}` : product.id;
+    const allOptions = (product.modifier_groups || []).flatMap((group: any) => modifierOptions(group));
+    const selectedOptions = selectedEntries
+      .map(([optionId, quantity]) => ({ option: allOptions.find((option: any) => option.id === optionId), quantity: Number(quantity) }))
+      .filter((selection): selection is { option: any; quantity: number } => Boolean(selection.option));
+    const extrasTotal = selectedOptions.reduce(
+      (sum, { option, quantity }) => sum + Number(option.price_adjustment || 0) * quantity,
+      0
+    );
+    const modifierText = (lang: string) => selectedOptions
+      .map(({ option, quantity }) => `${modifierName(option, lang)}${quantity > 1 ? ` (x${quantity})` : ""}`)
+      .filter(Boolean)
+      .join(lang === "ar" ? "، " : ", ");
+    const nameWithModifiers = (baseName: string | null | undefined, lang: string) => {
+      const selectedText = modifierText(lang);
+      return selectedText ? `${baseName || ""} (+ ${selectedText})` : baseName || "";
+    };
+
+    setPosCart((previous) => {
+      const current = previous[cartId];
+      if (current) return { ...previous, [cartId]: { ...current, quantity: current.quantity + 1 } };
+      return {
+        ...previous,
+        [cartId]: {
+          id: cartId,
+          product_id: product.id,
+          name_ar: nameWithModifiers(product.name_ar || product.name_en || product.name_fr, "ar"),
+          name_en: nameWithModifiers(product.name_en || product.name_ar || product.name_fr, "en"),
+          name_fr: nameWithModifiers(product.name_fr || product.name_en || product.name_ar, "fr"),
+          price: Number(product.price) + extrasTotal,
+          quantity: 1,
+          modifiers: Object.fromEntries(selectedEntries),
+        },
+      };
+    });
+  };
+
+  const addToPos = (product: any) => {
+    const groups = product.modifier_groups || [];
+    if (groups.length > 0) {
+      setModifierProduct(product);
+      setPosModifierSelections({});
+      setModifierSelectionError(null);
+      return;
+    }
+    addProductToPos(product);
+  };
+
+  const chooseSingleModifier = (group: any, optionId: string) => {
+    setPosModifierSelections((previous) => {
+      const next = { ...previous };
+      modifierOptions(group).forEach((option: any) => delete next[option.id]);
+      next[optionId] = 1;
+      return next;
+    });
+    setModifierSelectionError(null);
+  };
+
+  const toggleMultipleModifier = (group: any, optionId: string) => {
+    setPosModifierSelections((previous) => {
+      const next = { ...previous };
+      if (next[optionId]) {
+        delete next[optionId];
+        return next;
+      }
+      if (selectedCountForGroup(group, previous) < Number(group.max_selections || 0)) next[optionId] = 1;
+      return next;
+    });
+    setModifierSelectionError(null);
+  };
+
+  const changeIncrementalModifier = (group: any, optionId: string, delta: number) => {
+    setPosModifierSelections((previous) => {
+      const next = { ...previous };
+      const current = Number(next[optionId] || 0);
+      if (delta > 0 && selectedCountForGroup(group, previous) >= Number(group.max_selections || 0)) return next;
+      if (current + delta <= 0) delete next[optionId];
+      else next[optionId] = current + delta;
+      return next;
+    });
+    setModifierSelectionError(null);
+  };
+
+  const confirmPosModifiers = () => {
+    if (!modifierProduct) return;
+    const error = validatePosModifierSelections(modifierProduct, posModifierSelections);
+    if (error) {
+      setModifierSelectionError(error);
+      return;
+    }
+    addProductToPos(modifierProduct, posModifierSelections);
+    setModifierProduct(null);
+    setPosModifierSelections({});
+  };
+
+  const incrementPosCart = (cartId: string) => {
+    setPosCart((previous) => {
+      const current = previous[cartId];
+      return current ? { ...previous, [cartId]: { ...current, quantity: current.quantity + 1 } } : previous;
     });
   };
 
@@ -662,7 +918,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                             <div className="flex items-center gap-3 shrink-0" dir="ltr">
                               <button onClick={() => decFromPos(item.id)} className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center hover:bg-red-100 hover:text-red-600 font-black text-lg transition-colors">-</button>
                               <span className="w-4 text-center font-black">{item.quantity}</span>
-                              <button onClick={() => addToPos(item)} className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center font-black text-lg hover:bg-primary/90 transition-colors">+</button>
+                              <button onClick={() => incrementPosCart(item.id)} className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center font-black text-lg hover:bg-primary/90 transition-colors">+</button>
                             </div>
                           </div>
                         );
@@ -687,6 +943,63 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
                 </div>
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {modifierProduct && (
+          <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6" dir={dir}>
+            <div className="w-full max-w-2xl max-h-[94vh] bg-white rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl overflow-hidden flex flex-col">
+              <div className="p-5 sm:p-6 border-b bg-zinc-50 flex justify-between items-start gap-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-primary mb-1">{activeLang === "ar" ? "تخصيص المنتج" : "Customize item"}</p>
+                  <h3 className="text-2xl font-black">{parseProductData(modifierProduct, activeLang).baseName}</h3>
+                  <p className="text-sm font-bold text-primary mt-1" dir="ltr">{formatMAD(modifierProduct.price)}</p>
+                </div>
+                <button onClick={() => { setModifierProduct(null); setPosModifierSelections({}); setModifierSelectionError(null); }} className="p-2 bg-white rounded-full border hover:text-red-500"><X size={20} /></button>
+              </div>
+
+              <div className="overflow-y-auto p-5 sm:p-6 space-y-7 custom-scrollbar">
+                {(modifierProduct.modifier_groups || []).map((group: any) => {
+                  const options = modifierOptions(group);
+                  const selectedCount = selectedCountForGroup(group, posModifierSelections);
+                  const min = Math.max(0, Number(group.min_selections || 0));
+                  const max = Math.max(min, Number(group.max_selections || 0));
+                  const groupLabel = modifierName(group, activeLang);
+                  return (
+                    <section key={group.id} className="border rounded-2xl overflow-hidden">
+                      <header className="p-4 bg-muted/40 border-b flex justify-between gap-3 items-center">
+                        <div><h4 className="font-black">{groupLabel}</h4><p className="text-[11px] text-muted-foreground font-bold mt-1">{min > 0 ? (activeLang === "ar" ? "مطلوب" : "Required") : (activeLang === "ar" ? "اختياري" : "Optional")} · {min}–{max}</p></div>
+                        <span className={`text-xs font-black px-2.5 py-1 rounded-lg ${selectedCount < min || selectedCount > max ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-700"}`} dir="ltr">{selectedCount}/{max}</span>
+                      </header>
+                      <div className="p-3 space-y-2">
+                        {options.map((option: any) => {
+                          const quantity = Number(posModifierSelections[option.id] || 0);
+                          const selected = quantity > 0;
+                          const extra = Number(option.price_adjustment || 0);
+                          const disabled = group.type === "multiple_choice" && !selected && selectedCount >= max;
+                          if (group.type === "incremental") {
+                            return <div key={option.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border bg-white">
+                              <div><p className="font-bold text-sm">{modifierName(option, activeLang)}</p>{extra > 0 && <p className="text-xs font-black text-emerald-600 mt-1" dir="ltr">+{formatMAD(extra)}</p>}</div>
+                              <div className="flex items-center gap-3" dir="ltr"><button onClick={() => changeIncrementalModifier(group, option.id, -1)} disabled={quantity === 0} className="h-9 w-9 rounded-lg bg-muted font-black text-lg disabled:opacity-30">−</button><span className="w-5 text-center font-black">{quantity}</span><button onClick={() => changeIncrementalModifier(group, option.id, 1)} disabled={selectedCount >= max} className="h-9 w-9 rounded-lg bg-primary text-white font-black text-lg disabled:opacity-30">+</button></div>
+                            </div>;
+                          }
+                          return <button key={option.id} onClick={() => (group.type === "single_choice" || group.type === "slider") ? chooseSingleModifier(group, option.id) : toggleMultipleModifier(group, option.id)} disabled={disabled} className={`w-full p-3 rounded-xl border flex items-center justify-between text-start transition-colors disabled:opacity-40 ${selected ? "border-primary bg-primary/5" : "bg-white hover:border-primary/40"}`}>
+                            <span className="flex gap-3 items-center"><span className={`w-5 h-5 shrink-0 border-2 flex items-center justify-center ${group.type === "multiple_choice" ? "rounded-md" : "rounded-full"} ${selected ? "border-primary bg-primary text-white" : "border-zinc-400"}`}>{selected && <Check size={14} strokeWidth={4} />}</span><span className="font-bold text-sm">{modifierName(option, activeLang)}</span></span>
+                            {extra > 0 && <span className="text-xs font-black text-emerald-600" dir="ltr">+{formatMAD(extra)}</span>}
+                          </button>;
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+                {modifierSelectionError && <p className="text-sm font-bold text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl">{modifierSelectionError}</p>}
+              </div>
+
+              <div className="p-4 sm:p-5 border-t bg-zinc-50 flex flex-col-reverse sm:flex-row gap-3">
+                <button onClick={() => { setModifierProduct(null); setPosModifierSelections({}); setModifierSelectionError(null); }} className="sm:w-1/3 py-3.5 rounded-xl border bg-white font-bold hover:bg-muted">{activeLang === "ar" ? "إلغاء" : "Cancel"}</button>
+                <button onClick={confirmPosModifiers} className="sm:flex-1 py-3.5 rounded-xl bg-primary text-white font-black flex justify-center items-center gap-2 hover:bg-primary/90"><Plus size={19} /> {activeLang === "ar" ? "إضافة للتذكرة" : "Add to ticket"}</button>
+              </div>
             </div>
           </div>
         )}
@@ -777,7 +1090,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
       </div>
 
       {printOrder && (
-        <div className="print-only hidden font-mono text-black bg-white w-full max-w-[300px] mx-auto p-4 text-sm text-left" dir="ltr">
+        <div ref={printReceiptRef} className="print-only hidden font-mono text-black bg-white w-full max-w-[300px] mx-auto p-4 text-sm text-left" dir="ltr">
           <div className="text-center pb-4 border-b-2 border-dashed border-gray-400 mb-4">
             <h2 className="text-2xl font-extrabold mb-1">{cafeDataObj?.name || "Cafe"}</h2>
             <p className="text-xs bg-black text-white py-1 uppercase tracking-widest">{TRANSLATIONS['en'].printTitle}</p>

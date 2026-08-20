@@ -1,13 +1,19 @@
 {
-  "name": "cafeqr",
-  "version": "0.1.0",
+  "name": "Qerv",
+  "version": "0.1.1",
+  "author": "egokam",
+  "description": "Qerv POS Client",
   "private": true,
+  "main": "main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "start:standalone": "node server-entry.cjs",
-    "lint": "eslint"
+    "lint": "eslint",
+    "electron:start": "electron .",
+    "electron:build": "electron-builder --win",
+    "release": "electron-builder --win --publish always"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -18,6 +24,8 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.6.1",
+    "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.9",
     "framer-motion": "^11.18.2",
     "framer-motion-3d": "^11.18.2",
     "jsonwebtoken": "^9.0.3",
@@ -43,9 +51,38 @@
     "@types/nodemailer": "^8.0.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "build": {
+    "npmRebuild": false,
+    "win": {
+      "target": "nsis",
+      "icon": "public/icon.ico"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "setup-preload.js",
+      "package.json",
+      "node_modules/electron-store/**/*",
+      "node_modules/electron-updater/**/*",
+      "!electron-config.json",
+      "!.next",
+      "!.next/**",
+      "!src",
+      "!src/**",
+      "!.env",
+      "!.env.*"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "egokam",
+      "repo": "Qerv-Public-Releases"
+    }
   }
 }
