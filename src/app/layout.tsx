@@ -21,12 +21,15 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: t("title"),
     description: t("description"),
-    metadataBase: new URL("https://cafeqr.egokam.site"),
+    metadataBase: new URL("https://qerve.egokam.site"),
     manifest: "/manifest.json",
+    verification: {
+      google: "uRSDVPHWPOMxeQSpB3WNbMGY4U88_poBxQsJWUq5Oig",
+    },
     openGraph: {
       title: t("ogTitle"),
       description: t("ogDescription"),
-      url: "https://cafeqr.egokam.site",
+      url: "https://qerve.egokam.site",
       siteName: t("siteName"),
       images: [
         {
