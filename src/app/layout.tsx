@@ -19,15 +19,18 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: "Metadata" });
 
   return {
-    title: t("title"),
+    title: "Qerve",
     description: t("description"),
-    metadataBase: new URL("https://cafeqr.egokam.site"),
+    metadataBase: new URL("https://qerve.egokam.site"),
     manifest: "/manifest.json",
+    verification: {
+      google: "uRSDVPHWPOMxeQSpB3WNbMGY4U88_poBxQsJWUq5Oig",
+    },
     openGraph: {
-      title: t("ogTitle"),
+      title: "Qerve",
       description: t("ogDescription"),
-      url: "https://cafeqr.egokam.site",
-      siteName: t("siteName"),
+      url: "https://qerve.egokam.site",
+      siteName: "Qerve",
       images: [
         {
           url: "/og-image.jpg",
@@ -69,6 +72,18 @@ export default async function RootLayout({
           "antialiased bg-background text-foreground min-h-screen flex flex-col relative selection:bg-primary/20"
         )}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "Qerve",
+              "url": "https://qerve.egokam.site/"
+            }),
+          }}
+        />
+
         <SecurityShield />
         <noscript>
           <style>{`
