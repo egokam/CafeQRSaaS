@@ -1,5 +1,6 @@
 "use server";
 
+import { getSafeUrl } from "@/lib/utils";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { randomUUID } from "crypto";
@@ -330,7 +331,7 @@ export async function clearPaymentHistory(cafeId: string) {
           <td style="padding: 12px; border: 1px solid #e4e4e7; font-weight: bold;" dir="ltr">${r.amount} MAD</td>
           <td style="padding: 12px; border: 1px solid #e4e4e7; font-weight: bold; ${statusColor}">${r.status}</td>
           <td style="padding: 12px; border: 1px solid #e4e4e7; text-align: center;">
-            ${r.receipt_url ? `<a href="${r.receipt_url}" style="display: inline-block; background-color: #18181b; color: #ffffff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 12px;">عرض الرابط</a>` : '-'}
+            ${r.receipt_url ? `<a href="${getSafeUrl(r.receipt_url)}" style="display: inline-block; background-color: #18181b; color: #ffffff; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 12px;">عرض الرابط</a>` : '-'}
           </td>
         </tr>
       `;

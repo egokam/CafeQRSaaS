@@ -1,5 +1,6 @@
 "use client";
 
+import { getSafeUrl } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { 
   History, 
@@ -223,8 +224,7 @@ export default function PaymentHistory({ cafeId, activeLang, dir }: PaymentHisto
                   
                   {receipt.receipt_url && (
                     <a 
-                      href={receipt.receipt_url} 
-                      target="_blank" 
+                      href={getSafeUrl(receipt.receipt_url)}
                       rel="noopener noreferrer"
                       className="text-xs font-bold bg-zinc-900 text-white px-3 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-1.5 transition-colors"
                     >

@@ -1,5 +1,6 @@
 "use client";
 
+import { getSafeUrl } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import {
   UserCog, AlertOctagon, Trash2, XCircle, Loader2,
@@ -371,7 +372,7 @@ export default function CafeDossierModal({
                                 {receipt.receipt_url && (
                                   <>
                                     <span className="text-zinc-700">•</span>
-                                    <a href={receipt.receipt_url} target="_blank" className="text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                                    <a href={getSafeUrl(receipt.receipt_url)} target="_blank" className="text-blue-400 hover:text-blue-300 flex items-center gap-1">
                                       VIEW <ExternalLink size={10} />
                                     </a>
                                   </>
