@@ -216,7 +216,7 @@ export default function AdminDemoDashboard() {
     setQrReady(false);
     
     setTimeout(() => {
-      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://cafeqr.egokam.site';
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://qerve.egokam.site';
       setQrUrl(`${baseUrl}/demo/client`);
       setQrReady(true);
       setIsGeneratingQr(false);

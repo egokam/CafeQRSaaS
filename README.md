@@ -16,7 +16,7 @@
 ![PM2](https://img.shields.io/badge/PM2-Process_Manager-2B037A?style=for-the-badge&logo=pm2&logoColor=white)
 ![Caddy](https://img.shields.io/badge/Caddy-Reverse_Proxy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white)
 
-**Live Platform:** [cafeqr.egokam.site](https://cafeqr.egokam.site)
+**Live Platform:** [qerve.egokam.site](https://qerve.egokam.site)
 
 </div>
 
@@ -201,14 +201,14 @@ CafeQrSaaS/
 
 Experience the product from each role:
 
-**Explore:** [https://cafeqr.egokam.site](https://cafeqr.egokam.site)
+**Explore:** [https://qerve.egokam.site](https://qerve.egokam.site)
 
 Suggested showcase paths:
 
-- Guest menu demo: `https://cafeqr.egokam.site/demo/client`
-- POS demo: `https://cafeqr.egokam.site/demo/pos`
-- Kitchen demo: `https://cafeqr.egokam.site/demo/kitchen`
-- Admin demo: `https://cafeqr.egokam.site/demo/admin`
+- Guest menu demo: `https://qerve.egokam.site/demo/client`
+- POS demo: `https://qerve.egokam.site/demo/pos`
+- Kitchen demo: `https://qerve.egokam.site/demo/kitchen`
+- Admin demo: `https://qerve.egokam.site/demo/admin`
 
 > Demo views use a browser-local synchronized store so reviewers can experience the end-to-end flow without production tenant credentials.
 

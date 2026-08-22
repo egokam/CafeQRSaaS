@@ -152,7 +152,7 @@ function createPosWindow(cafeSlug) {
 
   mainWindow.webContents.once("did-finish-load", checkForPrinters);
   mainWindow.once("ready-to-show", checkForUpdates);
-  mainWindow.loadURL(`https://cafeqr.egokam.site/${cafeSlug}/cashier`);
+  mainWindow.loadURL(`https://qerve.egokam.site/${cafeSlug}/cashier`);
 }
 
 function createSetupWindow() {
