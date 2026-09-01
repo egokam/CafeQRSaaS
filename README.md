@@ -1,253 +1,297 @@
-> [!WARNING]
-> **Proprietary and Not Open Source**
->
-> This repository is a private, proprietary portfolio showcase for **CafeQR SaaS**. It is provided for high-level technical review only. Unauthorized copying, modification, redistribution, reverse engineering, resale, or commercial use of any part of this codebase is strictly prohibited. All rights are reserved.
+# Qerve
 
 <div align="center">
 
-# CafeQR SaaS
-
-### The Premium QR Menu, POS Cashier, Kitchen Printing, and Multi-Tenant Control Platform for Modern Cafes
-
-![Next.js](https://img.shields.io/badge/Next.js-16.2.9-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL_&_Auth-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
-![PM2](https://img.shields.io/badge/PM2-Process_Manager-2B037A?style=for-the-badge&logo=pm2&logoColor=white)
-![Caddy](https://img.shields.io/badge/Caddy-Reverse_Proxy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white)
-
-**Live Platform:** [qerve.egokam.site](https://qerve.egokam.site)
+[English](README.md) · [العربية](README.ar.md)
 
 </div>
 
----
+Qerve is a multi-tenant cafe SaaS platform for QR ordering, cashier operations, kitchen coordination, and tenant administration. The product is designed to serve multiple cafes from a single Next.js application, with each cafe living under its own route and its own subscription-aware data context.
 
-## ✦ Platform Overview
+This repository contains the production code for the Qerve platform: marketing site, guest menu, cafe admin, POS cashier console, kitchen printing flow, and SaaS super-admin control panel.
 
-**CafeQR SaaS** is a premium, mobile-first hospitality platform built for cafes that want a polished digital ordering experience without sacrificing operational speed.
+## What the platform does
 
-It combines a dynamic QR menu, walk-in POS ordering, automatic kitchen receipt printing, tenant administration, subscription control, and a private SaaS factory into one cohesive Next.js application. Every cafe runs through a tenant slug, allowing one production codebase to serve many isolated cafe instances.
+- Lets guests browse a cafe/restaurant menu by scanning a table QR code
+- Supports English, French, and Arabic interfaces
+- Enables cafe owners to manage products, categories, modifiers, and tables
+- Provides POS cashier workflows for accepting or rejecting orders
+- Sends accepted orders into a kitchen-ready receipt workflow
+- Tracks sales, billing, device limits, and subscription status
+- Gives a super-admin dashboard for provisioning and managing tenant cafes
+- Uses Supabase for auth, database, storage, and realtime updates
 
-> **Design intent:** fast enough for daily service, elegant enough for premium hospitality, and structured enough to scale as a serious SaaS product.
+## Product overview
 
----
+Qerve is not a single app for one cafe. It is structured as a shared platform that can serve many tenants. Each cafe has a unique slug, authorized admin email, plan limits, staff configuration, menu, tables, and access rules. The core UI is mobile-first and optimized for real restaurant usage.
 
-## ✦ Experience Preview
+## Main flows in the app
 
-Add polished screenshots or GIFs here when preparing the GitHub showcase:
+### 1. Public landing and product storytelling
 
-| Surface | Preview |
-| --- | --- |
-| Guest QR Menu | ![Dynamic QR Menu - Mobile Guest Ordering](./public/screenshots/client.png) |
-| POS Cashier | ![POS Cashier View - Walk-in Orders](./public/screenshots/pos.png) |
-| Kitchen Receipt Printing | ![Kitchen Receipt Printing](./public/screenshots/kitchen.png) |
-| Cafe Admin (Menu & Products) | ![Cafe Admin Dashboard - Products](./public/screenshots/admin1.png) |
-| Cafe Admin (Sales & Analytics) | ![Cafe Admin Dashboard - Sales](./public/screenshots/admin2.png) |
-| Cafe Admin (QR Table Generation) | ![Cafe Admin Dashboard - QR Tables](./public/screenshots/admin3.png) |
+The root app is a premium marketing landing page with a 3D-style hero section, demo selector, feature highlights, product walkthrough, and footer. It is multilingual and designed to present the product clearly to cafe owners and stakeholders.
 
----
+Relevant files:
+- src/app/page.tsx
+- src/components/landing/*
+- src/i18n/messages/*
 
-## ✦ Core Product Suite
+### 2. Guest QR ordering experience
 
-### 🧾 Dynamic QR Menus
+Guests are routed through a table-specific URL like /[cafeSlug]/[tableId]. The app validates the cafe, table, and subscription status before letting the guest browse products and place an order. Orders are tied to a client session and then flow to the cafe cashier.
 
-Guests scan a table-specific QR route and enter a fast, app-like menu experience. The menu supports Arabic, French, and English labels, category filtering, real-time product availability, active order tracking, and direct order cancellation while an order is still pending.
+The guest interface includes:
+- category browsing and search
+- cart management
+- modifier selection
+- order submission
+- active order tracking
+- cancellation and status updates
 
-The production route validates the cafe slug, table record, subscription state, and customer session before allowing orders to flow into Supabase.
+Relevant files:
+- src/app/[cafeSlug]/[tableId]/page.tsx
+- src/actions/menu.ts
+- src/store/useCart.ts
+- src/components/client/*
 
-### 💳 Omnichannel POS Cashier
+### 3. Cafe admin dashboard
 
-The cashier terminal is designed for both QR-driven and walk-in service. Cashiers can accept or reject guest orders, print receipts, mark products out of stock, and create manual POS orders that go directly to the kitchen as accepted orders.
+The cafe owner area provides product management and operational control. The admin dashboard supports:
+- menu updates and product activation
+- modifier groups and pricing
+- table creation and QR access
+- monthly sales and order reporting
+- POS device management
+- employee and staff PIN setup
+- billing and subscription status
+- support requests and notifications
 
-Cashier access is PIN-protected and includes failed-attempt lockout behavior, subscription heartbeat checks, realtime order subscriptions, audible alerts, and presence-based terminal limits per cafe plan.
+Relevant files:
+- src/app/[cafeSlug]/admin/page.tsx
+- src/actions/auth.ts
+- src/actions/support.ts
+- src/actions/payment.ts
+- src/components/admin/*
 
-### 🖨️ Automatic Kitchen Receipt Printing
+### 4. Cashier POS workflow
 
-Accepted orders are instantly printed on the dedicated kitchen thermal printer, allowing kitchen staff to begin preparation immediately without requiring an additional display.
+The cashier interface is built for accepting guest orders, rejecting invalid ones, creating manual walk-in orders, and keeping the service moving. Cashier sessions are PIN-authenticated and the app tracks the cafe-level limit of active cashier devices.
 
-Each receipt includes the table number, ordered items, quantities, notes, and timestamps. Printing occurs only after cashier approval, ensuring the kitchen receives confirmed orders while the POS remains the central hub for order management and status updates.
+Relevant files:
+- src/components/admin/DevicesTab.tsx
+- src/components/admin/EmployeesTab.tsx
+- src/actions/employees.ts
+- src/app/demo/pos/page.tsx
 
-### 🏛️ Cafe Admin Console
+### 5. Kitchen printing and order lifecycle
 
-Each cafe owner gets a private admin surface for product management, multilingual menu entries, compressed image uploads, QR table generation, monthly sales review, settings, staff PIN updates, device limits, and subscription billing.
+Accepted orders are pushed into the kitchen workflow. The app supports a kitchen receipt display and a drag-to-tear style print interaction in the demo. Orders progress through statuses such as pending, accepted, ready, completed, rejected, and cancelled.
 
-The admin login flow verifies the owner email against the cafe record before granting access, and includes OTP/password recovery flows through Supabase Auth.
+Relevant files:
+- src/components/KitchenReciept.tsx
+- src/app/demo/kitchen/page.tsx
+- src/components/client/ProductPage/*
+- src/actions/menu.ts
 
-### ⚜️ SaaS Master Control Factory
+### 6. Super-admin SaaS control panel
 
-The private operator console acts as the SaaS command center. It verifies a whitelisted super-admin account, loads global cafe KPIs, tracks tenant subscription states, audits payment receipts, provisions new cafe instances, updates owner credentials, forces subscription changes, and performs full tenant deletion when required.
+The super-admin portal is a private operator dashboard for managing the platform itself. It allows an authorized owner to:
+- inspect all cafes
+- force status or subscription updates
+- manage billing-related records
+- update tenant credentials
+- provision new cafes with plan and trial defaults
+- delete or quarantine cafes when necessary
+- manage shared global modifiers
 
-This is the operational layer that turns CafeQR from a single cafe app into a multi-tenant SaaS platform.
+Relevant files:
+- src/app/ego-owner-9539/page.tsx
+- src/app/ego-owner-9539/login/page.tsx
+- src/actions/saas.ts
+- src/components/s-admin/*
 
----
+## Architecture and backend model
 
-## ✦ Architecture Highlights
+### Multi-tenant design
 
-**Multi-tenant routing:** tenant surfaces live under `src/app/[cafeSlug]`, including admin, cashier, kitchen, and table-specific QR menu routes.
+The project uses a shared codebase and per-cafe routing model. Cafe isolation is handled through tenant checks and by requiring a valid slug and associated records before acting on orders, admin pages, or menu data.
 
-**Supabase-backed isolation:** tenant data is keyed by cafe records, slugs, table ids, products, orders, receipts, owner auth ids, and subscription status.
+### Supabase foundation
 
-**Realtime operations:** Guest orders arrive instantly in the POS through Supabase Realtime. Once accepted, the system automatically prints a kitchen receipt while the POS continues managing the complete order lifecycle.
+The application relies on Supabase for:
+- PostgreSQL data storage
+- authentication and secure role checks
+- file storage for uploaded media
+- realtime subscriptions for live order updates
+- service-role operations used by server actions
 
-**Session fingerprinting:** middleware issues an HTTP-only `cafe_lux_session` cookie, while guest ordering also uses a browser-side client session id to track active orders per visitor.
+### Security model
 
-**Subscription enforcement:** tenant routes call subscription checks and run heartbeat validation, allowing the platform to suspend guest menus, cashier terminals, and kitchen printing when a cafe is expired or suspended.
+The codebase includes several security layers:
+- signed cookies for admin and super-admin access
+- role-based access checks in server actions
+- subscription validation before menu access or cashier functions
+- table and cafe validation before guest ordering
+- staff PIN checks for cashier and admin-related activity
+- strict headers added in middleware
 
----
+Relevant file:
+- middleware.ts
 
-## ✦ Security & Infrastructure
+## Tech stack
 
-> **Security posture:** the platform uses a layered approach across middleware headers, Supabase Auth, server actions, tenant checks, PIN controls, presence limits, and subscription state enforcement.
+- Next.js 16.2.9
+- React 19
+- TypeScript
+- Tailwind CSS
+- Supabase
+- Zustand
+- Framer Motion
+- react-qr-code
+- react-to-print
+- lucide-react
+- Electron + electron-builder (desktop packaging support)
 
-| Layer | Implementation |
-| --- | --- |
-| HTTP security headers | `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, and `Referrer-Policy: strict-origin-when-cross-origin` |
-| Session fingerprinting | `cafe_lux_session` cookie with `httpOnly`, `sameSite: lax`, production-only `secure`, and 12-hour lifetime |
-| Tenant validation | Cafe slug and table validation before guest ordering |
-| Admin authorization | Owner email verification against the cafe record plus Supabase Auth session checks |
-| Staff authorization | PIN verification for cashier and kitchen access |
-| Super-admin protection | Whitelisted owner portal plus server-side token verification |
-| Deployment posture | Next.js standalone output, PM2 process management, and Caddy reverse proxy readiness |
-| Media sources | Remote image patterns restricted to Unsplash and the configured Supabase project host |
-
----
-
-## ✦ Technology Stack
-
-| Area | Stack |
-| --- | --- |
-| Framework | Next.js 16.2.9 App Router, React 19 |
-| Language | TypeScript |
-| Styling | Tailwind CSS 4, shadcn/Radix primitives, lucide-react icons |
-| Database & Auth | Supabase PostgreSQL, Supabase Auth, Supabase Storage, Supabase Realtime |
-| State | Zustand cart store and localStorage-backed demo store |
-| Motion & UX | Framer Motion, realtime audio alerts, mobile-first RTL interface |
-| QR | `react-qr-code` |
-| Deployment | Standalone Next.js build, PM2, Caddy, VPS-ready production profile |
-
----
-
-## ✦ Project Structure
+## Repository structure
 
 ```text
-CafeQrSaaS/
+Qerve/
+├── db/
+│   ├── employee-pin-auth.sql
+│   ├── global-modifiers.sql
+│   ├── harden-rls.sql
+│   └── order-load-balancing.sql
+├── public/
+│   ├── ads.txt
+│   ├── manifest.json
+│   ├── banners/
+│   ├── demo/
+│   ├── icons/
+│   ├── models/
+│   ├── products/
+│   └── screenshots/
+├── src/
+│   ├── actions/
+│   │   ├── auth.ts
+│   │   ├── employees.ts
+│   │   ├── menu.ts
+│   │   ├── payment.ts
+│   │   ├── saas.ts
+│   │   └── support.ts
+│   ├── app/
+│   │   ├── api/
+│   │   ├── demo/
+│   │   ├── ego-owner-9539/
+│   │   ├── get-started/
+│   │   ├── tutorial/
+│   │   ├── [cafeSlug]/
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
+│   │   ├── robots.ts
+│   │   └── sitemap.ts
+│   ├── components/
+│   │   ├── admin/
+│   │   ├── client/
+│   │   ├── landing/
+│   │   ├── s-admin/
+│   │   ├── KitchenReciept.tsx
+│   │   └── SecurityShield.tsx
+│   ├── i18n/
+│   │   ├── config.ts
+│   │   ├── messages/
+│   │   └── request.ts
+│   ├── lib/
+│   │   ├── demoStore.ts
+│   │   ├── supabase.ts
+│   │   └── utils.ts
+│   └── store/
+│       └── useCart.ts
+├── ecosystem.config.js
+├── main.js
 ├── middleware.ts
 ├── next.config.ts
-└── src/
-    ├── actions/
-    │   ├── auth.ts              # Owner auth, PIN checks, menu mutations, order status, table creation
-    │   └── saas.ts              # Subscription checks, billing receipts, factory provisioning, super-admin data
-    ├── app/
-    │   ├── page.tsx             # Premium public landing experience
-    │   ├── layout.tsx           # RTL root shell, fonts, metadata, viewport theme
-    │   ├── globals.css          # Tailwind theme tokens and global app styling
-    │   ├── get-started/
-    │   │   └── page.tsx         # Plan selection and contact CTA
-    │   ├── demo/
-    │   │   ├── admin/page.tsx   # LocalStorage demo admin
-    │   │   ├── client/page.tsx  # LocalStorage demo guest QR menu
-    │   │   ├── kitchen/page.tsx # LocalStorage demo KDS
-    │   │   └── pos/page.tsx     # LocalStorage demo POS cashier
-    │   ├── ego-owner-9539/
-    │   │   ├── login/page.tsx   # Restricted super-admin login and OTP flow
-    │   │   └── page.tsx         # SaaS Master Control Factory
-    │   └── [cafeSlug]/
-    │       ├── admin/page.tsx   # Tenant admin console
-    │       ├── cashier/page.tsx # Tenant POS cashier terminal
-    │       ├── kitchen/page.tsx # Kitchen receipt printing configuration
-    │       └── [tableNumber]/
-    │           └── page.tsx     # Guest-facing QR menu and ordering flow
-    └── lib/
-        ├── supabase.ts          # Browser Supabase client
-        ├── demoStore.ts         # Shared local demo products/orders store
-        └── utils.ts             # Tailwind class merge helper
+├── package.json
+├── schema.sql
+├── server-entry.cjs
+├── setup-preload.js
+├── test-db.ts
+├── tsconfig.json
+├── tsconfig.demo-check.json
+├── components.json
+├── eslint.config.mjs
+├── postcss.config.mjs
+├── README.md
+└── .env.example-like setup via project environment variables
 ```
 
----
+## Key routes
 
-## ✦ Key Workflows
+- / - landing page
+- /tutorial - product walkthrough
+- /demo/admin - admin demo
+- /demo/pos - cashier demo
+- /demo/kitchen - kitchen demo
+- /demo/client - guest menu demo
+- /[cafeSlug]/admin - cafe admin console
+- /[cafeSlug]/cashier - cashier terminal
+- /[cafeSlug]/[tableId] - guest QR menu
+- /ego-owner-9539/login - super-admin login
+- /ego-owner-9539 - SaaS operator dashboard
 
-### Guest QR Order Flow
+## Environment variables
 
-1. Guest scans `/{cafeSlug}/{tableNumber}`.
-2. The app signs in anonymously when needed.
-3. Subscription, cafe, and table validity are checked.
-4. Active products are loaded for the tenant.
-5. Guest submits an order with a session id.
-6. POS receives the order in realtime for approval.
-7. Guest tracks order status until ready, completed, rejected, or cancelled.
-
-### POS to Kitchen Printing Flow
-
-1. Cashier unlocks the terminal with the cafe PIN.
-2. Supabase presence checks whether the cafe has available cashier seats.
-3. Pending guest orders can be accepted or rejected.
-4. Walk-in orders can be created from the POS drawer.
-5. Accepted orders are automatically printed on the connected kitchen thermal printer.
-6. Kitchen staff prepares the order using the printed receipt.
-7. Cashier updates the order to Ready and Completed while printing the customer receipt when needed.
-
-### SaaS Factory Flow
-
-1. Super-admin signs into the private owner portal.
-2. The server validates the access token and super-admin email.
-3. A new cafe is provisioned with slug, owner auth account, plan, trial window, staff PINs, and device limits.
-4. The platform generates ready-to-share admin, cashier, and kitchen links.
-5. Subscription state, credentials, receipts, and tenant lifecycle can be managed centrally.
-
----
-
-## ✦ Live Interactive Demo
-
-Experience the product from each role:
-
-**Explore:** [https://qerve.egokam.site](https://qerve.egokam.site)
-
-Suggested showcase paths:
-
-- Guest menu demo: `https://qerve.egokam.site/demo/client`
-- POS demo: `https://qerve.egokam.site/demo/pos`
-- Kitchen demo: `https://qerve.egokam.site/demo/kitchen`
-- Admin demo: `https://qerve.egokam.site/demo/admin`
-
-> Demo views use a browser-local synchronized store so reviewers can experience the end-to-end flow without production tenant credentials.
-
----
-
-## ✦ Installation & Deployment
-
-> [!IMPORTANT]
-> These commands are included for technical review and deployment context only. This project remains proprietary and is not licensed for public reuse.
+The project expects Supabase and app configuration values at runtime. Typical variables include:
 
 ```bash
-git clone https://github.com/yourusername/CafeQRSaaS.git
-cd CafeQRSaaS
-npm install
-npm run build
-pm2 start npm --name "cafeqr" -- start
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+AUTH_SECRET=
+SUPER_ADMIN_EMAIL=
+NEXT_PUBLIC_APP_URL=
+NEXT_PUBLIC_SITE_URL=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+TELEGRAM_WEBHOOK_SECRET=
+RESEND_API=
 ```
 
-Recommended production profile:
+## Local development
 
-- Build with Next.js standalone output.
-- Run the Node process under PM2.
-- Reverse proxy through Caddy with HTTPS.
-- Configure Supabase environment variables for public client access and server-side service-role actions.
-- Keep super-admin credentials, service-role keys, and production secrets outside source control.
+```bash
+npm install
+npm run dev
+```
 
----
+Then open the local app in the browser, usually at http://localhost:3000.
 
-## ✦ Roadmap
+## Build and start
 
-- Advanced analytics dashboard with peak hours, revenue breakdowns, and product performance.
-- AI-assisted menu descriptions and demand forecasting.
-- Multi-currency support and deeper localization.
-- Custom domain onboarding for premium tenants.
-- Expanded billing automation and receipt review workflows.
+```bash
+npm run build
+npm run start
+```
 
----
+Additional scripts:
 
-## ✦ Business Requirements
+```bash
+npm run lint
+npm run electron:start
+npm run electron:build
+npm run release
+```
+
+## Notes
+
+- This app is designed as a real-world SaaS product, not a generic starter project.
+- The sales, billing, and admin flows are connected to subscription and tenant logic.
+- Demo screens are included for product presentation and testing, but the production experience is tenant-aware and secured.
+- The repository includes both web app and desktop packaging support through Electron.
+
+## Summary
+
+Qerve is a cafe operations platform built around QR ordering, live POS workflows, kitchen dispatch, admin management, and multi-tenant SaaS control. The project combines a polished frontend experience with a strict operational backend model for cafe businesses that need one platform for guests, staff, and owners.
 
 CafeQR SaaS is designed to run with minimal hardware, making it suitable for small and medium-sized cafes without requiring specialized infrastructure.
 
@@ -268,7 +312,7 @@ CafeQR SaaS is designed to run with minimal hardware, making it suitable for sma
 For cafe owners, technical partners, or premium SaaS inquiries:
 
 **Instagram:** [@w.zd7](https://www.instagram.com/w.zd7)  
-**Email:** [egokam.business@gmail.com](mailto:egokam.business@gmail.com)  
+**Email:** [egokam.business@gmail.com](mailto:contact@egokam.site)  
 **WhatsApp:** [+212 781 991 384](https://wa.me/212781991384)
 
 ---
