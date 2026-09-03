@@ -359,6 +359,7 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
     if (!isAuthenticated || !cafeId || !deviceId) return;
 
     const slotChannel = supabase.channel(`cashier_slots_${cafeId}`, { config: { presence: { key: deviceId } } });
+    let shiftClosedForCapacity = false;
 
     slotChannel.on('presence', { event: 'sync' }, () => {
       const presenceState = slotChannel.presenceState();
@@ -369,9 +370,17 @@ export default function CashierDashboard({ params }: { params: Promise<{ cafeSlu
           activeSessions.push({ key, onlineAt: new Date(presences[0].online_at).getTime() });
         }
       });
+
+      // Phoenix emits an initial empty sync before this terminal's `track`
+      // message is reflected in the shared state. An empty (or incomplete)
+      // state is not evidence that this terminal exceeded the cashier limit.
+      // Wait until our own presence is observable before enforcing capacity.
+      if (!activeSessions.some((session) => session.key === deviceId)) return;
+
       activeSessions.sort((a, b) => a.onlineAt - b.onlineAt);
       const allowedKeys = activeSessions.slice(0, maxAllowed).map(s => s.key);
-      if (!allowedKeys.includes(deviceId)) {
+      if (!allowedKeys.includes(deviceId) && !shiftClosedForCapacity) {
+        shiftClosedForCapacity = true;
         setIsSessionFull(true);
         setIsAuthenticated(false);
         setEmployeeId(null);
