@@ -1,5 +1,4 @@
-//i spent two months building this saas, i really hope to get something from it.
-
+import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { Background3D } from "../components/landing/Background3D";
 import { Navbar } from "../components/landing/Navbar";
@@ -8,10 +7,21 @@ import { LivePreview } from "@/components/landing/LivePreview";
 import { Features } from "../components/landing/Features";
 import { ProjectGuide } from "../components/landing/ProjectGuide";
 import { Footer } from "../components/landing/Footer";
+import { publicPageMetadata } from "@/lib/seo";
 
-export default async function Home() {
-  const t = await getTranslations("Landing.Home");
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("Metadata");
 
+  return publicPageMetadata({
+    title: t("homeTitle"),
+    description: t("description"),
+    path: "/",
+    locale: t("locale"),
+    imageAlt: t("imageAlt"),
+  });
+}
+
+export default function Home() {
   return (
     <div
       id="top"
@@ -26,17 +36,6 @@ export default async function Home() {
         </section>
 
         <section id="demo" className="scroll-mt-28">
-          <div className="mx-auto mb-12 max-w-2xl text-center">
-            <p className="mb-3 text-sm font-medium uppercase tracking-widest text-amber-300">
-              {t("demoEyebrow")}
-            </p>
-            <h2 className="text-balance text-4xl font-semibold tracking-tight text-zinc-50 sm:text-5xl">
-              {t("demoTitle")}
-            </h2>
-            <p className="mt-4 text-pretty text-lg leading-relaxed text-zinc-400">
-              {t("demoDescription")}
-            </p>
-          </div>
           <LivePreview />
         </section>
 
@@ -55,6 +54,3 @@ export default async function Home() {
     </div>
   );
 }
-
-
-

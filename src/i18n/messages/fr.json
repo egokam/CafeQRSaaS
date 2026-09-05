@@ -1,6 +1,7 @@
 {
   "Metadata": {
     "title": "Qerve",
+    "homeTitle": "Commande QR et POS pour cafés",
     "description": "Modernisez votre entreprise avec notre système de commande par code QR. Gérez les commandes instantanément, réduisez l'attente et boostez votre efficacité",
     "ogTitle": "Qerve - Système intelligent pour cafés",
     "ogDescription": "Une plateforme plus rapide et plus sûre pour gérer les cafés modernes au Maroc et ailleurs.",
@@ -8,7 +9,9 @@
     "locale": "fr_FR",
     "imageAlt": "Aperçu de la plateforme Qerve",
     "tutorialTitle": "Guide produit Qerve",
-    "tutorialDescription": "Une visite visuelle de Qerve SaaS : commande QR, caisse POS, impression cuisine, architecture tenant, sécurité et workflows."
+    "tutorialDescription": "Une visite visuelle de Qerve SaaS : commande QR, caisse POS, impression cuisine, architecture tenant, sécurité et workflows.",
+    "getStartedTitle": "Tarifs et démarrage",
+    "getStartedDescription": "Découvrez les forfaits Qerve pour la commande QR, la gestion de caisse et les opérations connectées de votre café."
   },
   "Common": {
     "currency": "MAD",
@@ -570,6 +573,7 @@
   },
   "GetStarted": {
     "backToHome": "Retour à l'accueil",
+    "breadcrumbCurrent": "Tarifs",
     "titleBefore": "Mettez à niveau le système",
     "titleHighlight": "d'exploitation de votre café.",
     "description": "Une tarification annuelle simple et transparente. Synchronisation complète entre vos clients, votre caissier et votre cuisine.",
@@ -582,6 +586,13 @@
       "description": "Contactez directement notre équipe commerciale. Nous déployons et configurons l'ensemble de votre système en moins de 24 heures.",
       "whatsapp": "Parler aux ventes",
       "email": "Nous envoyer un e-mail"
+    },
+    "explore": {
+      "aria": "Découvrir Qerve",
+      "title": "Découvrir Qerve",
+      "home": "Accueil",
+      "guide": "Guide produit",
+      "demo": "Démo en direct"
     },
     "plans": {
       "silver": {

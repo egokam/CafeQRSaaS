@@ -21,7 +21,7 @@ import {
 import { getAdminMessages } from "../../../actions/support";
 
 import MenuTab from "../../../components/admin/MenuTab";
-import ModifiersTab from "../../../components/admin/ModifiersTab"; // 🌟 تم الاستيراد هنا
+import ModifiersTab from "../../../components/admin/ModifiersTab";
 import TablesTab from "../../../components/admin/TablesTab";
 import SalesTab from "../../../components/admin/SalesTab";
 import DevicesTab from "../../../components/admin/DevicesTab";

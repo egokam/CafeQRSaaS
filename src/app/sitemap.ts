@@ -4,11 +4,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
       url: 'https://qerve.egokam.site',
-      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 1,
     },
     {
       url: 'https://qerve.egokam.site/get-started',
-      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: 'https://qerve.egokam.site/tutorial',
+      changeFrequency: 'monthly',
+      priority: 0.8,
     }
   ];
 }

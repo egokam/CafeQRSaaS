@@ -66,12 +66,12 @@ export function LivePreview() {
   return (
     <section className="relative z-10 mx-auto w-full max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-12 text-center">
-        <h2 className="mb-2 text-sm font-bold uppercase tracking-widest text-amber-500">
+        <p className="mb-2 text-sm font-bold uppercase tracking-widest text-amber-500">
           {t("eyebrow")}
-        </h2>
-        <h3 className="mb-4 text-3xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
+        </p>
+        <h2 className="mb-4 text-3xl font-black tracking-tight text-white sm:text-4xl md:text-5xl">
           {t("title")}
-        </h3>
+        </h2>
         <p className="mx-auto max-w-2xl text-lg text-zinc-400">
           {t("description")}
         </p>

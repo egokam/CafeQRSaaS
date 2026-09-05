@@ -1,6 +1,7 @@
 {
   "Metadata": {
     "title": "Qerve",
+    "homeTitle": "QR Ordering and POS for Cafés",
     "description": "Modernize your business with our QR code ordering system. Handle orders instantly, reduce wait times, and boost efficiency for a seamless customer experience.",
     "ogTitle": "Qerve - Smart Cafe System",
     "ogDescription": "A faster and more secure platform for managing modern cafes in Morocco and beyond.",
@@ -8,7 +9,9 @@
     "locale": "en_US",
     "imageAlt": "Qerve platform preview",
     "tutorialTitle": "Qerve Product Guide",
-    "tutorialDescription": "A visual walkthrough of Qerve SaaS, including QR ordering, POS, kitchen printing, tenant architecture, security, and workflows."
+    "tutorialDescription": "A visual walkthrough of Qerve SaaS, including QR ordering, POS, kitchen printing, tenant architecture, security, and workflows.",
+    "getStartedTitle": "Pricing and Getting Started",
+    "getStartedDescription": "Explore Qerve plans for QR ordering, point-of-sale operations, and connected café workflows."
   },
   "Common": {
     "currency": "MAD",
@@ -570,6 +573,7 @@
   },
   "GetStarted": {
     "backToHome": "Back to Home",
+    "breadcrumbCurrent": "Pricing",
     "titleBefore": "Upgrade your business's",
     "titleHighlight": "operating system.",
     "description": "Simple, transparent yearly pricing. Complete synchronization between your guests, your cashier, and your kitchen.",
@@ -582,6 +586,13 @@
       "description": "Contact our sales team directly. We deploy and configure your entire system in under 24 hours.",
       "whatsapp": "Talk to Sales",
       "email": "Email Us"
+    },
+    "explore": {
+      "aria": "Explore Qerve",
+      "title": "Explore Qerve",
+      "home": "Home",
+      "guide": "Product guide",
+      "demo": "Live demo"
     },
     "plans": {
       "silver": {

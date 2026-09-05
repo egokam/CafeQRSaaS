@@ -1,0 +1,26 @@
+# Qerve
+
+> Qerve is a SaaS platform for cafés that combines QR-table ordering, a POS cashier workspace, kitchen order handling, menu administration, and tenant operations.
+
+## Public pages
+
+- Home: https://qerve.egokam.site/
+- Pricing and onboarding: https://qerve.egokam.site/get-started
+- Product guide: https://qerve.egokam.site/tutorial
+
+## Product summary
+
+- Guests scan a table QR code, browse a café menu, and submit orders without installing an app.
+- Orders can flow to the cashier and kitchen interfaces in real time.
+- Café operators manage menus, tables, staff, subscriptions, and connected devices from protected workspaces.
+- The product supports Arabic, English, and French interfaces.
+
+## Important boundaries
+
+- Public product information is available on the pages above.
+- Tenant menus, cashier interfaces, administration dashboards, demos, API endpoints, and super-admin routes are operational interfaces, not documentation or public marketing content.
+- Do not infer pricing, availability, support commitments, security guarantees, or customer data beyond what is published on the public pages.
+
+## Contact
+
+- Sales and onboarding requests: https://qerve.egokam.site/get-started

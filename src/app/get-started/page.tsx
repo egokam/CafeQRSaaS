@@ -6,12 +6,21 @@ import { Check, MessageCircle, Mail, ArrowLeft, Zap, Star, Gem } from "lucide-re
 import Link from "next/link";
 import { useTranslations, useLocale } from "next-intl";
 import { LanguageSwitcher } from "@/components/landing/LanguageSwitcher"; 
+import { SITE_URL } from "@/lib/seo";
 
 const WHATSAPP_NUMBER = "212781991384";
 const EMAIL_ADDRESS = "egokam.business@gmail.com";
 
 // قاموس محلي للنصوص الجديدة الخاصة بدورة الدفع لتجنب أخطاء الترجمة المفقودة
-const CYCLE_TRANSLATIONS: Record<string, any> = {
+type BillingCycleCopy = {
+  monthly: string;
+  yearly: string;
+  free: string;
+  mo: string;
+  yr: string;
+};
+
+const CYCLE_TRANSLATIONS: Record<string, BillingCycleCopy> = {
   en: { monthly: "Monthly", yearly: "Yearly", free: "2 Months FREE", mo: "mo", yr: "yr" },
   fr: { monthly: "Mensuel", yearly: "Annuel", free: "2 Mois GRATUITS", mo: "mois", yr: "an" },
   ar: { monthly: "شهري", yearly: "سنوي", free: "شهران مجاناً", mo: "شهر", yr: "سنة" }
@@ -66,6 +75,24 @@ export default function GetStartedPage() {
   const t = useTranslations("GetStarted");
   const locale = useLocale();
   const ct = CYCLE_TRANSLATIONS[locale] || CYCLE_TRANSLATIONS.en;
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Qerve",
+        item: `${SITE_URL}/`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: t("breadcrumbCurrent"),
+        item: `${SITE_URL}/get-started`,
+      },
+    ],
+  };
   
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
 
@@ -78,6 +105,10 @@ export default function GetStartedPage() {
   return (
     /* 🛑 تم إزالة font-sans ليرث الخط الأصلي، وتغيير overflow-hidden إلى overflow-x-hidden لتجنب المشاكل العمودية */
     <div className="min-h-screen bg-zinc-950 text-zinc-50 selection:bg-amber-500/30 pt-6 pb-24 overflow-x-hidden relative">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       
       {/* 🌟 Background Gradient */}
       <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-zinc-900/60 via-zinc-950/20 to-transparent pointer-events-none -z-10" />
@@ -86,9 +117,17 @@ export default function GetStartedPage() {
         
         {/* Top Navigation Bar */}
         <div className="flex justify-between items-center mb-16 pt-4">
-          <Link href="/" className="inline-flex items-center gap-2 text-zinc-400 hover:text-zinc-50 transition-colors text-sm font-medium bg-zinc-900/40 px-5 py-2.5 rounded-full border border-white/5 hover:border-white/10 hover:bg-zinc-800/60 backdrop-blur-md">
-            <ArrowLeft size={16} className="rtl:rotate-180" /> {t("backToHome")}
-          </Link>
+          <nav aria-label={t("breadcrumbCurrent")}>
+            <ol className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400">
+              <li>
+                <Link href="/" className="inline-flex items-center gap-2 hover:text-zinc-50 transition-colors bg-zinc-900/40 px-5 py-2.5 rounded-full border border-white/5 hover:border-white/10 hover:bg-zinc-800/60 backdrop-blur-md">
+                  <ArrowLeft size={16} className="rtl:rotate-180" /> {t("backToHome")}
+                </Link>
+              </li>
+              <li aria-hidden="true" className="text-zinc-700">/</li>
+              <li aria-current="page" className="hidden sm:inline text-zinc-300">{t("breadcrumbCurrent")}</li>
+            </ol>
+          </nav>
           
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
@@ -239,7 +278,7 @@ export default function GetStartedPage() {
           transition={{ duration: 0.6, delay: 0.4 }}
           className="mt-32 text-center border-t border-white/5 pt-16 max-w-3xl mx-auto"
         >
-          <h3 className="text-2xl font-bold text-white mb-3">{t("contact.title")}</h3>
+          <h2 className="text-2xl font-bold text-white mb-3">{t("contact.title")}</h2>
           <p className="text-zinc-400 mb-10 text-lg">{t("contact.description")}</p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -262,6 +301,21 @@ export default function GetStartedPage() {
             </a>
           </div>
         </motion.div>
+
+        <nav aria-label={t("explore.aria")} className="mt-16 border-t border-white/5 pt-10 text-center">
+          <h2 className="text-xl font-bold text-white">{t("explore.title")}</h2>
+          <div className="mt-5 flex flex-wrap justify-center gap-3">
+            <Link href="/" className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-amber-400/40 hover:text-amber-300">
+              {t("explore.home")}
+            </Link>
+            <Link href="/tutorial" className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-amber-400/40 hover:text-amber-300">
+              {t("explore.guide")}
+            </Link>
+            <Link href="/demo/client" className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:border-amber-400/40 hover:text-amber-300">
+              {t("explore.demo")}
+            </Link>
+          </div>
+        </nav>
 
       </div>
     </div>

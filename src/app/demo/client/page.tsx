@@ -269,7 +269,12 @@ export default function ClientMenuDemo() {
   };
 
   if (isLoading) {
-    return <div className="flex min-h-screen items-center justify-center bg-white font-bold text-black">{t.loading}</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white font-bold text-black">
+        <h1 className="sr-only">Interactive customer menu demo</h1>
+        {t.loading}
+      </div>
+    );
   }
 
   return (

@@ -18,28 +18,24 @@ export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations({ locale, namespace: "Metadata" });
 
   return {
-    title: "Qerve",
+    title: {
+      default: "Qerve",
+      template: "%s | Qerve",
+    },
     description: t("description"),
     metadataBase: new URL("https://qerve.egokam.site"),
     manifest: "/manifest.json",
+    applicationName: "Qerve",
+    category: "business",
+    icons: {
+      icon: [
+        { url: "/favicon.ico", type: "image/x-icon" },
+        { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      ],
+      apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    },
     verification: {
       google: "uRSDVPHWPOMxeQSpB3WNbMGY4U88_poBxQsJWUq5Oig",
-    },
-    openGraph: {
-      title: "Qerve",
-      description: t("ogDescription"),
-      url: "https://qerve.egokam.site",
-      siteName: "Qerve",
-      images: [
-        {
-          url: "/og-image.jpg",
-          width: 1200,
-          height: 630,
-          alt: t("imageAlt"),
-        },
-      ],
-      locale: t("locale"),
-      type: "website",
     },
   };
 }

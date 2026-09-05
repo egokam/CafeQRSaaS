@@ -32,14 +32,18 @@ import {
 } from "lucide-react";
 import { getLocaleDirection, type Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
+import { publicPageMetadata, SITE_URL } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Metadata");
 
-  return {
+  return publicPageMetadata({
     title: t("tutorialTitle"),
     description: t("tutorialDescription"),
-  };
+    path: "/tutorial",
+    locale: t("locale"),
+    imageAlt: t("imageAlt"),
+  });
 }
 
 type Icon = ComponentType<{ className?: string }>;
@@ -371,6 +375,29 @@ export default async function TutorialPage() {
   const stack = t.raw("stack.rows") as StackRow[];
   const posFlowLines = t.raw("posFlow.lines") as FlowStep[];
   const roadmap = t.raw("roadmap.items") as string[];
+  const breadcrumb = {
+    en: { ariaLabel: "Breadcrumb", home: "Home", current: "Product guide" },
+    fr: { ariaLabel: "Fil d’Ariane", home: "Accueil", current: "Guide produit" },
+    ar: { ariaLabel: "مسار التنقل", home: "الرئيسية", current: "دليل المنتج" },
+  }[locale];
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: breadcrumb.home,
+        item: `${SITE_URL}/`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: breadcrumb.current,
+        item: `${SITE_URL}/tutorial`,
+      },
+    ],
+  };
 
   return (
     <div
@@ -380,16 +407,28 @@ export default async function TutorialPage() {
     >
       <div className="fixed inset-0 -z-10 bg-[linear-gradient(180deg,#09090b_0%,#18181b_45%,#09090b_100%)]" />
       <div className="fixed inset-0 -z-10 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:64px_64px] opacity-30" />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
 
       <header className="sticky top-0 z-40 border-b border-white/10 bg-zinc-950/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 transition-colors hover:text-zinc-50"
-          >
-            <BackIcon className="h-4 w-4" />
-            {t("header.back")}
-          </Link>
+          <nav aria-label={breadcrumb.ariaLabel}>
+            <ol className="flex items-center gap-2 text-sm font-medium text-zinc-400">
+              <li>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 transition-colors hover:text-zinc-50"
+                >
+                  <BackIcon className="h-4 w-4" />
+                  {breadcrumb.home}
+                </Link>
+              </li>
+              <li aria-hidden="true" className="text-zinc-600">/</li>
+              <li aria-current="page" className="text-zinc-200">{breadcrumb.current}</li>
+            </ol>
+          </nav>
           <Link
             href="/demo/client"
             className="inline-flex items-center gap-2 rounded-full bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-400"
